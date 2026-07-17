@@ -2229,8 +2229,15 @@ var HoyTab = function(props) {
     // ============ HERO: LIQUIDEZ ACTUAL (estilo ledger — tarjeta oscura fija) ============
     React.createElement("div", {
       style: {
-        background: "linear-gradient(180deg, " + C.primary + " 0%, " + C.primarySoft + " 130%)",
-        backgroundImage: "radial-gradient(circle at 85% 20%, rgba(180,131,42,0.18), transparent 55%)",
+        backgroundColor: C.primary,
+        backgroundImage: "radial-gradient(circle at 85% 20%, rgba(180,131,42,0.18), transparent 55%), linear-gradient(180deg, " + C.primary + " 0%, " + C.primarySoft + " 130%)",
+        /* v3.23.2-fix: antes "background" (shorthand) y "backgroundImage" eran dos props
+           de estilo separadas — React las aplica ambas al DOM, y backgroundImage (el radial,
+           casi transparente) terminaba pisando el gradiente verde de "background". El hero
+           quedaba sin fondo real, con texto claro sobre el fondo claro de la página (invisible).
+           Por eso un toggle de tema "lo arreglaba": C.primary cambiaba y forzaba a reescribir
+           "background", que esa vez sí ganaba. Ahora ambos gradientes viven en backgroundImage,
+           uno solo, sin pisarse. */
         borderRadius: T.radius.xl, padding: "26px 30px", color: "#F4F1E9"
         /* v3.23-fix: antes "C.onPrimary === C.bg ? C.text : #F4F1E9" — en tema claro
            C.onPrimary y C.bg son el MISMO hex (#F4F1E9), así que la condición siempre
