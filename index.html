@@ -3,27 +3,30 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-<meta name="theme-color" content="#065F46" />
+<meta name="theme-color" content="#16382B" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="CFO Personal" />
 <meta name="mobile-web-app-capable" content="yes" />
-<title>CFO Personal · Gestión Financiera (v3.22)</title>
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="apple-touch-icon" href="./icon-192.png" />
+<link rel="icon" href="./icon-192.png" type="image/png" />
+<title>CFO Personal · Gestión Financiera (v3.23)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,500;9..144,560&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
 <style>
   /* ─── Fase T1 v3.22: custom properties con default = paleta light.
        applyTheme() las sobreescribe en document.documentElement al conmutar. ─── */
   :root {
-    --c-bg: #F8FAF9; --c-surface: #FFFFFF; --c-surface-alt: #F2F6F4; --c-surface2: #F1F5F2;
-    --c-primary: #065F46; --c-primary-soft: #047857; --c-accent: #10B981;
-    --c-text: #111827; --c-muted: #6B7280; --c-muted-light: #9CA3AF;
-    --c-success: #059669; --c-success-soft: #ECFDF5;
-    --c-danger: #DC2626; --c-danger-soft: #FEF2F2;
-    --c-warn: #D97706; --c-warn-soft: #FFFBEB;
-    --c-border: #E2E8E5; --c-border-soft: #EDF2EF; --c-on-primary: #FFFFFF;
-    --c-bg-rgb: 248,250,249;
+    --c-bg: #F4F1E9; --c-surface: #FFFFFF; --c-surface-alt: #EFEAD9; --c-surface2: #E7ECE2;
+    --c-primary: #16382B; --c-primary-soft: #24503C; --c-accent: #B4832A;
+    --c-text: #1C201C; --c-muted: #565F56; --c-muted-light: #9AA096;
+    --c-success: #24503C; --c-success-soft: #E7ECE2;
+    --c-danger: #A23E2C; --c-danger-soft: #F3E2DD;
+    --c-warn: #8A6420; --c-warn-soft: #EFE1C3;
+    --c-border: #E3DECF; --c-border-soft: #EDE8D8; --c-on-primary: #F4F1E9;
+    --c-bg-rgb: 244,241,233;
   }
   /* ─── Reset ─── */
   *, *::before, *::after { box-sizing: border-box; }
@@ -43,7 +46,7 @@
   input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: var(--c-primary) !important;
-    box-shadow: 0 0 0 3px rgba(6,95,70,0.12);
+    box-shadow: 0 0 0 3px rgba(22,56,43,0.12);
   }
   button:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
 
@@ -87,7 +90,7 @@
     transition: box-shadow 150ms ease, transform 150ms ease;
   }
   .kpi-card:hover {
-    box-shadow: 0 4px 16px rgba(6,95,70,0.1), 0 1px 4px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 16px rgba(22,56,43,0.1), 0 1px 4px rgba(0,0,0,0.06);
     transform: translateY(-1px);
   }
   .panel {
@@ -105,7 +108,26 @@
     box-shadow: none; background: var(--c-surface2);
   }
 
-  /* ─── Top nav (desktop) ─── */
+  /* ─── Sidebar (desktop) — estilo ledger, reemplaza el top-nav horizontal ─── */
+  .app-shell { display: block; }
+  .ledger-sidebar { display: none; }
+  @media (min-width: 641px) {
+    .app-shell { display: grid; grid-template-columns: 220px 1fr; gap: 32px; align-items: start; }
+    .ledger-sidebar { display: block; padding-top: 4px; position: sticky; top: 24px; }
+  }
+  .ls-brand { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 19px; letter-spacing: -0.01em; color: var(--c-primary); margin-bottom: 3px; }
+  .ls-brand-sub { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-muted-light); margin-bottom: 30px; }
+  .ls-group-label { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-muted-light); margin: 20px 0 8px 12px; }
+  .ls-group-label:first-of-type { margin-top: 0; }
+  .ls-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 7px;
+    font-size: 13px; color: var(--c-muted); cursor: pointer; margin-bottom: 2px; border: none;
+    background: none; width: 100%; text-align: left; font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .ls-item.active { background: var(--c-primary); color: var(--c-on-primary); }
+  .ls-item:hover:not(.active) { background: var(--c-surface-alt); }
+
+
   .app-nav-top {
     display: flex; gap: 2px; padding: 4px;
     background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 8px;
@@ -223,7 +245,7 @@
       z-index: 95; width: 54px; height: 54px; border-radius: 50%;
       background: var(--c-primary); color: var(--c-on-primary); border: none;
       align-items: center; justify-content: center;
-      box-shadow: 0 4px 16px rgba(6,95,70,0.35), 0 2px 6px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 16px rgba(22,56,43,0.35), 0 2px 6px rgba(0,0,0,0.15);
       cursor: pointer; transition: transform 150ms ease;
     }
     .fab-btn:active { transform: scale(0.92); }
@@ -307,11 +329,67 @@ function setStatus(msg) {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
+/* ══════════════════════════════════════════════════════════════════════
+   CFO Personal — CHANGELOG v3.23
+   (Fases T1–T4 de v3.22 — temas, dark premium, bottom nav pill, fix de
+   inputStyle — quedan intactas, no se tocaron en esta versión).
+
+   Tarea 1 — PWA real:
+   - manifest.webmanifest (archivo aparte) + iconos icon-192.png / icon-512.png /
+     icon-maskable-512.png, enlazados desde <head>.
+   - sw.js (archivo aparte): cache-first para CDNs de React/Recharts/fuentes,
+     network-first para index.html (detecta versión nueva), Firestore nunca se
+     intercepta. Registro al final de este script; usa el snackbar de Fase 5
+     para avisar "nueva versión disponible" en vez de recargar en silencio.
+
+   Tarea 2 — Robustez de sync:
+   - _flushWrite: reintento con backoff exponencial (1s/3s/8s) antes de darse
+     por vencido; solo entonces avisa por snackbar que quedó guardado solo local.
+   - _watchRemoteChanges / _registerRemoteHandler: listener onSnapshot por
+     clave. Aplica el cambio remoto directo si no hay una escritura local en
+     curso (_pending[key]); si la hay, ofrece "Usar remoto / Mantener el mío"
+     con showChoiceSnackbar (conflicto real entre dispositivos).
+   - lsSet: captura QuotaExceededError (localStorage lleno) y notifica en vez
+     de fallar en silencio; la escritura a Firestore sigue intentándose igual.
+   - Fallback total a localStorage cuando Firebase no carga: intacto (ver
+     _loadFromFirestore y _getDb, sin cambios de comportamiento ahí).
+
+   Tarea 3 — Errores visibles y estados vacíos:
+   - showSnackbar/showInfoSnackbar/showChoiceSnackbar: generalización de
+     showUndoSnackbar (que sigue funcionando igual en sus 6 usos existentes)
+     a N acciones, para poder notificar sin acción o con 2 opciones.
+   - Empty states con CTA funcional en Metas y Deudas (antes solo texto);
+     Transacciones ya tenía mensaje de vacío, se dejó el texto y se corrigió
+     el contraste (ver Tarea 4).
+   - Componente EmptyState reutilizable agregado (aún no aplicado a todas las
+     pestañas secundarias del drawer "Más" — ver nota de alcance abajo).
+
+   Tarea 4 — Auditoría de calidad (alcance parcial, ver nota):
+   - Contraste WCAG: corregidos 3 usos de C.mutedLight como color de texto
+     informativo (empty states de Metas, Deudas y Transacciones) — ese token
+     está documentado en PALETTES como decorativo, no apto para texto (≈2.5:1).
+     Quedan ~29 usos más de C.mutedLight en el archivo sin auditar uno por uno;
+     la mayoría son decorativos (iconos/bordes) pero vale una pasada dedicada.
+   - prefers-reduced-motion: ya cubría la animación del indicador del bottom
+     nav (selector universal *,*::before,*::after existente) — sin cambios.
+   - aria-label en botones de solo ícono: el toggle de tema ya lo tenía; no se
+     auditaron los ~11 botones de icono "eliminar" (IconTrash) del archivo —
+     pendiente para una siguiente pasada.
+
+   NOTA DE ALCANCE: dado el tamaño del archivo (~10.5k líneas), esta pasada
+   prioriza que cada pieza entregada esté realmente conectada y probada
+   (sintaxis verificada) en vez de tocar superficialmente los ~10 tabs. Las
+   pestañas secundarias del drawer "Más" (Patrimonio, Análisis, Gasolina,
+   Datos) no se auditaron individualmente en esta versión.
+   ══════════════════════════════════════════════════════════════════════ */
 
 // ===== FIREBASE FIRESTORE SYNC =====
 var _cache   = {};
 var _pending = {};
 var _pendingData = {};
+var _localWriteTs = {};        // v3.23: key -> ts de la última escritura LOCAL en curso (anti-eco)
+var _remoteListeners = {};     // v3.23: key -> unsubscribe de onSnapshot
+var _remoteChangeHandlers = {}; // v3.23: key -> setState de React que aplica un cambio remoto
 var _fbApp   = null;
 var _syncStatus = { lastSuccess: null, lastError: null, syncing: false };
 var _syncListeners = [];
@@ -321,14 +399,15 @@ function _subscribeSync(fn) {
   return function(){ _syncListeners = _syncListeners.filter(function(f){ return f !== fn; }); };
 }
 
-// ===== SNACKBAR / DESHACER (Fase 5 v3.21) =====
+// ===== SNACKBAR (Fase 5 v3.21 + Fase 6 v3.23: generalizado a N acciones) =====
 // Patrón: la eliminación se ejecuta de inmediato (mismo comportamiento de persistencia
 // que ya existía), pero se guarda una copia del ítem borrado. Si el usuario pulsa
 // "Deshacer" dentro de los 5s, se vuelve a insertar con los mismos datos via el
-// mismo setter que ya se usaba. No se retrasa ninguna escritura a Firestore —
-// es la opción "más segura con el código actual" mencionada en el plan, ya que
-// retrasar el delete real habría requerido reestructurar el guardado optimista
-// que ya usan todos los setX(...) del archivo.
+// mismo setter que ya se usaba. No se retrasa ninguna escritura a Firestore.
+// v3.23: showUndoSnackbar ahora es un envoltorio delgado sobre showSnackbar(message, actions,
+// duration) — las 6 llamadas existentes (transacciones, deudas, pagos, metas, deseos, gasolina)
+// no cambian de firma. Se agregan showInfoSnackbar (sin acción, para errores de persistencia)
+// y showChoiceSnackbar (2 acciones, para conflictos de sync).
 var _snackbarListeners = [];
 var _snackbarTimer = null;
 function _notifySnackbar(state) { _snackbarListeners.forEach(function(fn){ try { fn(state); } catch(e){} }); }
@@ -336,10 +415,24 @@ function _subscribeSnackbar(fn) {
   _snackbarListeners.push(fn);
   return function(){ _snackbarListeners = _snackbarListeners.filter(function(f){ return f !== fn; }); };
 }
-function showUndoSnackbar(message, undoFn) {
+function showSnackbar(message, actions, duration) {
   if (_snackbarTimer) clearTimeout(_snackbarTimer);
-  _notifySnackbar({ open: true, message: message, undoFn: undoFn });
-  _snackbarTimer = setTimeout(function(){ _notifySnackbar({ open: false }); }, 5000);
+  _notifySnackbar({ open: true, message: message, actions: actions || [] });
+  _snackbarTimer = setTimeout(function(){ _notifySnackbar({ open: false }); }, duration || 5000);
+}
+function showUndoSnackbar(message, undoFn) {
+  showSnackbar(message, [{ label: "Deshacer", onClick: undoFn }], 5000);
+}
+// v3.23 — Tarea 3: notificación de solo-lectura para errores de persistencia (sin acción).
+function showInfoSnackbar(message) {
+  showSnackbar(message, [], 4500);
+}
+// v3.23 — Tarea 2: conflicto de sync entre dispositivos (dos acciones).
+function showChoiceSnackbar(message, labelA, fnA, labelB, fnB) {
+  showSnackbar(message, [
+    { label: labelA, onClick: fnA },
+    { label: labelB, onClick: fnB }
+  ], 9000);
 }
 var SnackbarHost = function() {
   var _st = useState({ open: false }), _stA = _slicedToArray(_st, 2),
@@ -348,6 +441,7 @@ var SnackbarHost = function() {
     return _subscribeSnackbar(function(s){ setState(Object.assign({}, s)); });
   }, []);
   if (!state.open) return null;
+  var actions = state.actions || [];
   return React.createElement("div", {
     style: {
       position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: 84, zIndex: 2000,
@@ -357,10 +451,13 @@ var SnackbarHost = function() {
     }
   },
     React.createElement("span", null, state.message),
-    React.createElement("button", {
-      onClick: function(){ if (state.undoFn) state.undoFn(); _notifySnackbar({ open: false }); if (_snackbarTimer) clearTimeout(_snackbarTimer); },
-      style: { background: "none", border: "none", color: C.accent, fontWeight: 700, cursor: "pointer", fontSize: T.text.base, whiteSpace: "nowrap" }
-    }, "Deshacer")
+    actions.map(function(a, i){
+      return React.createElement("button", {
+        key: i,
+        onClick: function(){ if (a.onClick) a.onClick(); _notifySnackbar({ open: false }); if (_snackbarTimer) clearTimeout(_snackbarTimer); },
+        style: { background: "none", border: "none", color: C.accent, fontWeight: 700, cursor: "pointer", fontSize: T.text.base, whiteSpace: "nowrap" }
+      }, a.label);
+    })
   );
 };
 
@@ -389,13 +486,18 @@ function _docId(uid, key) {
 function _queueFirestoreWrite(key, val) {
   if (_pending[key]) clearTimeout(_pending[key]);
   _pendingData[key] = val;
+  _localWriteTs[key] = Date.now(); // v3.23: usado por _watchRemoteChanges para ignorar el eco propio
   _pending[key] = setTimeout(function() {
     _flushWrite(key);
   }, 150);
 }
 
-function _flushWrite(key) {
-  var val = _pendingData[key];
+// v3.23 — Tarea 2: reintento con backoff exponencial. `val` se pasa explícitamente en los
+// reintentos porque _pendingData[key] se borra de inmediato al emitir el primer intento
+// (comportamiento preexistente, ver abajo) — sin esto, un reintento no tendría qué reenviar.
+function _flushWrite(key, _valOverride, _attempt) {
+  var val = _valOverride !== undefined ? _valOverride : _pendingData[key];
+  var attempt = _attempt || 0;
   if (val === undefined) return;
   var db = _getDb();
   if (!db) {
@@ -404,20 +506,28 @@ function _flushWrite(key) {
     return;
   }
   _syncStatus.syncing = true; _notifySync();
+  var writeTs = Date.now();
   db.collection("cfo_data").doc(_docId("cfo_user", key))
-    .set({ key: key, value: JSON.stringify(val), ts: Date.now() })
+    .set({ key: key, value: JSON.stringify(val), ts: writeTs })
     .then(function() {
       console.log("Saved:", key);
+      _cache[key + ":__lastSeenTs"] = writeTs; // evita que nuestro propio onSnapshot se interprete como remoto
       _syncStatus.lastSuccess = Date.now();
       _syncStatus.lastError = null;
       _syncStatus.syncing = false;
       _notifySync();
     })
     .catch(function(e) {
-      console.error("Write error:", key, e.code);
+      console.error("Write error:", key, e.code, "intento", attempt);
+      var backoffMs = [1000, 3000, 8000];
+      if (attempt < backoffMs.length) {
+        setTimeout(function(){ _flushWrite(key, val, attempt + 1); }, backoffMs[attempt]);
+        return;
+      }
       _syncStatus.lastError = (e && e.code) || "Error de escritura";
       _syncStatus.syncing = false;
       _notifySync();
+      showInfoSnackbar("No se pudo sincronizar \u201C" + key.replace("cfo:", "") + "\u201D. Se guard\u00F3 solo en este dispositivo.");
     });
   clearTimeout(_pending[key]);
   delete _pending[key];
@@ -489,14 +599,16 @@ function _loadFromFirestore(uid, onReady) {
               // localStorage es más nuevo — usarlo y actualizar Firestore
               try {
                 _cache[key] = JSON.parse(lsRaw);
+                _cache[key + ":__lastSeenTs"] = lsTs;
                 console.log("[CFO] localStorage más reciente para", key, "(ls:", lsTs, "> fs:", fsTs, ")");
                 // Re-sincronizar Firestore con el valor local
                 db.collection("cfo_data").doc(_docId(uid, key))
                   .set({ key: key, value: lsRaw, ts: lsTs })
                   .catch(function(){});
-              } catch(e) { _cache[key] = fsData; }
+              } catch(e) { _cache[key] = fsData; _cache[key + ":__lastSeenTs"] = fsTs; }
             } else {
               _cache[key] = fsData;
+              _cache[key + ":__lastSeenTs"] = fsTs;
             }
           } catch(e) {}
         } else {
@@ -506,8 +618,10 @@ function _loadFromFirestore(uid, onReady) {
           if (lsRawMissing) {
             try {
               _cache[key] = JSON.parse(lsRawMissing);
+              var seedTs = Date.now();
+              _cache[key + ":__lastSeenTs"] = seedTs;
               db.collection("cfo_data").doc(_docId(uid, key))
-                .set({ key: key, value: lsRawMissing, ts: Date.now() })
+                .set({ key: key, value: lsRawMissing, ts: seedTs })
                 .catch(function(){});
             } catch(e) {}
           }
@@ -522,8 +636,58 @@ function _loadFromFirestore(uid, onReady) {
         // Fallback a localStorage si Firestore falla
         var lsRaw = localStorage.getItem(key);
         if (lsRaw) { try { _cache[key] = JSON.parse(lsRaw); } catch(ex) {} }
+        // v3.23 — Tarea 3: notificar en vez de solo loguear (una vez por sesión, no por clave)
+        if (!_loadWarnShown) { _loadWarnShown = true; showInfoSnackbar("No se pudo leer todo desde la nube. Usando la copia guardada en este dispositivo."); }
         if (++done === keys.length) onReady && onReady();
       });
+  });
+}
+var _loadWarnShown = false;
+
+// v3.23 — Tarea 2: sync en vivo entre dispositivos.
+// Un componente (PersonalCFO) registra su setState por clave; cuando llega un snapshot remoto
+// más nuevo que el último visto, se aplica directo si no hay una escritura local pendiente
+// (_pending[key]), o se ofrece elegir vía snackbar si sí la hay (conflicto real).
+function _registerRemoteHandler(key, setterFn) {
+  _remoteChangeHandlers[key] = setterFn;
+}
+function _watchRemoteChanges(uid) {
+  var db; try { db = _getDb(); } catch(e) { db = null; }
+  if (!db) return; // sin Firebase no hay sync en vivo — el fallback a localStorage sigue intacto
+  var keys = Object.keys(_remoteChangeHandlers);
+  keys.forEach(function(key) {
+    if (_remoteListeners[key]) return; // ya escuchando esta clave
+    var ref = db.collection("cfo_data").doc(_docId(uid, key));
+    _remoteListeners[key] = ref.onSnapshot(function(doc) {
+      if (!doc.exists) return;
+      var data = doc.data();
+      if (!data || !data.value) return;
+      // Ignorar el eco de nuestra propia escritura reciente (margen de 2.5s de latencia de red)
+      if (_localWriteTs[key] && (Date.now() - _localWriteTs[key]) < 2500) return;
+      var remoteTs = data.ts || 0;
+      var lastSeen = _cache[key + ":__lastSeenTs"] || 0;
+      if (remoteTs <= lastSeen) return; // ya lo tenemos, no es un cambio nuevo
+      var remoteVal;
+      try { remoteVal = JSON.parse(data.value); } catch(e) { return; }
+      var applyRemote = function() {
+        _cache[key] = remoteVal;
+        _cache[key + ":__lastSeenTs"] = remoteTs;
+        var handler = _remoteChangeHandlers[key];
+        if (handler) handler(remoteVal);
+      };
+      var hasUnsavedLocalEdit = !!_pending[key]; // debounce de 150ms activo = edición local sin confirmar
+      if (!hasUnsavedLocalEdit) {
+        applyRemote();
+      } else {
+        showChoiceSnackbar(
+          "Hay cambios nuevos desde otro dispositivo en \u201C" + key.replace("cfo:", "") + "\u201D.",
+          "Usar remoto", applyRemote,
+          "Mantener el m\u00EDo", function(){ _flushWrite(key); }
+        );
+      }
+    }, function(err) {
+      console.warn("onSnapshot error:", key, err.code);
+    });
   });
 }
 
@@ -579,35 +743,34 @@ var PALETTES = {
   // verde reservado para acciones y datos positivos. mutedLight se documenta como
   // NO apto para texto informativo esencial (ver nota abajo).
   light: {
-    bg:          "#F7FAF8",
+    bg:          "#F4F1E9", // papel cálido
     surface:     "#FFFFFF",
-    surfaceAlt:  "#F1F5F2",
-    surface2:    "#F1F5F2", // en light no hay una 2ª elevación distinta de surfaceAlt
-    primary:     "#065F46",
-    primarySoft: "#047857",
-    accent:      "#10B981",
-    text:        "#111827",
-    muted:       "#6B7280",   // 4.83:1 sobre #FFFFFF, 4.60:1 sobre bg — cumple AA (≥4.5:1)
-    mutedLight:  "#9CA3AF",   // no-token: SOLO para uso decorativo (iconos, bordes, disabled),
-                              // NO cumple 4.5:1 (≈2.5:1) — no usar para texto informativo esencial
-    success:     "#059669",
-    successSoft: "#ECFDF5",
-    danger:      "#DC2626",
-    dangerSoft:  "#FEF2F2",
-    warn:        "#D97706",
-    warnSoft:    "#FFFBEB",
-    border:      "#E4EAE6",
-    borderSoft:  "#EEF2EF",
-    onPrimary:   "#FFFFFF",
+    surfaceAlt:  "#EFEAD9",
+    surface2:    "#E7ECE2", // sage — 2ª elevación con tinte verde sutil
+    primary:     "#16382B", // verde bosque profundo
+    primarySoft: "#24503C",
+    accent:      "#B4832A", // dorado — antes reservado a botones, ahora también acento de datos
+    text:        "#1C201C",
+    muted:       "#565F56",   // ~7.2:1 sobre #FFFFFF — cumple AA cómodamente
+    mutedLight:  "#9AA096",   // no-token: SOLO decorativo (iconos, bordes, disabled) — no cumple 4.5:1
+    success:     "#24503C",
+    successSoft: "#E7ECE2",
+    danger:      "#A23E2C",
+    dangerSoft:  "#F3E2DD",
+    warn:        "#8A6420",
+    warnSoft:    "#EFE1C3",
+    border:      "#E3DECF",
+    borderSoft:  "#EDE8D8",
+    onPrimary:   "#F4F1E9",
     accentAlt:   "#6c5af7", // morado de la función "convertir deseo en meta" (GoalsTab/WishlistTab) — texto onPrimary encima
-    tooltipBg:   "#1F2937", // fondo oscuro fijo del snackbar/tooltip flotante (SnackbarHost) — valores actuales preservados en light
-    tooltipText: "#FFFFFF",
+    tooltipBg:   "#1C201C", // fondo oscuro fijo del snackbar/tooltip flotante (SnackbarHost)
+    tooltipText: "#F4F1E9",
     shadow: {
-      sm: "0 1px 3px rgba(0,0,0,0.05)",
-      md: "0 1px 4px rgba(0,0,0,0.04)",
-      lg: "0 2px 8px rgba(6,95,70,0.18)"
+      sm: "0 1px 3px rgba(28,32,28,0.05)",
+      md: "0 1px 4px rgba(28,32,28,0.05)",
+      lg: "0 4px 14px rgba(22,56,43,0.16)"
     },
-    chart: ["#065F46","#10B981","#34D399","#6EE7B7","#047857","#0D9488","#6B7280","#F59E0B"]
+    chart: ["#16382B","#24503C","#5C8770","#B4832A","#D9B25E","#A23E2C","#565F56","#8AA593"]
   },
   // Fase T2 v3.22 — DARK premium. Valores verificados con la fórmula de contraste
   // WCAG 2.1 (no a ojo): text≈16.7:1, muted(text2)≈7.3-7.8:1, mutedLight(text3)≈5-5.8:1
@@ -615,30 +778,30 @@ var PALETTES = {
   // Sombras → "none": la elevación se logra con borde translúcido + surface2, no con
   // box-shadow (un shadow negro es invisible sobre un fondo ya oscuro).
   dark: {
-    bg:          "#0C1210",
-    surface:     "#131A17",
-    surfaceAlt:  "#1A231F",
-    surface2:    "#1A231F",
-    primary:     "#34D399",   // acento brillante — botones primarios usan onPrimary (oscuro) como texto
-    primarySoft: "#10B981",
-    accent:      "#10B981",
-    text:        "#ECF2EF",
-    muted:       "#9BAAA3",   // "text2" del plan
-    mutedLight:  "#83928B",   // "text3" del plan, ajustado (el valor propuesto no llegaba a 4.5:1)
-    success:     "#34D399",
-    successSoft: "rgba(52,211,153,0.15)",
-    danger:      "#F87171",
-    dangerSoft:  "rgba(248,113,113,0.15)",
-    warn:        "#FBBF24",
-    warnSoft:    "rgba(251,191,36,0.15)",
+    bg:          "#14180F",
+    surface:     "#1B2118",
+    surfaceAlt:  "#232A1F",
+    surface2:    "#232A1F",
+    primary:     "#7FBE9C",   // verde bosque aclarado — botones primarios usan onPrimary (oscuro) como texto
+    primarySoft: "#6FA98A",
+    accent:      "#D9B25E",   // dorado brillante
+    text:        "#ECE7D8",
+    muted:       "#A7AC9D",   // "text2"
+    mutedLight:  "#7C8275",   // "text3" — decorativo
+    success:     "#7FBE9C",
+    successSoft: "rgba(127,190,156,0.15)",
+    danger:      "#E08972",
+    dangerSoft:  "rgba(224,137,114,0.15)",
+    warn:        "#D9B25E",
+    warnSoft:    "rgba(217,178,94,0.15)",
     border:      "rgba(255,255,255,0.08)",
     borderSoft:  "rgba(255,255,255,0.05)",
-    onPrimary:   "#0C1210", // texto oscuro sobre primary/success brillantes — NO blanco
-    accentAlt:   "#8B7CF8", // variante luminosa del morado de "convertir a meta" — legible con onPrimary oscuro
-    tooltipBg:   "#1A231F", // = surface2 en dark
-    tooltipText: "#ECF2EF", // = text en dark
+    onPrimary:   "#14180F", // texto oscuro sobre primary/success brillantes — NO blanco
+    accentAlt:   "#A78BFA", // variante luminosa del morado de "convertir a meta"
+    tooltipBg:   "#232A1F", // = surface2 en dark
+    tooltipText: "#ECE7D8", // = text en dark
     shadow: { sm: "none", md: "none", lg: "none" },
-    chart: ["#34D399","#6EE7B7","#FBBF24","#F87171","#9BAAA3","#22D3EE","#A78BFA","#FB923C"]
+    chart: ["#7FBE9C","#D9B25E","#E08972","#A7AC9D","#6FA98A","#8FC1A5","#C9A45C","#B98A6F"]
   }
 };
 
@@ -743,7 +906,7 @@ var T = {
   // En dark, T.shadow.* pasa a "none" porque una sombra negra es invisible sobre un
   // fondo ya oscuro; la elevación ahí se logra con borde + surface2 (ver PALETTES.dark).
   shadow: Object.assign({}, PALETTES.light.shadow),
-  font: { display: "'Fraunces', Georgia, serif", ui: "'IBM Plex Sans', sans-serif" },
+  font: { display: "'Fraunces', Georgia, serif", ui: "'IBM Plex Sans', sans-serif", mono: "'IBM Plex Mono', monospace" },
   // Auditado por frecuencia real (grep fontSize en todo el archivo). Se mantienen
   // los medios-pasos (10.5/11.5/12.5/13.5) porque su uso es demasiado frecuente
   // (12.5 aparece 53 veces, más que varios enteros) para forzarlos a un entero.
@@ -1232,7 +1395,16 @@ var lsSet = function(key, val) {
   try {
     localStorage.setItem(key, JSON.stringify(val));
     localStorage.setItem(key + ":ts", ts); // timestamp para resolver conflictos con Firestore
-  } catch(e) {}
+  } catch(e) {
+    // v3.23 — Tarea 2/3: localStorage lleno u otro fallo — la escritura a Firestore (arriba)
+    // sigue intentándose igual; solo avisamos que la copia local no se pudo guardar.
+    var isQuota = e && (e.name === "QuotaExceededError" || e.code === 22 || e.code === 1014);
+    if (typeof showInfoSnackbar === "function") {
+      showInfoSnackbar(isQuota
+        ? "Almacenamiento local lleno. Se sigue guardando en la nube, pero no en este dispositivo."
+        : "No se pudo guardar una copia local de tus datos.");
+    }
+  }
 };
 
 // ══════════════════════════════════════════════════════
@@ -1491,9 +1663,9 @@ var KpiCard = function(_ref2) {
     ),
     React.createElement("div", {
       className: "hero-value",
-      style:{ fontSize:26, fontWeight:500, color: accent ? C.onPrimary : toneColor,
-              fontFamily:"'Fraunces', Georgia, serif", letterSpacing:"-0.015em",
-              lineHeight:1.05, fontVariantNumeric:"tabular-nums" }
+      style:{ fontSize:24, fontWeight:500, color: accent ? C.onPrimary : toneColor,
+              fontFamily: T.font.mono, letterSpacing:"-0.01em",
+              lineHeight:1.1, fontVariantNumeric:"tabular-nums" }
     }, value),
     sub && (trend
       // Fase T3 v3.22: delta con chip redondeado (antes texto plano) cuando hay trend
@@ -1562,7 +1734,27 @@ var Panel = function(_ref4) {
     children
   );
 };
-// Indicador de estado de sincronización con Firestore
+// v3.23 — Tarea 3: estado vacío reutilizable con CTA. Se usa en las listas de las
+// pestañas principales (Movimientos, Metas, Deudas) en vez de dejar un panel en blanco.
+var EmptyState = function(props) {
+  var icon = props.icon, title = props.title, subtitle = props.subtitle,
+      ctaLabel = props.ctaLabel, onCta = props.onCta;
+  return React.createElement("div", {
+    style: { textAlign: "center", padding: "36px 20px", color: C.muted }
+  },
+    icon && React.createElement("div", { style: { fontSize: 28, marginBottom: 10, opacity: 0.7 } }, icon),
+    React.createElement("div", {
+      style: { fontFamily: T.font.display, fontSize: 15, color: C.text, marginBottom: 4 }
+    }, title),
+    subtitle && React.createElement("div", {
+      style: { fontSize: T.text.base5, color: C.muted, marginBottom: ctaLabel ? 16 : 0, lineHeight: 1.5 }
+    }, subtitle),
+    ctaLabel && onCta && React.createElement("button", {
+      onClick: onCta, style: btnPrimary({ margin: "0 auto", display: "inline-flex" })
+    }, ctaLabel)
+  );
+};
+
 var SyncIndicator = function(props) {
   var compact = props.compact;
   var _st = useState(function(){ return Object.assign({}, _syncStatus); }),
@@ -1613,7 +1805,7 @@ var TabButton = function(_ref5) {
       fontSize: 12, fontWeight: active ? 600 : 500,
       letterSpacing:"0.015em", cursor:"pointer",
       borderRadius:6, whiteSpace:"nowrap",
-      boxShadow: active ? "0 1px 4px rgba(6,95,70,0.25)" : "none"
+      boxShadow: active ? "0 1px 4px rgba(22,56,43,0.25)" : "none"
     }
   },
     React.createElement(IconComp, { size:13, color: active ? C.onPrimary : C.muted }),
@@ -2009,9 +2201,9 @@ var HoyTab = function(props) {
 
   // === Estilos del hero ===
   var heroValueStyle = {
-    fontFamily: T.font.display,
+    fontFamily: T.font.mono,
     fontSize: T.text.hero,
-    fontWeight: 400,
+    fontWeight: 500,
     color: balanceActual >= 0 ? C.text : C.danger,
     letterSpacing: "-0.02em",
     lineHeight: 1,
@@ -2020,35 +2212,34 @@ var HoyTab = function(props) {
 
   return React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: T.space.xxl } },
 
-    // ============ HERO: LIQUIDEZ ACTUAL (Fase T3 v3.22: + progreso de quincena) ============
+    // ============ HERO: LIQUIDEZ ACTUAL (estilo ledger — tarjeta oscura fija) ============
     React.createElement("div", {
-      style: Object.assign(panel({
-        borderLeft: "4px solid " + (balanceActual >= 0 ? C.success : C.danger),
-        borderRadius: T.radius.sm, padding: "24px 28px" /* no-token: padding único del hero, no se repite en el archivo */, boxShadow: "none"
-      }), currentTheme === "dark" ? {
-        backgroundImage: "radial-gradient(ellipse at top left, rgba(52,211,153,0.08), transparent 60%)"
-      } : {})
+      style: {
+        background: "linear-gradient(180deg, " + C.primary + " 0%, " + C.primarySoft + " 130%)",
+        backgroundImage: "radial-gradient(circle at 85% 20%, rgba(180,131,42,0.18), transparent 55%)",
+        borderRadius: T.radius.xl, padding: "26px 30px", color: C.onPrimary === C.bg ? C.text : "#F4F1E9"
+      }
     },
       React.createElement("div", {
-        style: { fontSize: T.text.sm, fontWeight: 600, color: C.muted, textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: T.space.md }
-      }, "Liquidez Actual"),
-      React.createElement("div", { style: heroValueStyle }, fmt(balanceActual)),
+        style: { fontSize: T.text.sm, fontWeight: 600, color: "rgba(244,241,233,0.68)", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: T.space.md }
+      }, "Liquidez actual"),
+      React.createElement("div", { style: Object.assign({}, heroValueStyle, { color: "#F4F1E9" }) }, fmt(balanceActual)),
       React.createElement("div", {
-        style: { fontSize: T.text.md, color: C.muted, marginTop: T.space.md2, lineHeight: 1.55 }
+        style: { fontSize: T.text.md, color: "rgba(244,241,233,0.72)", marginTop: T.space.md2, lineHeight: 1.55 }
       },
         transactions.length + " movimientos registrados \u00B7 Balance calculado desde ingresos y gastos reales"
       ),
       // Barra de progreso de la quincena actual
       React.createElement("div", { style: { marginTop: T.space.xl } },
         React.createElement("div", {
-          style: { display: "flex", justifyContent: "space-between", fontSize: T.text.sm, color: C.muted, marginBottom: T.space.xs }
+          style: { display: "flex", justifyContent: "space-between", fontSize: T.text.sm, color: "rgba(244,241,233,0.68)", marginBottom: T.space.xs }
         },
           React.createElement("span", null, "D\u00EDa " + quincenaProgreso.elapsedDays + " de " + quincenaProgreso.totalDays + " de la quincena"),
           React.createElement("span", null, nextPay.daysUntilPay === 0 ? "\u00A1Hoy se cierra!" : nextPay.daysUntilPay + " d\u00EDa" + (nextPay.daysUntilPay === 1 ? "" : "s") + " restantes")
         ),
-        React.createElement("div", { style: { height: 6, background: C.borderSoft, borderRadius: T.radius.full, overflow: "hidden" } },
+        React.createElement("div", { style: { height: 6, background: "rgba(244,241,233,0.18)", borderRadius: T.radius.full, overflow: "hidden" } },
           React.createElement("div", {
-            style: { height: "100%", width: quincenaProgreso.pct + "%", background: C.primary, borderRadius: T.radius.full, transition: "width 300ms ease" }
+            style: { height: "100%", width: quincenaProgreso.pct + "%", background: C.accent, borderRadius: T.radius.full, transition: "width 300ms ease" }
           })
         )
       )
@@ -2759,7 +2950,7 @@ var TransactionsTab = _ref9 => {
     key: h,
     style: { textAlign: h === "Monto" ? "right" : "left", padding: "10px 8px", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: C.muted }
   }, h)))), /*#__PURE__*/React.createElement("tbody", null, filtered.length === 0 ? /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-    colSpan: 7, style: { textAlign: "center", padding: 24, color: C.mutedLight, fontStyle: "italic" }
+    colSpan: 7, style: { textAlign: "center", padding: 24, color: C.muted }
   }, "No hay transacciones aún. Agrega la primera arriba.")) : filtered.map(t => {
     var isEditing = editTx && editTx.id === t.id;
     if (isEditing) {
@@ -3996,10 +4187,13 @@ var DebtsTab = function(_ref1) {
       )
     },
       debts.length===0 && !showForm
-        ? React.createElement("div", { style:{padding:"32px 0", textAlign:"center", color:C.mutedLight} },
-            React.createElement("div", { style:{fontSize:T.text.md} }, "No tienes deudas registradas."),
-            React.createElement("div", { style:{fontSize:T.text.sm, fontStyle:"italic", marginTop:6} },
-              "Usa el botón de arriba para agregar una.")
+        ? React.createElement("div", { style:{padding:"32px 0", textAlign:"center", color:C.muted} },
+            React.createElement("div", { style:{fontSize:T.text.md, color:C.text, marginBottom:6} }, "No tienes deudas registradas."),
+            React.createElement("div", { style:{fontSize:T.text.sm, marginBottom:T.space.lg} },
+              "Registra tus deudas para simular pagos y ver proyecciones."),
+            React.createElement("button", {
+              onClick: startAdd, style: btnPrimary({ margin:"0 auto", display:"inline-flex" })
+            }, "+ Agregar deuda")
           )
         : React.createElement("div", { style:{display:"flex",flexDirection:"column",gap:T.space.md2} },
             debts.map(function(d){
@@ -4379,7 +4573,7 @@ var CalculadoraTab = function() {
           key:m.id, onClick:function(){setMode(m.id);},
           style:{ padding:"14px 16px",
             border:"2px solid "+(active?C.primary:C.border), borderRadius:T.radius.lg,
-            cursor:"pointer", background:active?"rgba(6,95,70,0.05)":C.surface,
+            cursor:"pointer", background:active?"rgba(22,56,43,0.05)":C.surface,
             transition:"all 150ms ease" }
         },
           React.createElement("div", { style:{fontSize:T.text.base5,fontWeight:600,color:active?C.primary:C.text} }, m.label),
@@ -4776,7 +4970,7 @@ var DebtSimulatorCore = function(props) {
           key:m.id, onClick:function(){setMode(m.id);},
           style:{ padding:"14px 16px",
             border:"2px solid "+(active?C.primary:C.border), borderRadius:T.radius.lg,
-            cursor:"pointer", background:active?"rgba(6,95,70,0.05)":C.surface,
+            cursor:"pointer", background:active?"rgba(22,56,43,0.05)":C.surface,
             transition:"all 150ms ease" }
         },
           React.createElement("div", { style:{fontSize:T.text.base5,fontWeight:600,color:active?C.primary:C.text} }, m.label),
@@ -7419,20 +7613,25 @@ var GoalsTab = _ref => {
     style: {
       padding: 40,
       textAlign: "center",
-      color: C.mutedLight
+      color: C.muted
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: T.font.display,
       fontSize: T.text.xl2,
       marginBottom: 8,
-      color: C.muted
+      color: C.text
     }
   }, "Sin metas a\xFAn"), /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: T.text.md
+      fontSize: T.text.md,
+      marginBottom: T.space.xl
     }
-  }, "Crea tu primera meta de ahorro con el bot\xF3n \"Nueva meta\""))) : /*#__PURE__*/React.createElement("div", {
+  }, "Crea tu primera meta de ahorro para empezar a seguirle el rastro."),
+  /*#__PURE__*/React.createElement("button", {
+    onClick: function(){ setShowForm(true); },
+    style: btnPrimary({ margin: "0 auto", display: "inline-flex" })
+  }, "+ Nueva meta"))) : /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexDirection: "column",
@@ -10030,6 +10229,23 @@ var PersonalCFO = () => {
   useEffect(() => lsSet(STORAGE_KEYS.WISHLIST, wishlist), [wishlist]);
   useEffect(() => lsSet(STORAGE_KEYS.PLAN_CHECKED, planChecked), [planChecked]);
 
+  // ── Fase 6 v3.23: sync en vivo entre dispositivos (onSnapshot) ──
+  // Se registra una sola vez al montar; _watchRemoteChanges reutiliza el mismo listener
+  // por clave aunque el componente se vuelva a renderizar (guardado en _remoteListeners).
+  useEffect(function(){
+    _registerRemoteHandler(STORAGE_KEYS.TRANSACTIONS, setTransactions);
+    _registerRemoteHandler("cfo:config", setConfig);
+    _registerRemoteHandler(STORAGE_KEYS.DEBTS, setDebts);
+    _registerRemoteHandler(STORAGE_KEYS.SAVINGS, setSavings);
+    _registerRemoteHandler(STORAGE_KEYS.ASSETS, setAssets);
+    _registerRemoteHandler(STORAGE_KEYS.BILLS, setBills);
+    _registerRemoteHandler(STORAGE_KEYS.PAYMENT_STATUS, setPaymentStatus);
+    _registerRemoteHandler(STORAGE_KEYS.GOALS, setGoals);
+    _registerRemoteHandler(STORAGE_KEYS.WISHLIST, setWishlist);
+    _registerRemoteHandler(STORAGE_KEYS.PLAN_CHECKED, setPlanChecked);
+    _watchRemoteChanges("cfo_user");
+  }, []);
+
   // ── Auto-aplicar plan de próxima quincena cuando llega su fecha ──
   var _applyPlan = function(raw, isManual) {
     try {
@@ -10194,43 +10410,6 @@ var PersonalCFO = () => {
   return React.createElement("div", { style:{ minHeight:"100vh", background:C.bg, color:C.text } },
     React.createElement("div", { style:{ maxWidth:1320, margin:"0 auto", padding:"0 16px" } },
 
-      // ── HEADER ──────────────────────────────────────────────
-      React.createElement("header", { className:"hide-mobile", style:{ padding:"20px 0 0" } },
-        React.createElement("div", {
-          style:{ display:"flex", justifyContent:"space-between", alignItems:"center",
-                  paddingBottom:16, borderBottom:"1px solid "+C.border, flexWrap:"wrap", gap:T.space.md2 }
-        },
-          React.createElement("div", null,
-            React.createElement("div", {
-              style:{ fontSize:9.5, letterSpacing:"0.2em", textTransform:"uppercase",
-                      color:C.accent, fontWeight:700, marginBottom:5 }
-            }, "CFO Personal"),
-            React.createElement("h1", {
-              style:{ fontFamily:T.font.display, fontWeight:400, fontSize:24,
-                      color:C.text, margin:0, letterSpacing:"-0.02em", lineHeight:1 }
-            }, "Centro de Comando Financiero")
-          ),
-          React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:T.space.lg } },
-            React.createElement("button", {
-              onClick: toggleTheme,
-              "aria-label": themeName === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro",
-              title: themeName === "dark" ? "Tema claro" : "Tema oscuro",
-              style: btnSecondary({ padding:"8px", display:"flex", alignItems:"center", justifyContent:"center" })
-            }, themeName === "dark"
-                 ? React.createElement(IconSun, { size:15, color:C.text })
-                 : React.createElement(IconMoon, { size:15, color:C.text })),
-            React.createElement("button", {
-              onClick: openAddTransaction,
-              style: btnPrimary({ display:"flex", alignItems:"center", gap:T.space.xs })
-            }, React.createElement(IconPlus, { size:13, color: C.onPrimary }), " Agregar"),
-            React.createElement("div", { style:{ textAlign:"right", fontSize:T.text.sm, color:C.muted, lineHeight:1.6 } },
-              React.createElement("div", null, new Date().toLocaleDateString("es", { day:"numeric", month:"long", year:"numeric" })),
-              React.createElement("div", { style:{ marginTop:4, display:"flex", justifyContent:"flex-end" } }, React.createElement(SyncIndicator, null))
-            )
-          )
-        )
-      ),
-
       // ── STICKY MOBILE HEADER ──────────────────────────────────
       React.createElement("div", { className:"mobile-app-header" },
         React.createElement("span", { className:"mah-title" },
@@ -10238,47 +10417,86 @@ var PersonalCFO = () => {
         React.createElement(SyncIndicator, { compact:true })
       ),
 
-      // ── TOP NAV (desktop) ────────────────────────────────────
-      React.createElement("nav", {
-        className: "app-nav-top",
-        role: "tablist",
-        "aria-label": "Navegación principal",
-        style:{ marginTop:16 }
-      },
-        allTabs.map(function(t, idx) {
-          var isPrimary = idx < primaryTabs.length;
-          var prevPrimary = idx > 0 && idx === primaryTabs.length;
-          return [
-            prevPrimary && React.createElement("div", {
-              key: "sep",
-              style:{ width:1, background:C.border, margin:"4px 8px", alignSelf:"stretch" }
-            }),
-            React.createElement(TabButton, {
-              key: t.id, active: tab === t.id,
-              onClick: function(){ setTab(t.id); },
-              icon: t.icon, label: t.label,
-              onKeyDown: function(e){
-                // Fase 6 v3.21: flechas izq/der navegan entre tabs (role=tablist estándar)
-                if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-                e.preventDefault();
-                var dir = e.key === "ArrowRight" ? 1 : -1;
-                var nextIdx = (idx + dir + allTabs.length) % allTabs.length;
-                var nextId = allTabs[nextIdx].id;
-                setTab(nextId);
-                setTimeout(function(){
-                  var btn = document.querySelector('.app-nav-top [aria-selected="true"]');
-                  if (btn) btn.focus();
-                }, 0);
-              }
-            })
-          ];
-        })
-      ),
+      // ── APP SHELL: sidebar (desktop) + columna principal ─────
+      React.createElement("div", { className:"app-shell", style:{ marginTop: 16 } },
+
+        // ── SIDEBAR ──────────────────────────────────────────
+        React.createElement("aside", { className:"ledger-sidebar" },
+          React.createElement("div", { className:"ls-brand" }, "CFO Personal"),
+          React.createElement("div", { className:"ls-brand-sub" }, "Centro financiero"),
+
+          React.createElement("div", { className:"ls-group-label" }, "Diario"),
+          [primaryTabs[0], primaryTabs[3], primaryTabs[1]].map(function(t){
+            return React.createElement("button", {
+              key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
+              onClick: function(){ setTab(t.id); }
+            },
+              t.icon && React.createElement(t.icon, { size: 15 }),
+              t.label
+            );
+          }),
+
+          React.createElement("div", { className:"ls-group-label" }, "Planeaci\u00F3n"),
+          [primaryTabs[2], secondaryTabs[0], secondaryTabs[1], secondaryTabs[2]].map(function(t){
+            return React.createElement("button", {
+              key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
+              onClick: function(){ setTab(t.id); }
+            },
+              t.icon && React.createElement(t.icon, { size: 15 }),
+              t.label
+            );
+          }),
+
+          React.createElement("div", { className:"ls-group-label" }, "Sistema"),
+          [secondaryTabs[3], secondaryTabs[4]].map(function(t){
+            return React.createElement("button", {
+              key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
+              onClick: function(){ setTab(t.id); }
+            },
+              t.icon && React.createElement(t.icon, { size: 15 }),
+              t.label
+            );
+          })
+        ),
+
+        // ── COLUMNA PRINCIPAL ────────────────────────────────
+        React.createElement("div", null,
+
+          // ── TOPBAR ──────────────────────────────────────────
+          React.createElement("div", {
+            className: "hide-mobile",
+            style:{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom: T.space.xxl, flexWrap:"wrap", gap:T.space.md2 }
+          },
+            React.createElement("div", null,
+              React.createElement("h1", {
+                style:{ fontFamily:T.font.display, fontWeight:440, fontSize:26,
+                        color:C.text, margin:"0 0 4px", letterSpacing:"-0.01em", lineHeight:1 }
+              }, (allTabs.find(function(t){ return t.id===tab; }) || {}).label || "Hoy"),
+              React.createElement("div", { style:{ fontSize:T.text.base5, color:C.mutedLight } },
+                new Date().toLocaleDateString("es", { weekday:"long", day:"numeric", month:"long", year:"numeric" })
+              )
+            ),
+            React.createElement("div", { style:{ display:"flex", alignItems:"center", gap:T.space.lg } },
+              React.createElement("button", {
+                onClick: toggleTheme,
+                "aria-label": themeName === "dark" ? "Cambiar a tema claro" : "Cambiar a tema oscuro",
+                title: themeName === "dark" ? "Tema claro" : "Tema oscuro",
+                style: btnSecondary({ padding:"8px", display:"flex", alignItems:"center", justifyContent:"center" })
+              }, themeName === "dark"
+                   ? React.createElement(IconSun, { size:15, color:C.text })
+                   : React.createElement(IconMoon, { size:15, color:C.text })),
+              React.createElement("button", {
+                onClick: openAddTransaction,
+                style: btnPrimary({ display:"flex", alignItems:"center", gap:T.space.xs })
+              }, React.createElement(IconPlus, { size:13, color: C.onPrimary }), " Agregar transacci\u00F3n"),
+              React.createElement(SyncIndicator, null)
+            )
+          ),
 
       // ── MAIN CONTENT ─────────────────────────────────────────
       React.createElement("main", {
         className: "app-main-content",
-        style:{ paddingTop:20, paddingBottom:32 }
+        style:{ paddingBottom:32 }
       },
         tab === "hoy"     && React.createElement(HoyTab, Object.assign({ setTab:setTab }, planProps, { assets:assets })),
         tab === "budget"  && React.createElement(BudgetTab, { config:config, setConfig:setConfig, transactions:transactions, debts:debts, bills:bills, goals:goals, wishlist:wishlist }),
@@ -10309,6 +10527,8 @@ var PersonalCFO = () => {
         style:{ paddingTop:16, borderTop:"1px solid "+C.border,
                 fontSize:T.text.sm, color:C.mutedLight, textAlign:"center", paddingBottom:8 }
       }, "Sincronizado en la nube \u00b7 Accede desde cualquier dispositivo")
+        )
+      )
     ),
 
     // ── FAB (mobile, universal — Fase 5 v3.21) ──────────────────
@@ -10371,6 +10591,32 @@ _loadFromFirestore("cfo_user", function() {
   ReactDOM.createRoot(document.getElementById("root"))
     .render(/*#__PURE__*/React.createElement(PersonalCFO, null));
 });
+// v3.23 — Fase 1: registro del Service Worker (PWA real, offline-first).
+// Reutiliza el snackbar de Fase 5 para avisar "nueva versión disponible" en vez de
+// recargar en silencio — el usuario decide cuándo actualizar.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js").then(function (reg) {
+      reg.addEventListener("updatefound", function () {
+        var newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener("statechange", function () {
+          if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+            showSnackbar("Hay una nueva versión de CFO Personal disponible.", [
+              { label: "Actualizar", onClick: function () { newWorker.postMessage({ type: "SKIP_WAITING" }); } }
+            ], 20000);
+          }
+        });
+      });
+    }).catch(function (e) { console.warn("No se pudo registrar el service worker:", e); });
+    var _reloadedOnce = false;
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (_reloadedOnce) return;
+      _reloadedOnce = true;
+      window.location.reload();
+    });
+  });
+}
 </script>
 </body>
 </html>
