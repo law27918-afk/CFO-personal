@@ -108,12 +108,26 @@
     box-shadow: none; background: var(--c-surface2);
   }
 
-  /* ─── Sidebar (desktop) — estilo ledger, reemplaza el top-nav horizontal ─── */
+  /* ─── Sidebar (desktop) — estilo ledger, reemplaza el top-nav horizontal ───
+     Fix v3.23.1: antes el sidebar vivía DENTRO del wrapper maxWidth:1320 centrado,
+     así que en pantallas anchas quedaba lejos del borde real del navegador (hueco
+     doble: el gutter de centrado + el padding del sidebar). Ahora el sidebar es
+     columna flush-left de la página completa, y solo la columna de contenido
+     (.app-shell-main) se centra con su propio maxWidth. */
   .app-shell { display: block; }
   .ledger-sidebar { display: none; }
+  .app-shell-main { padding: 0 16px 32px; box-sizing: border-box; }
   @media (min-width: 641px) {
-    .app-shell { display: grid; grid-template-columns: 220px 1fr; gap: 32px; align-items: start; }
-    .ledger-sidebar { display: block; padding-top: 4px; position: sticky; top: 24px; }
+    .app-shell { display: flex; align-items: flex-start; }
+    .ledger-sidebar {
+      display: block; flex: 0 0 224px; width: 224px; box-sizing: border-box;
+      padding: 24px 16px 24px 24px; position: sticky; top: 0; align-self: flex-start;
+      min-height: 100vh;
+    }
+    .app-shell-main {
+      flex: 1 1 0%; min-width: 0; box-sizing: border-box;
+      padding: 24px 24px 32px; max-width: 1180px; margin: 0 auto;
+    }
   }
   .ls-brand { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 19px; letter-spacing: -0.01em; color: var(--c-primary); margin-bottom: 3px; }
   .ls-brand-sub { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-muted-light); margin-bottom: 30px; }
@@ -227,7 +241,7 @@
       position: sticky; top: 0; z-index: 90;
       background: rgba(var(--c-bg-rgb, 248,250,249), 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px;
-      margin: -16px -16px 16px;
+      margin: 0 0 16px;
       border-bottom: 1px solid var(--c-border);
     }
     .mobile-app-header .mah-title {
@@ -2217,7 +2231,11 @@ var HoyTab = function(props) {
       style: {
         background: "linear-gradient(180deg, " + C.primary + " 0%, " + C.primarySoft + " 130%)",
         backgroundImage: "radial-gradient(circle at 85% 20%, rgba(180,131,42,0.18), transparent 55%)",
-        borderRadius: T.radius.xl, padding: "26px 30px", color: C.onPrimary === C.bg ? C.text : "#F4F1E9"
+        borderRadius: T.radius.xl, padding: "26px 30px", color: "#F4F1E9"
+        /* v3.23-fix: antes "C.onPrimary === C.bg ? C.text : #F4F1E9" — en tema claro
+           C.onPrimary y C.bg son el MISMO hex (#F4F1E9), así que la condición siempre
+           daba true y pintaba texto oscuro sobre el fondo verde oscuro del hero (invisible).
+           El hero es intencionalmente oscuro en ambos temas, así que el color base es fijo. */
       }
     },
       React.createElement("div", {
@@ -2232,10 +2250,10 @@ var HoyTab = function(props) {
       // Barra de progreso de la quincena actual
       React.createElement("div", { style: { marginTop: T.space.xl } },
         React.createElement("div", {
-          style: { display: "flex", justifyContent: "space-between", fontSize: T.text.sm, color: "rgba(244,241,233,0.68)", marginBottom: T.space.xs }
+          style: { display: "flex", justifyContent: "space-between", fontSize: T.text.sm, color: "rgba(244,241,233,0.68)", marginBottom: T.space.xs, gap: T.space.md }
         },
-          React.createElement("span", null, "D\u00EDa " + quincenaProgreso.elapsedDays + " de " + quincenaProgreso.totalDays + " de la quincena"),
-          React.createElement("span", null, nextPay.daysUntilPay === 0 ? "\u00A1Hoy se cierra!" : nextPay.daysUntilPay + " d\u00EDa" + (nextPay.daysUntilPay === 1 ? "" : "s") + " restantes")
+          React.createElement("span", { style: { color: "rgba(244,241,233,0.68)" } }, "D\u00EDa " + quincenaProgreso.elapsedDays + " de " + quincenaProgreso.totalDays + " de la quincena"),
+          React.createElement("span", { style: { color: "rgba(244,241,233,0.68)" } }, nextPay.daysUntilPay === 0 ? "\u00A1Hoy se cierra!" : nextPay.daysUntilPay + " d\u00EDa" + (nextPay.daysUntilPay === 1 ? "" : "s") + " restantes")
         ),
         React.createElement("div", { style: { height: 6, background: "rgba(244,241,233,0.18)", borderRadius: T.radius.full, overflow: "hidden" } },
           React.createElement("div", {
@@ -10408,62 +10426,61 @@ var PersonalCFO = () => {
   };
 
   return React.createElement("div", { style:{ minHeight:"100vh", background:C.bg, color:C.text } },
-    React.createElement("div", { style:{ maxWidth:1320, margin:"0 auto", padding:"0 16px" } },
 
-      // ── STICKY MOBILE HEADER ──────────────────────────────────
-      React.createElement("div", { className:"mobile-app-header" },
-        React.createElement("span", { className:"mah-title" },
-          (allTabs.find(function(t){ return t.id===tab; }) || {}).label || "CFO Personal"),
-        React.createElement(SyncIndicator, { compact:true })
+    // ── STICKY MOBILE HEADER ──────────────────────────────────
+    React.createElement("div", { className:"mobile-app-header" },
+      React.createElement("span", { className:"mah-title" },
+        (allTabs.find(function(t){ return t.id===tab; }) || {}).label || "CFO Personal"),
+      React.createElement(SyncIndicator, { compact:true })
+    ),
+
+    // ── APP SHELL: sidebar pegado al borde real + columna principal centrada ─────
+    React.createElement("div", { className:"app-shell" },
+
+      // ── SIDEBAR ──────────────────────────────────────────
+      React.createElement("aside", { className:"ledger-sidebar" },
+        React.createElement("div", { className:"ls-brand" }, "CFO Personal"),
+        React.createElement("div", { className:"ls-brand-sub" }, "Centro financiero"),
+
+        React.createElement("div", { className:"ls-group-label" }, "Diario"),
+        [primaryTabs[0], primaryTabs[3], primaryTabs[1]].map(function(t){
+          return React.createElement("button", {
+            key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
+            onClick: function(){ setTab(t.id); }
+          },
+            t.icon && React.createElement(t.icon, { size: 15 }),
+            t.label
+          );
+        }),
+
+        React.createElement("div", { className:"ls-group-label" }, "Planeaci\u00F3n"),
+        [primaryTabs[2], secondaryTabs[0], secondaryTabs[1], secondaryTabs[2]].map(function(t){
+          return React.createElement("button", {
+            key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
+            onClick: function(){ setTab(t.id); }
+          },
+            t.icon && React.createElement(t.icon, { size: 15 }),
+            t.label
+          );
+        }),
+
+        React.createElement("div", { className:"ls-group-label" }, "Sistema"),
+        [secondaryTabs[3], secondaryTabs[4]].map(function(t){
+          return React.createElement("button", {
+            key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
+            onClick: function(){ setTab(t.id); }
+          },
+            t.icon && React.createElement(t.icon, { size: 15 }),
+            t.label
+          );
+        })
       ),
 
-      // ── APP SHELL: sidebar (desktop) + columna principal ─────
-      React.createElement("div", { className:"app-shell", style:{ marginTop: 16 } },
+      // ── COLUMNA PRINCIPAL (centrada dentro del espacio restante, no del viewport completo) ──
+      React.createElement("div", { className:"app-shell-main" },
 
-        // ── SIDEBAR ──────────────────────────────────────────
-        React.createElement("aside", { className:"ledger-sidebar" },
-          React.createElement("div", { className:"ls-brand" }, "CFO Personal"),
-          React.createElement("div", { className:"ls-brand-sub" }, "Centro financiero"),
-
-          React.createElement("div", { className:"ls-group-label" }, "Diario"),
-          [primaryTabs[0], primaryTabs[3], primaryTabs[1]].map(function(t){
-            return React.createElement("button", {
-              key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
-              onClick: function(){ setTab(t.id); }
-            },
-              t.icon && React.createElement(t.icon, { size: 15 }),
-              t.label
-            );
-          }),
-
-          React.createElement("div", { className:"ls-group-label" }, "Planeaci\u00F3n"),
-          [primaryTabs[2], secondaryTabs[0], secondaryTabs[1], secondaryTabs[2]].map(function(t){
-            return React.createElement("button", {
-              key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
-              onClick: function(){ setTab(t.id); }
-            },
-              t.icon && React.createElement(t.icon, { size: 15 }),
-              t.label
-            );
-          }),
-
-          React.createElement("div", { className:"ls-group-label" }, "Sistema"),
-          [secondaryTabs[3], secondaryTabs[4]].map(function(t){
-            return React.createElement("button", {
-              key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
-              onClick: function(){ setTab(t.id); }
-            },
-              t.icon && React.createElement(t.icon, { size: 15 }),
-              t.label
-            );
-          })
-        ),
-
-        // ── COLUMNA PRINCIPAL ────────────────────────────────
-        React.createElement("div", null,
-
-          // ── TOPBAR ──────────────────────────────────────────
-          React.createElement("div", {
+        // ── TOPBAR ──────────────────────────────────────────
+        React.createElement("div", {
             className: "hide-mobile",
             style:{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom: T.space.xxl, flexWrap:"wrap", gap:T.space.md2 }
           },
@@ -10522,12 +10539,11 @@ var PersonalCFO = () => {
         })
       ),
 
-      // ── FOOTER ───────────────────────────────────────────────
-      React.createElement("footer", {
-        style:{ paddingTop:16, borderTop:"1px solid "+C.border,
-                fontSize:T.text.sm, color:C.mutedLight, textAlign:"center", paddingBottom:8 }
-      }, "Sincronizado en la nube \u00b7 Accede desde cualquier dispositivo")
-        )
+        // ── FOOTER ───────────────────────────────────────────────
+        React.createElement("footer", {
+          style:{ paddingTop:16, borderTop:"1px solid "+C.border,
+                  fontSize:T.text.sm, color:C.mutedLight, textAlign:"center", paddingBottom:8 }
+        }, "Sincronizado en la nube \u00b7 Accede desde cualquier dispositivo")
       )
     ),
 
