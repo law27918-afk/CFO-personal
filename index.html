@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icon-192.png" />
 <link rel="icon" href="./icon-192.png" type="image/png" />
-<title>CFO Personal · Gestión Financiera (v3.24)</title>
+<title>CFO Personal · Gestión Financiera (v3.25.1)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,500;9..144,560&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
@@ -120,22 +120,22 @@
   @media (min-width: 641px) {
     .app-shell { display: flex; align-items: flex-start; }
     .ledger-sidebar {
-      display: block; flex: 0 0 224px; width: 224px; box-sizing: border-box;
-      padding: 24px 16px 24px 24px; position: sticky; top: 0; align-self: flex-start;
+      display: block; flex: 0 0 272px; width: 272px; box-sizing: border-box;
+      padding: 28px 18px 28px 28px; position: sticky; top: 0; align-self: flex-start;
       min-height: 100vh;
     }
     .app-shell-main {
       flex: 1 1 0%; min-width: 0; box-sizing: border-box;
-      padding: 24px 24px 32px; max-width: 1180px; margin: 0 auto;
+      padding: 24px 24px 32px; max-width: 1320px; margin: 0; /* v3.24.1: pegado al sidebar, sin centrar — mata el hueco doble */
     }
   }
-  .ls-brand { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 19px; letter-spacing: -0.01em; color: var(--c-primary); margin-bottom: 3px; }
-  .ls-brand-sub { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-muted-light); margin-bottom: 30px; }
-  .ls-group-label { font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-muted-light); margin: 20px 0 8px 12px; }
+  .ls-brand { font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 23px; letter-spacing: -0.01em; color: var(--c-primary); margin-bottom: 4px; }
+  .ls-brand-sub { font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--c-muted-light); margin-bottom: 34px; }
+  .ls-group-label { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-muted-light); margin: 24px 0 10px 14px; }
   .ls-group-label:first-of-type { margin-top: 0; }
   .ls-item {
-    display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 7px;
-    font-size: 13px; color: var(--c-muted); cursor: pointer; margin-bottom: 2px; border: none;
+    display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 9px;
+    font-size: 14.5px; color: var(--c-muted); cursor: pointer; margin-bottom: 3px; border: none;
     background: none; width: 100%; text-align: left; font-family: 'IBM Plex Sans', sans-serif;
   }
   .ls-item.active { background: var(--c-primary); color: var(--c-on-primary); }
@@ -296,15 +296,16 @@ body::before {
   content: "";
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(1100px 600px at 85% -10%, rgba(22,56,43,0.07), transparent 60%),
-    radial-gradient(900px 700px at -10% 100%, rgba(180,131,42,0.05), transparent 55%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.028'/%3E%3C/svg%3E");
+    radial-gradient(1200px 700px at 88% -12%, rgba(22,56,43,0.14), transparent 62%),
+    radial-gradient(1000px 800px at -12% 104%, rgba(180,131,42,0.10), transparent 58%),
+    linear-gradient(160deg, rgba(22,56,43,0.045) 0%, transparent 40%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
 }
 [data-theme="dark"] body::before {
   background:
-    radial-gradient(1100px 600px at 85% -10%, rgba(63,138,102,0.10), transparent 60%),
-    radial-gradient(900px 700px at -10% 100%, rgba(180,131,42,0.06), transparent 55%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    radial-gradient(1200px 700px at 88% -12%, rgba(63,138,102,0.16), transparent 62%),
+    radial-gradient(1000px 800px at -12% 104%, rgba(180,131,42,0.09), transparent 58%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
 }
 /* El contenido por encima de la textura */
 #root { position: relative; z-index: 1; }
@@ -370,6 +371,20 @@ body { transition: background-color 300ms ease, color 300ms ease; }
   animation: barShimmer 1100ms ease 350ms 1 forwards;
 }
 @keyframes barShimmer { to { transform: translateX(100%); } }
+
+/* ─── Hoy en 2 columnas en pantallas anchas (v3.25.1): aprovecha el espacio derecho.
+   El hero ocupa todo el ancho; el resto fluye en dos columnas tipo masonry. ─── */
+@media (min-width: 1500px) {
+  .hoy-layout { display: block !important; column-count: 2; column-gap: 20px; column-fill: balance; }
+  .hoy-layout > * { break-inside: avoid; margin-bottom: 20px; }
+  .hoy-layout > *:first-child { column-span: all; } /* hero a lo ancho */
+  /* v3.25.1: dentro de media columna no caben 4 KPIs en fila → 2×2 */
+  .hoy-layout .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  /* v3.25.1: Metas+Wishlist lado a lado no caben en media columna → apilados */
+  .hoy-layout .grid-2 { grid-template-columns: 1fr; }
+  /* v3.25.1: los títulos de sección no quedan huérfanos al final de una columna */
+  .hoy-sec-head { break-after: avoid-column; }
+}
 
 /* ─── Snackbar con entrada spring ─── */
 .snackbar-pop { animation: snackIn 320ms cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -1439,6 +1454,18 @@ var INITIAL_CONFIG = {
   }]
 };
 var CATEGORIES = ["Servicios", "Suscripciones", "Transporte", "Alimentación", "Entretenimiento", "Salud", "Vivienda", "Educación", "Deuda", "Ahorro", "Inversión", "Apuestas", "Panapass", "Ingreso", "Otros"];
+/* v3.25: categorías editables desde Datos → se guardan en config.categories.
+   DEFAULT_CATEGORIES conserva la lista original; _syncCategories muta CATEGORIES
+   in-place (mismo patrón que C/T de temas) para que todos los selects/filtros
+   que ya referencian CATEGORIES vean la lista del usuario sin reescribirlos. */
+var DEFAULT_CATEGORIES = CATEGORIES.slice();
+function _syncCategories(cfg) {
+  var list = (cfg && cfg.categories && cfg.categories.length) ? cfg.categories.slice() : DEFAULT_CATEGORIES.slice();
+  if (list.indexOf("Ingreso") === -1) list.push("Ingreso"); // requerida por la lógica de tipos
+  if (list.indexOf("Otros") === -1) list.push("Otros");
+  CATEGORIES.length = 0;
+  Array.prototype.push.apply(CATEGORIES, list);
+}
 var INCOME_CATEGORIES = ["Salario", "Otros"];
 var PAYMENT_METHODS = ["Efectivo", "Débito", "Crédito", "Transferencia", "Otro"];
 var ACCOUNTS = ["Cuenta Principal", "Ahorro", "Efectivo", "Tarjeta de Crédito"];
@@ -1808,7 +1835,7 @@ var KpiCard = function(_ref2) {
 };
 var SectionTitle = function(_ref3) {
   var children = _ref3.children, subtitle = _ref3.subtitle;
-  return React.createElement("div", { style:{ marginBottom:20 } },
+  return React.createElement("div", { className: "hoy-sec-head", style:{ marginBottom:20 } },
     React.createElement("h2", {
       style:{ fontFamily:"'Fraunces', Georgia, serif", fontWeight:400, fontSize:20,
               color:C.text, letterSpacing:"-0.015em", margin:0, lineHeight:1.2 }
@@ -2327,7 +2354,7 @@ var HoyTab = function(props) {
     fontVariantNumeric: "tabular-nums"
   };
 
-  return React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: T.space.xxl } },
+  return React.createElement("div", { className: "hoy-layout", style: { display: "flex", flexDirection: "column", gap: T.space.xxl } },
 
     // ============ HERO: LIQUIDEZ ACTUAL (estilo ledger — tarjeta oscura fija) ============
     React.createElement("div", {
@@ -2968,13 +2995,21 @@ var TransactionsTab = _ref9 => {
     }))
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: labelStyle
-  }, "Tipo"), /*#__PURE__*/React.createElement("select", {
-    style: inputStyle,
-    value: newTx.type,
-    onChange: e => setNewTx(_objectSpread(_objectSpread({}, newTx), {}, {
-      type: e.target.value
-    }))
-  }, /*#__PURE__*/React.createElement("option", null, "Gasto"), /*#__PURE__*/React.createElement("option", null, "Ingreso"), /*#__PURE__*/React.createElement("option", null, "Ahorro"))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }, "Tipo"), /*#__PURE__*/React.createElement("div", {
+    /* v3.25: selector segmentado — un tap en vez de desplegable */
+    style: { display: "flex", gap: 4, background: C.surfaceAlt, borderRadius: 6, padding: 3 }
+  }, ["Gasto", "Ingreso", "Ahorro"].map(function(tp){
+    var on = newTx.type === tp;
+    return /*#__PURE__*/React.createElement("button", {
+      key: tp,
+      onClick: function(){ setNewTx(_objectSpread(_objectSpread({}, newTx), {}, { type: tp,
+        category: tp === "Ingreso" ? INCOME_CATEGORIES[0] : (newTx.category === "Ingreso" || INCOME_CATEGORIES.indexOf(newTx.category) > -1 ? CATEGORIES[0] : newTx.category) })); },
+      style: { flex: 1, padding: "7px 4px", border: "none", borderRadius: 4, cursor: "pointer",
+               fontSize: 12, fontWeight: on ? 600 : 500,
+               background: on ? (tp === "Ingreso" ? C.success : tp === "Ahorro" ? C.accent : C.primary) : "transparent",
+               color: on ? C.onPrimary : C.muted }
+    }, tp);
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: labelStyle
   }, "Categor\xEDa"), /*#__PURE__*/React.createElement("select", {
     style: inputStyle,
@@ -2998,9 +3033,11 @@ var TransactionsTab = _ref9 => {
   }, "Monto USD"), /*#__PURE__*/React.createElement("input", {
     type: "number",
     step: "0.01",
-    style: inputStyle,
+    inputMode: "decimal", /* v3.25: teclado numérico en móvil */
+    style: Object.assign({}, inputStyle, { fontSize: 16, fontWeight: 600, fontFamily: T.font.mono }),
     placeholder: "0.00",
     value: newTx.amount,
+    onKeyDown: function(e){ if (e.key === "Enter") addTx(); }, /* v3.25: Enter guarda */
     onChange: e => setNewTx(_objectSpread(_objectSpread({}, newTx), {}, {
       amount: e.target.value
     }))
@@ -3019,6 +3056,7 @@ var TransactionsTab = _ref9 => {
     style: inputStyle,
     placeholder: "Ej: Compra supermercado",
     value: newTx.description,
+    onKeyDown: function(e){ if (e.key === "Enter") addTx(); }, /* v3.25: Enter guarda */
     onChange: e => setNewTx(_objectSpread(_objectSpread({}, newTx), {}, {
       description: e.target.value
     }))
@@ -6366,6 +6404,72 @@ var SettingsTab = _ref22 => {
       themeName === "dark" ? "Cambiar a claro" : "Cambiar a oscuro"
     )
   )),
+  /* v3.25: editor de categorías — alimenta selects y filtros de Movimientos, Análisis y Gasolina */
+  /*#__PURE__*/React.createElement(Panel, {
+    title: "Categor\u00EDas de movimientos",
+    subtitle: "Personaliza las categor\u00EDas usadas en filtros y formularios (Movimientos, An\u00E1lisis, Gasolina)"
+  },
+    React.createElement("div", { style:{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:14 } },
+      CATEGORIES.map(function(cat){
+        var locked = cat === "Ingreso" || cat === "Otros";
+        var inUse = (transactions || []).some(function(t){ return t.category === cat; });
+        return React.createElement("span", {
+          key: cat,
+          title: locked ? "Categoría del sistema (no se puede quitar)" : (inUse ? "En uso por movimientos existentes" : ""),
+          style: { display:"inline-flex", alignItems:"center", gap:6, padding:"6px 10px",
+                   background: C.surfaceAlt, border:"1px solid "+C.border, borderRadius: T.radius.full,
+                   fontSize: T.text.base, color: C.text }
+        },
+          cat,
+          !locked && React.createElement("button", {
+            onClick: function(){
+              if (inUse && !confirm('"'+cat+'" está en uso por movimientos existentes. Esos movimientos la conservarán, pero ya no aparecerá en filtros ni formularios. ¿Quitarla?')) return;
+              var next = CATEGORIES.filter(function(c){ return c !== cat; });
+              setConfig(Object.assign({}, config, { categories: next }));
+              showInfoSnackbar('Categoría "'+cat+'" eliminada');
+            },
+            "aria-label": "Eliminar categoría "+cat,
+            style: { background:"none", border:"none", cursor:"pointer", color:C.muted,
+                     fontSize:13, lineHeight:1, padding:"2px 3px", minHeight:"auto" }
+          }, "\u00D7")
+        );
+      })
+    ),
+    React.createElement("div", { style:{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" } },
+      React.createElement("input", {
+        id: "cfo-new-cat-input",
+        placeholder: "Nueva categor\u00EDa\u2026",
+        style: Object.assign({}, inputStyle, { maxWidth: 220 }),
+        onKeyDown: function(e){ if (e.key === "Enter") { var b = document.getElementById("cfo-add-cat-btn"); if (b) b.click(); } }
+      }),
+      React.createElement("button", {
+        id: "cfo-add-cat-btn",
+        onClick: function(){
+          var inp = document.getElementById("cfo-new-cat-input");
+          var name = (inp.value || "").trim();
+          if (!name) return;
+          if (CATEGORIES.some(function(c){ return c.toLowerCase() === name.toLowerCase(); })) {
+            alert("Esa categoría ya existe."); return;
+          }
+          var next = CATEGORIES.slice();
+          var idx = next.indexOf("Ingreso");
+          next.splice(idx === -1 ? next.length : idx, 0, name);
+          setConfig(Object.assign({}, config, { categories: next }));
+          inp.value = "";
+          showInfoSnackbar('Categoría "'+name+'" agregada');
+        },
+        style: btnPrimary({})
+      }, "+ Agregar"),
+      React.createElement("button", {
+        onClick: function(){
+          if (!confirm("¿Restaurar la lista original de categorías?")) return;
+          setConfig(Object.assign({}, config, { categories: null }));
+          showInfoSnackbar("Categorías restauradas");
+        },
+        style: btnSecondary({})
+      }, "Restaurar originales")
+    )
+  ),
   /*#__PURE__*/React.createElement(Panel, {
     title: "Estado de sincronizaci\xF3n",
     subtitle: "Verifica que tus datos est\xE9n subidos a la nube en tiempo real"
@@ -10525,6 +10629,7 @@ var PersonalCFO = () => {
     { id: "settings",     label: "Datos",        icon: IconSettings  },
   ];
   var allTabs = primaryTabs.concat(secondaryTabs);
+  _syncCategories(config); /* v3.25: aplica las categorías del usuario en cada render */
   // shared plan props
   var planProps = {
     config:config, bills:bills, setBills:setBills, debts:debts, setDebts:setDebts,
@@ -10564,7 +10669,8 @@ var PersonalCFO = () => {
         }),
 
         React.createElement("div", { className:"ls-group-label" }, "Planeaci\u00F3n"),
-        [primaryTabs[2], secondaryTabs[0], secondaryTabs[1], secondaryTabs[2]].map(function(t){
+        /* v3.25: Gasolina se mueve de Sistema a Planeación */
+        [primaryTabs[2], secondaryTabs[0], secondaryTabs[1], secondaryTabs[2], secondaryTabs[3]].map(function(t){
           return React.createElement("button", {
             key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
             onClick: function(){ setTab(t.id); }
@@ -10575,7 +10681,7 @@ var PersonalCFO = () => {
         }),
 
         React.createElement("div", { className:"ls-group-label" }, "Sistema"),
-        [secondaryTabs[3], secondaryTabs[4]].map(function(t){
+        [secondaryTabs[4]].map(function(t){
           return React.createElement("button", {
             key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
             onClick: function(){ setTab(t.id); }
