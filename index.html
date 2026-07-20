@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-<meta name="theme-color" content="#1B4332" />
+<meta name="theme-color" content="#16382B" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="CFO Personal" />
@@ -19,14 +19,14 @@
   /* ─── Fase T1 v3.22: custom properties con default = paleta light.
        applyTheme() las sobreescribe en document.documentElement al conmutar. ─── */
   :root {
-    --c-bg: #F8FAF7; --c-surface: #FFFFFF; --c-surface-alt: #EEF3EC; --c-surface2: #E4EEE7;
-    --c-primary: #1B4332; --c-primary-soft: #2D6A4F; --c-accent: #C9A227;
-    --c-text: #14201A; --c-muted: #5B6B60; --c-muted-light: #9DAB9F;
-    --c-success: #2D6A4F; --c-success-soft: #E4EEE7;
+    --c-bg: #F4F1E9; --c-surface: #FFFFFF; --c-surface-alt: #EFEAD9; --c-surface2: #E7ECE2;
+    --c-primary: #16382B; --c-primary-soft: #24503C; --c-accent: #B4832A;
+    --c-text: #1C201C; --c-muted: #565F56; --c-muted-light: #9AA096;
+    --c-success: #24503C; --c-success-soft: #E7ECE2;
     --c-danger: #A23E2C; --c-danger-soft: #F3E2DD;
-    --c-warn: #7A5714; --c-warn-soft: #EFE1C3;
-    --c-border: #DCEAE1; --c-border-soft: #E8F0EA; --c-on-primary: #F8FAF7;
-    --c-bg-rgb: 248,250,247;
+    --c-warn: #8A6420; --c-warn-soft: #EFE1C3;
+    --c-border: #E3DECF; --c-border-soft: #EDE8D8; --c-on-primary: #F4F1E9;
+    --c-bg-rgb: 244,241,233;
   }
   /* ─── Reset ─── */
   *, *::before, *::after { box-sizing: border-box; }
@@ -41,17 +41,12 @@
     -moz-osx-font-smoothing: grayscale;
     font-size: 14px;
     line-height: 1.5;
-    /* Fase 3 v3.24: tabular-nums heredado por defecto en toda la app — evita que
-       cifras vecinas (montos, %, fechas) bailen de ancho al cambiar de dígito.
-       Los ~67 sitios que ya lo declaraban inline (heroValueStyle, amtS, etc.)
-       siguen funcionando igual, esto solo cubre los que faltaban. */
-    font-variant-numeric: tabular-nums;
   }
   input, select, button, textarea { font-family: inherit; }
   input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: var(--c-primary) !important;
-    box-shadow: 0 0 0 3px rgba(27,67,50,0.12);
+    box-shadow: 0 0 0 3px rgba(22,56,43,0.12);
   }
   button:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
 
@@ -76,7 +71,7 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .error-box {
-    background: var(--c-danger-soft); border: 1px solid var(--c-danger); padding: 20px; border-radius: 12px;
+    background: var(--c-danger-soft); border: 1px solid var(--c-danger); padding: 20px; border-radius: 8px;
     max-width: 500px; font-family: 'IBM Plex Sans', sans-serif; text-align: left;
     color: var(--c-danger); font-size: 13px; line-height: 1.6;
   }
@@ -95,7 +90,7 @@
     transition: box-shadow 150ms ease, transform 150ms ease;
   }
   .kpi-card:hover {
-    box-shadow: 0 4px 16px rgba(27,67,50,0.1), 0 1px 4px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 16px rgba(22,56,43,0.1), 0 1px 4px rgba(0,0,0,0.06);
     transform: translateY(-1px);
   }
   .panel {
@@ -159,12 +154,12 @@
   /* ─── Bottom nav (mobile) — Fase T3 v3.22: pill flotante con indicador deslizante ─── */
   .app-nav-bottom {
     display: none;
-    position: fixed; bottom: 16px; left: 16px; right: 16px; z-index: 100;
+    position: fixed; bottom: 12px; left: 12px; right: 12px; z-index: 100;
     background: var(--c-surface); border: 1px solid var(--c-border);
     border-radius: 999px;
-    padding: 8px;
-    box-shadow: 0 10px 32px rgba(27,67,50,0.14), 0 2px 8px rgba(0,0,0,0.05);
-    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    padding: 6px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
   }
   [data-theme="dark"] .app-nav-bottom { box-shadow: none; border-color: var(--c-border); }
   .app-nav-bottom-inner {
@@ -176,18 +171,16 @@
     position: absolute; top: 0; bottom: 0; left: 0;
     border-radius: 999px;
     background: var(--c-primary);
-    box-shadow: 0 4px 14px rgba(27,67,50,0.35);
     transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
     z-index: 0;
   }
-  [data-theme="dark"] .bottom-nav-indicator { box-shadow: none; }
   .bottom-tab-btn {
     flex: 1;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; padding: 11px 6px; min-height: 44px;
+    gap: 2px; padding: 10px 4px; min-height: 44px;
     background: none; border: none; cursor: pointer;
     transition: color 150ms ease;
-    font-size: 9.5px; font-weight: 600; letter-spacing: 0.04em;
+    font-size: 9px; font-weight: 600; letter-spacing: 0.04em;
     text-transform: uppercase; color: var(--c-muted-light);
     position: relative; z-index: 1;
   }
@@ -196,15 +189,14 @@
 
   /* ─── More drawer (mobile) ─── */
   .more-overlay {
-    position: fixed; inset: 0; background: rgba(14,21,18,0.5); z-index: 200;
-    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200;
     animation: fadeIn 150ms ease;
   }
   .more-sheet {
     position: fixed; left: 0; right: 0; bottom: 76px; z-index: 201;
-    background: var(--c-surface); border-radius: 22px 22px 0 0;
-    padding: 24px 20px 10px;
-    box-shadow: 0 -12px 36px rgba(20,32,26,0.16);
+    background: var(--c-surface); border-radius: 16px 16px 0 0;
+    padding: 20px 16px 8px;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.14);
     animation: slideUp 200ms ease;
   }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -267,7 +259,7 @@
       z-index: 95; width: 54px; height: 54px; border-radius: 50%;
       background: var(--c-primary); color: var(--c-on-primary); border: none;
       align-items: center; justify-content: center;
-      box-shadow: 0 4px 16px rgba(27,67,50,0.35), 0 2px 6px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 16px rgba(22,56,43,0.35), 0 2px 6px rgba(0,0,0,0.15);
       cursor: pointer; transition: transform 150ms ease;
     }
     .fab-btn:active { transform: scale(0.92); }
@@ -291,6 +283,108 @@
   [data-theme="dark"] .app-nav-top { box-shadow: none; border-color: var(--c-border); }
   [data-theme="dark"] .more-sheet { box-shadow: none; border: 1px solid var(--c-border); }
   [data-theme="dark"] .fab-btn { box-shadow: none; border: 1px solid rgba(255,255,255,0.15); }
+/* Fase 6 v3.21 — accesibilidad: respeta preferencia de movimiento reducido del SO/navegador */
+/* ════════════════════════════════════════════════════════════
+   v3.24 — Capa de diseño: fondo con textura, densidad desktop,
+   y sistema de animaciones (tabs, stagger, barras, snackbar).
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── Fondo con vida: glow radial verde + grain sutil, por tema ───
+   Va en un ::before fixed para no interferir con el background de body
+   que applyTheme() pinta vía var(--c-bg). pointer-events:none siempre. */
+body::before {
+  content: "";
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(1100px 600px at 85% -10%, rgba(22,56,43,0.07), transparent 60%),
+    radial-gradient(900px 700px at -10% 100%, rgba(180,131,42,0.05), transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.028'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] body::before {
+  background:
+    radial-gradient(1100px 600px at 85% -10%, rgba(63,138,102,0.10), transparent 60%),
+    radial-gradient(900px 700px at -10% 100%, rgba(180,131,42,0.06), transparent 55%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+/* El contenido por encima de la textura */
+#root { position: relative; z-index: 1; }
+
+/* ─── Densidad desktop: menos aire muerto ─── */
+@media (min-width: 641px) {
+  .app-shell-main { padding: 20px 28px 28px; }
+  .panel-inner { padding: 16px 18px !important; }
+  .kpi-grid { gap: 10px; }
+  .grid-2, .grid-3 { gap: 12px; }
+}
+
+/* ─── Transición entre tabs (todas las pantallas, no solo móvil) ─── */
+.app-main-content { animation: tabEnter 240ms cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes tabEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Entrada escalonada de tarjetas/paneles al montar la vista */
+.app-main-content .panel,
+.app-main-content .kpi-card {
+  animation: fadeInUp 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.app-main-content .kpi-card:nth-child(1) { animation-delay: 30ms; }
+.app-main-content .kpi-card:nth-child(2) { animation-delay: 70ms; }
+.app-main-content .kpi-card:nth-child(3) { animation-delay: 110ms; }
+.app-main-content .kpi-card:nth-child(4) { animation-delay: 150ms; }
+.app-main-content .panel:nth-of-type(2) { animation-delay: 60ms; }
+.app-main-content .panel:nth-of-type(3) { animation-delay: 120ms; }
+.app-main-content .panel:nth-of-type(4) { animation-delay: 180ms; }
+
+/* ─── Hover con más presencia (solo light; dark ya tiene su patrón T2) ─── */
+.panel { transition: box-shadow 180ms ease, transform 180ms ease, background-color 300ms ease, border-color 300ms ease; }
+.panel:hover { box-shadow: 0 4px 18px rgba(22,56,43,0.09), 0 1px 4px rgba(0,0,0,0.05); transform: translateY(-1px); }
+[data-theme="dark"] .panel:hover { transform: none; }
+.kpi-card { transition: box-shadow 180ms ease, transform 180ms ease, background-color 300ms ease, border-color 300ms ease; }
+.kpi-card:hover { transform: translateY(-2px); }
+[data-theme="dark"] .kpi-card:hover { transform: none; }
+
+/* ─── Feedback táctil global ─── */
+button { transition: background 120ms ease, color 120ms ease, opacity 120ms ease, transform 100ms ease; }
+button:active { transform: scale(0.97); }
+.ls-item { transition: background 150ms ease, color 150ms ease, transform 100ms ease; }
+.ls-item:active { transform: scale(0.98); }
+
+/* ─── Transición suave al cambiar de tema ─── */
+body { transition: background-color 300ms ease, color 300ms ease; }
+.ledger-sidebar, .app-nav-top, .app-nav-bottom, .more-sheet, .mobile-app-header {
+  transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease;
+}
+
+/* ─── Barras de progreso: llenado animado + shimmer de una pasada ─── */
+.bar-fill {
+  position: relative; overflow: hidden;
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: barGrow 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes barGrow { from { width: 0; } }
+.bar-fill::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: barShimmer 1100ms ease 350ms 1 forwards;
+}
+@keyframes barShimmer { to { transform: translateX(100%); } }
+
+/* ─── Snackbar con entrada spring ─── */
+.snackbar-pop { animation: snackIn 320ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes snackIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(14px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+/* ─── Valor del hero: entrada con presencia ─── */
+.hero-value { animation: heroIn 450ms cubic-bezier(0.22, 1, 0.36, 1); }
+@keyframes heroIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Fase 6 v3.21 — accesibilidad: respeta preferencia de movimiento reducido del SO/navegador */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -326,7 +420,7 @@ setTimeout(function() {
   const status = document.getElementById('load-status');
   if (status && document.querySelector('.spinner')) {
     status.innerHTML = 'Tomando más tiempo de lo normal... verifica tu conexión';
-    status.style.color = '#7A5714';
+    status.style.color = '#A66B2D';
   }
 }, 15000);
 
@@ -352,25 +446,7 @@ function setStatus(msg) {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
-   CFO Personal — CHANGELOG v3.24
-   Rediseño visual ("lavado de cara") — dirección elegida: "Fintech
-   moderna, más aire". Solo tokens/estilos, sin cambios de lógica,
-   persistencia, tabs ni estructura. Verde bosque + dorado se conservan
-   como identidad de marca en ambos temas.
-   - Fase 1: nuevos design tokens (color, espaciado, radios, sombras) en
-     :root CSS y PALETTES light/dark. Fix de contraste: warn/warnSoft en
-     claro no cumplía AA (4.14:1) -> 5.07:1.
-   - Fase 2: hero de liquidez, tarjetas (KpiCard/Panel), bottom nav,
-     modales/drawer, inputs/botones, snackbar/toasts. Bug real
-     encontrado y corregido: el fondo del hero usaba C.primary, que en
-     dark es el verde-menta brillante de botones — con el texto fijo
-     claro del hero daba 1.48:1 (invisible). Ahora el hero tiene fondo
-     fijo (siempre oscuro en ambos temas, igual que su texto).
-   - Fase 3: tabular-nums heredado globalmente, empty states con más
-     aire, pulido menor (loading screen, colores sueltos).
-   - Fase 4: auditoría de contraste WCAG AA completa en ambos temas.
-
-   CHANGELOG v3.23
+   CFO Personal — CHANGELOG v3.23
    (Fases T1–T4 de v3.22 — temas, dark premium, bottom nav pill, fix de
    inputStyle — quedan intactas, no se tocaron en esta versión).
 
@@ -483,9 +559,10 @@ var SnackbarHost = function() {
   if (!state.open) return null;
   var actions = state.actions || [];
   return React.createElement("div", {
+    className: "snackbar-pop", /* v3.24: entrada con spring */
     style: {
       position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: 84, zIndex: 2000,
-      background: C.tooltipBg, color: C.tooltipText, borderRadius: T.radius.lg, padding: "13px 18px",
+      background: C.tooltipBg, color: C.tooltipText, borderRadius: T.radius.lg, padding: "12px 16px",
       display: "flex", alignItems: "center", gap: T.space.lg, boxShadow: T.shadow.lg,
       fontSize: T.text.base, maxWidth: "90vw"
     }
@@ -783,37 +860,34 @@ var PALETTES = {
   // verde reservado para acciones y datos positivos. mutedLight se documenta como
   // NO apto para texto informativo esencial (ver nota abajo).
   light: {
-    // Fase 1 rediseño v3.24 — dirección elegida: "Fintech moderna, más aire".
-    // Verde bosque + dorado se conservan como identidad de marca; cambia temperatura
-    // (blanco con tinte menta en vez de papel cálido), saturación de accent y aire.
-    bg:          "#F8FAF7", // blanco con tinte menta
+    bg:          "#F4F1E9", // papel cálido
     surface:     "#FFFFFF",
-    surfaceAlt:  "#EEF3EC",
-    surface2:    "#E4EEE7", // sage — 2ª elevación con tinte verde sutil
-    primary:     "#1B4332", // verde bosque fresco
-    primarySoft: "#2D6A4F",
-    accent:      "#C9A227", // dorado más saturado — acento de datos y CTA
-    text:        "#14201A",
-    muted:       "#5B6B60",   // 5.4:1 sobre bg, 5.65:1 sobre surface — cumple AA
-    mutedLight:  "#9DAB9F",   // no-token: SOLO decorativo (iconos, bordes, disabled) — no cumple 4.5:1
-    success:     "#2D6A4F",
-    successSoft: "#E4EEE7",
+    surfaceAlt:  "#EFEAD9",
+    surface2:    "#E7ECE2", // sage — 2ª elevación con tinte verde sutil
+    primary:     "#16382B", // verde bosque profundo
+    primarySoft: "#24503C",
+    accent:      "#B4832A", // dorado — antes reservado a botones, ahora también acento de datos
+    text:        "#1C201C",
+    muted:       "#565F56",   // ~7.2:1 sobre #FFFFFF — cumple AA cómodamente
+    mutedLight:  "#9AA096",   // no-token: SOLO decorativo (iconos, bordes, disabled) — no cumple 4.5:1
+    success:     "#24503C",
+    successSoft: "#E7ECE2",
     danger:      "#A23E2C",
     dangerSoft:  "#F3E2DD",
-    warn:        "#7A5714",   // v3.24: oscurecido desde #8A6420 — ese par sobre warnSoft daba 4.14:1 (no AA)
+    warn:        "#8A6420",
     warnSoft:    "#EFE1C3",
-    border:      "#DCEAE1",
-    borderSoft:  "#E8F0EA",
-    onPrimary:   "#F8FAF7",
+    border:      "#E3DECF",
+    borderSoft:  "#EDE8D8",
+    onPrimary:   "#F4F1E9",
     accentAlt:   "#6c5af7", // morado de la función "convertir deseo en meta" (GoalsTab/WishlistTab) — texto onPrimary encima
-    tooltipBg:   "#14201A", // fondo oscuro fijo del snackbar/tooltip flotante (SnackbarHost)
-    tooltipText: "#F8FAF7",
+    tooltipBg:   "#1C201C", // fondo oscuro fijo del snackbar/tooltip flotante (SnackbarHost)
+    tooltipText: "#F4F1E9",
     shadow: {
-      sm: "0 1px 3px rgba(20,32,26,0.05)",
-      md: "0 2px 8px rgba(20,32,26,0.06)",
-      lg: "0 8px 28px rgba(27,67,50,0.14)"
+      sm: "0 1px 3px rgba(28,32,28,0.05)",
+      md: "0 1px 4px rgba(28,32,28,0.05)",
+      lg: "0 4px 14px rgba(22,56,43,0.16)"
     },
-    chart: ["#1B4332","#2D6A4F","#6FA98A","#C9A227","#E8C766","#A23E2C","#5B6B60","#8FE0B4"]
+    chart: ["#16382B","#24503C","#5C8770","#B4832A","#D9B25E","#A23E2C","#565F56","#8AA593"]
   },
   // Fase T2 v3.22 — DARK premium. Valores verificados con la fórmula de contraste
   // WCAG 2.1 (no a ojo): text≈16.7:1, muted(text2)≈7.3-7.8:1, mutedLight(text3)≈5-5.8:1
@@ -821,34 +895,30 @@ var PALETTES = {
   // Sombras → "none": la elevación se logra con borde translúcido + surface2, no con
   // box-shadow (un shadow negro es invisible sobre un fondo ya oscuro).
   dark: {
-    // Fase 1 rediseño v3.24 — misma dirección "fintech moderna, más aire": verde menta
-    // más brillante/saturado que el dark anterior, dorado igual de vivo. Sombras
-    // siguen en "none" (elevación por borde + surface2 — una sombra negra es
-    // invisible sobre un fondo ya oscuro, ver nota histórica de Fase T2 v3.22).
-    bg:          "#0E1512",
-    surface:     "#141C18",
-    surfaceAlt:  "#182019",
-    surface2:    "#1B241D",
-    primary:     "#8FE0B4",   // verde menta brillante — botones primarios usan onPrimary (oscuro) como texto
-    primarySoft: "#6FCB9C",
-    accent:      "#F0C660",   // dorado brillante
-    text:        "#EAF2ED",
-    muted:       "#A9B8AE",   // "text2" — 8.95:1 sobre bg
-    mutedLight:  "#6E7A72",   // "text3" — decorativo
-    success:     "#8FE0B4",
-    successSoft: "rgba(143,224,180,0.15)",
-    danger:      "#E2897A",
-    dangerSoft:  "rgba(226,137,122,0.15)",
-    warn:        "#F0C660",
-    warnSoft:    "rgba(240,198,96,0.15)",
+    bg:          "#14180F",
+    surface:     "#1B2118",
+    surfaceAlt:  "#232A1F",
+    surface2:    "#232A1F",
+    primary:     "#7FBE9C",   // verde bosque aclarado — botones primarios usan onPrimary (oscuro) como texto
+    primarySoft: "#6FA98A",
+    accent:      "#D9B25E",   // dorado brillante
+    text:        "#ECE7D8",
+    muted:       "#A7AC9D",   // "text2"
+    mutedLight:  "#7C8275",   // "text3" — decorativo
+    success:     "#7FBE9C",
+    successSoft: "rgba(127,190,156,0.15)",
+    danger:      "#E08972",
+    dangerSoft:  "rgba(224,137,114,0.15)",
+    warn:        "#D9B25E",
+    warnSoft:    "rgba(217,178,94,0.15)",
     border:      "rgba(255,255,255,0.08)",
     borderSoft:  "rgba(255,255,255,0.05)",
-    onPrimary:   "#0E1512", // texto oscuro sobre primary/success brillantes — NO blanco
+    onPrimary:   "#14180F", // texto oscuro sobre primary/success brillantes — NO blanco
     accentAlt:   "#A78BFA", // variante luminosa del morado de "convertir a meta"
-    tooltipBg:   "#1B241D", // = surface2 en dark
-    tooltipText: "#EAF2ED", // = text en dark
+    tooltipBg:   "#232A1F", // = surface2 en dark
+    tooltipText: "#ECE7D8", // = text en dark
     shadow: { sm: "none", md: "none", lg: "none" },
-    chart: ["#8FE0B4","#F0C660","#E2897A","#A9B8AE","#6FCB9C","#9FE8C4","#D9AF52","#C08A73"]
+    chart: ["#7FBE9C","#D9B25E","#E08972","#A7AC9D","#6FA98A","#8FC1A5","#C9A45C","#B98A6F"]
   }
 };
 
@@ -947,10 +1017,8 @@ var CHART_PALETTE = PALETTES.light.chart.slice();
 var T = {
   color: C,
   chart: CHART_PALETTE,
-  // Fase 1 rediseño v3.24: +escala de espaciado (~15-20%, moderado para no romper
-  // grids con columnas fijas) y radios más grandes — el eje central de "más aire".
-  space: { xs: 5, sm: 7, md: 9, md2: 11, lg: 14, lg2: 16, xl: 18, xxl: 23, xxxl: 28 },
-  radius: { xxs: 3, xs: 4, sm: 6, md: 8, lg: 12, xl: 18, full: 999 },
+  space: { xs: 4, sm: 6, md: 8, md2: 10, lg: 12, lg2: 14, xl: 16, xxl: 20, xxxl: 24 },
+  radius: { xxs: 2, xs: 3, sm: 4, md: 6, lg: 8, xl: 10, full: 999 },
   // Fase T2 v3.22: mismo objeto siempre (igual que C) — applyTheme() lo muta in-place.
   // En dark, T.shadow.* pasa a "none" porque una sombra negra es invisible sobre un
   // fondo ya oscuro; la elevación ahí se logra con borde + surface2 (ver PALETTES.dark).
@@ -996,20 +1064,20 @@ function card(extra) {
 function btnPrimary(extra) {
   return Object.assign({
     background: T.color.primary, border: "1px solid " + T.color.primary, color: T.color.onPrimary,
-    fontSize: 12, fontWeight: 600, padding: "10px 16px", borderRadius: T.radius.md, cursor: "pointer",
+    fontSize: 12, fontWeight: 600, padding: "8px 14px", borderRadius: T.radius.sm, cursor: "pointer",
     boxShadow: T.shadow.lg
   }, extra || {});
 }
 function btnSecondary(extra) {
   return Object.assign({
     background: T.color.surface, border: "1px solid " + T.color.border, color: T.color.text,
-    fontSize: 12, fontWeight: 500, padding: "10px 16px", borderRadius: T.radius.md, cursor: "pointer"
+    fontSize: 12, fontWeight: 500, padding: "8px 14px", borderRadius: T.radius.sm, cursor: "pointer"
   }, extra || {});
 }
 function btnLink(extra) {
   return Object.assign({
     background: "none", border: "1px solid " + T.color.border, color: T.color.primary,
-    fontSize: 12, padding: "6px 13px", borderRadius: T.radius.sm, cursor: "pointer"
+    fontSize: 12, padding: "5px 12px", borderRadius: T.radius.xs, cursor: "pointer"
   }, extra || {});
 }
 // Fase 6 v3.21: 4ª variante explícitamente permitida por el plan ("primary, secondary,
@@ -1017,7 +1085,7 @@ function btnLink(extra) {
 function btnDanger(extra) {
   return Object.assign({
     background: T.color.danger, border: "1px solid " + T.color.danger, color: T.color.onPrimary,
-    fontSize: 12, fontWeight: 600, padding: "10px 16px", borderRadius: T.radius.md, cursor: "pointer"
+    fontSize: 12, fontWeight: 600, padding: "8px 14px", borderRadius: T.radius.sm, cursor: "pointer"
   }, extra || {});
 }
 function inputT(extra) {
@@ -1694,12 +1762,12 @@ var KpiCard = function(_ref2) {
       background: accent ? C.primary : C.surface,
       border: "1px solid " + (accent ? C.primary : C.border),
       borderLeft: accent ? ("1px solid " + C.primary) : "3px solid " + edgeColor,
-      borderRadius: T.radius.lg,
-      padding: "22px 24px",
+      borderRadius: 8,
+      padding: "20px 22px",
       display: "flex",
       flexDirection: "column",
-      gap: T.space.lg,
-      minHeight: 120,
+      gap: 10,
+      minHeight: 116,
       boxShadow: accent ? T.shadow.lg : T.shadow.sm
     }
   },
@@ -1708,7 +1776,7 @@ var KpiCard = function(_ref2) {
         style:{ fontSize:10, fontWeight:600, letterSpacing:"0.11em", textTransform:"uppercase",
                 color: accent ? "rgba(255,255,255,0.7)" : C.muted }
       }, label),
-      IconComp && React.createElement(IconComp, { size:14, color: accent ? "rgba(255,255,255,0.5)" : C.mutedLight })
+      IconComp && React.createElement(IconComp, { size:14, color: accent ? "rgba(255,255,255,0.5)" : C.borderSoft.replace("EDF2EF","B0C8BE") })
     ),
     React.createElement("div", {
       className: "hero-value",
@@ -1759,15 +1827,15 @@ var Panel = function(_ref4) {
     style: _objectSpread({
       background: C.surface,
       border: "1px solid " + C.border,
-      borderRadius: T.radius.xl,
-      padding: T.space.xxl,
+      borderRadius: 10,
+      padding: 20,
       boxShadow: T.shadow.md
     }, style || {})
   },
     (title || action) && React.createElement("div", {
       style:{ display:"flex", justifyContent:"space-between", alignItems:"flex-start",
-              marginBottom:T.space.xl, paddingBottom:T.space.lg, borderBottom:"1px solid "+C.borderSoft,
-              flexWrap:"wrap", gap:T.space.md }
+              marginBottom:16, paddingBottom:12, borderBottom:"1px solid "+C.borderSoft,
+              flexWrap:"wrap", gap:8 }
     },
       React.createElement("div", null,
         title && React.createElement("h3", {
@@ -1789,14 +1857,14 @@ var EmptyState = function(props) {
   var icon = props.icon, title = props.title, subtitle = props.subtitle,
       ctaLabel = props.ctaLabel, onCta = props.onCta;
   return React.createElement("div", {
-    style: { textAlign: "center", padding: "44px 24px", color: C.muted }
+    style: { textAlign: "center", padding: "36px 20px", color: C.muted }
   },
-    icon && React.createElement("div", { style: { fontSize: 30, marginBottom: T.space.md2, opacity: 0.6 } }, icon),
+    icon && React.createElement("div", { style: { fontSize: 28, marginBottom: 10, opacity: 0.7 } }, icon),
     React.createElement("div", {
-      style: { fontFamily: T.font.display, fontSize: 16, color: C.text, marginBottom: T.space.xs }
+      style: { fontFamily: T.font.display, fontSize: 15, color: C.text, marginBottom: 4 }
     }, title),
     subtitle && React.createElement("div", {
-      style: { fontSize: T.text.base5, color: C.muted, marginBottom: ctaLabel ? T.space.xl : 0, lineHeight: 1.55 }
+      style: { fontSize: T.text.base5, color: C.muted, marginBottom: ctaLabel ? 16 : 0, lineHeight: 1.5 }
     }, subtitle),
     ctaLabel && onCta && React.createElement("button", {
       onClick: onCta, style: btnPrimary({ margin: "0 auto", display: "inline-flex" })
@@ -1854,7 +1922,7 @@ var TabButton = function(_ref5) {
       fontSize: 12, fontWeight: active ? 600 : 500,
       letterSpacing:"0.015em", cursor:"pointer",
       borderRadius:6, whiteSpace:"nowrap",
-      boxShadow: active ? "0 1px 4px rgba(27,67,50,0.25)" : "none"
+      boxShadow: active ? "0 1px 4px rgba(22,56,43,0.25)" : "none"
     }
   },
     React.createElement(IconComp, { size:13, color: active ? C.onPrimary : C.muted }),
@@ -1933,8 +2001,8 @@ var MobileMoreDrawer = function(props) {
   );
 };
 var inputStyle = {
-  width: "100%", padding: "10px 13px",
-  border: "1px solid " + C.border, borderRadius: T.radius.md,
+  width: "100%", padding: "9px 12px",
+  border: "1px solid " + C.border, borderRadius: 6,
   fontSize: 13, color: C.text, background: C.surface,
   boxSizing: "border-box", transition: "border-color 120ms ease"
 };
@@ -2264,55 +2332,42 @@ var HoyTab = function(props) {
     // ============ HERO: LIQUIDEZ ACTUAL (estilo ledger — tarjeta oscura fija) ============
     React.createElement("div", {
       style: {
-        backgroundColor: "#1B4332",
-        backgroundImage: "radial-gradient(circle at 85% 20%, rgba(201,162,39,0.18), transparent 55%), linear-gradient(180deg, #1B4332 0%, #2D6A4F 130%)",
-        /* Fase 2 v3.24 — BUG encontrado al auditar contraste del hero en dark: antes el
-           fondo usaba C.primary/C.primarySoft (theme-reactive). En light eso daba el verde
-           bosque correcto (#1B4332), pero en dark C.primary es el verde MENTA BRILLANTE de
-           botones (#8FE0B4, pensado para usarse con onPrimary oscuro encima) — con el texto
-           fijo claro del hero (#F8FAF7) el contraste caía a 1.48:1 (reprueba AA; ya era un
-           bug preexistente incluso antes de este rediseño, solo que peor ahora). El hero es
-           intencionalmente oscuro en AMBOS temas (igual que su texto, ver fix de abajo), así
-           que su fondo ahora también es fijo — mismo verde bosque siempre, sin importar el
-           tema activo. Con esto, #F8FAF7 sobre #1B4332 da 10.56:1 en los dos temas.
-           v3.23.2-fix (sigue vigente): antes "background" (shorthand) y "backgroundImage" eran
-           dos props de estilo separadas — React las aplica ambas al DOM, y backgroundImage (el
-           radial, casi transparente) terminaba pisando el gradiente verde de "background". El
-           hero quedaba sin fondo real, con texto claro sobre el fondo claro de la página
-           (invisible). Ahora ambos gradientes viven en backgroundImage, uno solo, sin pisarse. */
-        borderRadius: 22, padding: "34px 36px", color: "#F8FAF7",
-        /* Fase 2 v3.24: elevación con el mismo T.shadow.lg que usa el resto de la app —
-           en claro da un glow verde suave bajo la tarjeta (más "flotante"); en oscuro
-           T.shadow.lg ya es "none" por el patrón documentado (sombra negra invisible
-           sobre fondo oscuro), así que no hace falta una condición nueva aquí. */
-        boxShadow: T.shadow.lg
-        /* v3.23-fix (hex actualizado en Fase 1 v3.24): antes "C.onPrimary === C.bg ? C.text : #F4F1E9" —
-           en tema claro C.onPrimary y C.bg eran el MISMO hex, así que la condición siempre
+        backgroundColor: C.primary,
+        backgroundImage: "radial-gradient(circle at 85% 20%, rgba(180,131,42,0.18), transparent 55%), linear-gradient(180deg, " + C.primary + " 0%, " + C.primarySoft + " 130%)",
+        /* v3.23.2-fix: antes "background" (shorthand) y "backgroundImage" eran dos props
+           de estilo separadas — React las aplica ambas al DOM, y backgroundImage (el radial,
+           casi transparente) terminaba pisando el gradiente verde de "background". El hero
+           quedaba sin fondo real, con texto claro sobre el fondo claro de la página (invisible).
+           Por eso un toggle de tema "lo arreglaba": C.primary cambiaba y forzaba a reescribir
+           "background", que esa vez sí ganaba. Ahora ambos gradientes viven en backgroundImage,
+           uno solo, sin pisarse. */
+        borderRadius: T.radius.xl, padding: "26px 30px", color: "#F4F1E9"
+        /* v3.23-fix: antes "C.onPrimary === C.bg ? C.text : #F4F1E9" — en tema claro
+           C.onPrimary y C.bg son el MISMO hex (#F4F1E9), así que la condición siempre
            daba true y pintaba texto oscuro sobre el fondo verde oscuro del hero (invisible).
-           El hero es intencionalmente oscuro en ambos temas, así que el color base es fijo
-           (ahora #F8FAF7, el onPrimary vigente — ver PALETTES.light/dark.onPrimary). */
+           El hero es intencionalmente oscuro en ambos temas, así que el color base es fijo. */
       }
     },
       React.createElement("div", {
-        style: { fontSize: T.text.sm, fontWeight: 600, color: "rgba(248,250,247,0.68)", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: T.space.lg }
+        style: { fontSize: T.text.sm, fontWeight: 600, color: "rgba(244,241,233,0.68)", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: T.space.md }
       }, "Liquidez actual"),
-      React.createElement("div", { style: Object.assign({}, heroValueStyle, { color: "#F8FAF7" }) }, fmt(balanceActual)),
+      React.createElement("div", { style: Object.assign({}, heroValueStyle, { color: "#F4F1E9" }) }, fmt(balanceActual)),
       React.createElement("div", {
-        style: { fontSize: T.text.md, color: "rgba(248,250,247,0.72)", marginTop: T.space.md2, lineHeight: 1.55 }
+        style: { fontSize: T.text.md, color: "rgba(244,241,233,0.72)", marginTop: T.space.md2, lineHeight: 1.55 }
       },
         transactions.length + " movimientos registrados \u00B7 Balance calculado desde ingresos y gastos reales"
       ),
       // Barra de progreso de la quincena actual
-      React.createElement("div", { style: { marginTop: T.space.xxl } },
+      React.createElement("div", { style: { marginTop: T.space.xl } },
         React.createElement("div", {
-          style: { display: "flex", justifyContent: "space-between", fontSize: T.text.sm, color: "rgba(248,250,247,0.68)", marginBottom: T.space.sm, gap: T.space.md }
+          style: { display: "flex", justifyContent: "space-between", fontSize: T.text.sm, color: "rgba(244,241,233,0.68)", marginBottom: T.space.xs, gap: T.space.md }
         },
-          React.createElement("span", { style: { color: "rgba(248,250,247,0.68)" } }, "D\u00EDa " + quincenaProgreso.elapsedDays + " de " + quincenaProgreso.totalDays + " de la quincena"),
-          React.createElement("span", { style: { color: "rgba(248,250,247,0.68)" } }, nextPay.daysUntilPay === 0 ? "\u00A1Hoy se cierra!" : nextPay.daysUntilPay + " d\u00EDa" + (nextPay.daysUntilPay === 1 ? "" : "s") + " restantes")
+          React.createElement("span", { style: { color: "rgba(244,241,233,0.68)" } }, "D\u00EDa " + quincenaProgreso.elapsedDays + " de " + quincenaProgreso.totalDays + " de la quincena"),
+          React.createElement("span", { style: { color: "rgba(244,241,233,0.68)" } }, nextPay.daysUntilPay === 0 ? "\u00A1Hoy se cierra!" : nextPay.daysUntilPay + " d\u00EDa" + (nextPay.daysUntilPay === 1 ? "" : "s") + " restantes")
         ),
-        React.createElement("div", { style: { height: 8, background: "rgba(248,250,247,0.18)", borderRadius: T.radius.full, overflow: "hidden" } },
+        React.createElement("div", { style: { height: 6, background: "rgba(244,241,233,0.18)", borderRadius: T.radius.full, overflow: "hidden" } },
           React.createElement("div", {
-            style: { height: "100%", width: quincenaProgreso.pct + "%", background: C.accent, borderRadius: T.radius.full, transition: "width 300ms ease" }
+            className: "bar-fill", style: { height: "100%", width: quincenaProgreso.pct + "%", background: C.accent, borderRadius: T.radius.full, transition: "width 300ms ease" }
           })
         )
       )
@@ -2501,7 +2556,7 @@ var HoyTab = function(props) {
                   ),
                   React.createElement("div", { style: { height: 5, background: C.borderSoft, borderRadius: T.radius.xs } },
                     React.createElement("div", {
-                      style: { height: "100%", width: Math.min(100, pct) + "%", background: g.color || C.success, borderRadius: T.radius.xs }
+                      className: "bar-fill", style: { height: "100%", width: Math.min(100, pct) + "%", background: g.color || C.success, borderRadius: T.radius.xs }
                     })
                   )
                 );
@@ -4430,7 +4485,7 @@ var DebtsTab = function(_ref1) {
                   d.months < Infinity && React.createElement("span", null, d.months + " cuotas restantes")
                 ),
                 React.createElement("div", { style: { height: 4, background: C.borderSoft, borderRadius: T.radius.xxs } },
-                  React.createElement("div", { style: { height: "100%", width: Math.min(100, d.pctOfDebt) + "%", background: urgColor, borderRadius: T.radius.xxs } })
+                  React.createElement("div", { className: "bar-fill", style: { height: "100%", width: Math.min(100, d.pctOfDebt) + "%", background: urgColor, borderRadius: T.radius.xxs } })
                 )
               )
             );
@@ -4646,7 +4701,7 @@ var CalculadoraTab = function() {
           key:m.id, onClick:function(){setMode(m.id);},
           style:{ padding:"14px 16px",
             border:"2px solid "+(active?C.primary:C.border), borderRadius:T.radius.lg,
-            cursor:"pointer", background:active?"rgba(27,67,50,0.05)":C.surface,
+            cursor:"pointer", background:active?"rgba(22,56,43,0.05)":C.surface,
             transition:"all 150ms ease" }
         },
           React.createElement("div", { style:{fontSize:T.text.base5,fontWeight:600,color:active?C.primary:C.text} }, m.label),
@@ -5043,7 +5098,7 @@ var DebtSimulatorCore = function(props) {
           key:m.id, onClick:function(){setMode(m.id);},
           style:{ padding:"14px 16px",
             border:"2px solid "+(active?C.primary:C.border), borderRadius:T.radius.lg,
-            cursor:"pointer", background:active?"rgba(27,67,50,0.05)":C.surface,
+            cursor:"pointer", background:active?"rgba(22,56,43,0.05)":C.surface,
             transition:"all 150ms ease" }
         },
           React.createElement("div", { style:{fontSize:T.text.base5,fontWeight:600,color:active?C.primary:C.text} }, m.label),
@@ -5313,7 +5368,7 @@ var DebtSimulatorModal = function(props) {
   return React.createElement("div", {
     onClick: function(e){ if (e.target === e.currentTarget) onClose(); },
     style: {
-      position: "fixed", inset: 0, background: "rgba(14,21,18,0.5)", backdropFilter: "blur(3px)", WebkitBackdropFilter: "blur(3px)", zIndex: 1000,
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000,
       display: "flex", alignItems: "center", justifyContent: "center", padding: T.space.lg
     }
   },
@@ -5479,7 +5534,7 @@ var NetWorthTab = _ref12 => {
           var applied = SWP_BRIDGE.pushSavingsToSwp(val);
           if (applied > 0) {
             var notif = document.createElement("div");
-            notif.style.cssText = "position:fixed;bottom:80px;right:24px;background:" + C.primary + ";color:" + C.onPrimary + ";padding:12px 18px;border-radius:" + T.radius.lg + "px;font-size:13px;z-index:9999;box-shadow:0 8px 24px rgba(20,32,26,0.22);animation:fadeInUp 0.3s ease";
+            notif.style.cssText = "position:fixed;bottom:80px;right:24px;background:" + C.primary + ";color:" + C.onPrimary + ";padding:10px 16px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);animation:fadeInUp 0.3s ease";
             notif.textContent = "✦ Smart Wishlist Pro actualizado: +$" + applied.toFixed(2);
             document.body.appendChild(notif);
             setTimeout(function(){ notif.style.opacity="0"; notif.style.transition="opacity 0.4s"; setTimeout(function(){ notif.remove(); }, 400); }, 3000);
@@ -5985,7 +6040,7 @@ var ProjectionsTab = function(_ref13) {
                   React.createElement("span", { style: { color: C.muted, fontVariantNumeric: "tabular-nums" } }, fmt(cat.value) + " (" + pct.toFixed(0) + "%)")
                 ),
                 React.createElement("div", { style: { height: 4, background: C.borderSoft, borderRadius: T.radius.xxs } },
-                  React.createElement("div", { style: { height: "100%", width: Math.min(100, pct) + "%", background: cat.fill, borderRadius: T.radius.xxs } })
+                  React.createElement("div", { className: "bar-fill", style: { height: "100%", width: Math.min(100, pct) + "%", background: cat.fill, borderRadius: T.radius.xxs } })
                 )
               );
             })
@@ -6102,7 +6157,7 @@ var ProjectionsTab = function(_ref13) {
                 d.months < Infinity && React.createElement("span", null, d.months + " cuotas restantes")
               ),
               React.createElement("div", { style: { height: 4, background: C.borderSoft, borderRadius: T.radius.xxs } },
-                React.createElement("div", { style: { height: "100%", width: Math.min(100, d.pctOfDebt) + "%", background: urgColor, borderRadius: T.radius.xxs } })
+                React.createElement("div", { className: "bar-fill", style: { height: "100%", width: Math.min(100, d.pctOfDebt) + "%", background: urgColor, borderRadius: T.radius.xxs } })
               )
             )
           );
@@ -8334,7 +8389,7 @@ var WishlistTab = _ref => {
       // no-token: #6c5af7 (y su variante rgba(79,70,229,*)) es el color propio de la
       // función "convertir deseo en meta" — intencionalmente distinto de la paleta verde
       // de la app para diferenciar visualmente esta acción especial. 3 usos consistentes.
-      notif.style.cssText = "position:fixed;bottom:80px;right:24px;background:" + C.accentAlt + ";color:" + C.onPrimary + ";padding:12px 18px;border-radius:" + T.radius.lg + "px;font-size:13px;z-index:9999;box-shadow:0 8px 24px rgba(20,32,26,0.22)";
+      notif.style.cssText = "position:fixed;bottom:80px;right:24px;background:" + C.accentAlt + ";color:" + C.onPrimary + ";padding:10px 16px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2)";
       notif.textContent = "✦ Agregado a Smart Wishlist Pro";
       document.body.appendChild(notif);
       setTimeout(function(){ notif.style.opacity="0"; notif.style.transition="opacity 0.4s"; setTimeout(function(){ notif.remove(); }, 400); }, 2500);
@@ -8950,9 +9005,9 @@ var WishlistTab = _ref => {
     })()),
     // ── Modal: Enviar a Smart Wishlist Pro ──
     sendToSwpItem && /*#__PURE__*/React.createElement("div", {
-      style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(14,21,18,0.5)",backdropFilter:"blur(3px)",WebkitBackdropFilter:"blur(3px)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}
+      style:{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.55)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}
     }, /*#__PURE__*/React.createElement("div", {
-      style:{background:C.surface,border:"1px solid "+C.border,borderRadius:T.radius.xl,padding:T.space.xxl,width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto",boxShadow:T.shadow.lg}
+      style:{background:C.surface,border:"1px solid "+C.border,borderRadius:T.radius.lg,padding:24,width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto"}
     },
       /*#__PURE__*/React.createElement("div", {style:{fontWeight:700,fontSize:15,marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}},
         "\u2746 Enviar a Smart Wishlist Pro",
@@ -10367,7 +10422,7 @@ var PersonalCFO = () => {
       // Notificación
       setTimeout(function() {
         var notif = document.createElement("div");
-        notif.style.cssText = "position:fixed;bottom:80px;right:24px;background:" + C.primary + ";color:" + C.onPrimary + ";padding:12px 18px;border-radius:" + T.radius.lg + "px;font-size:13px;z-index:9999;box-shadow:0 8px 24px rgba(20,32,26,0.22);max-width:320px;line-height:1.5";
+        notif.style.cssText = "position:fixed;bottom:80px;right:24px;background:" + C.primary + ";color:" + C.onPrimary + ";padding:12px 18px;border-radius:8px;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);max-width:320px;line-height:1.5";
         notif.innerHTML = "<strong>✓ Plan quincenal aplicado</strong><br><span style='font-size:11px;opacity:0.85'>"+(raw.label||"Plan")+" → presupuesto actualizado.</span>";
         document.body.appendChild(notif);
         setTimeout(function(){ notif.style.opacity="0"; notif.style.transition="opacity 0.5s"; setTimeout(function(){ notif.remove(); },500); },5000);
@@ -10568,6 +10623,7 @@ var PersonalCFO = () => {
       // ── MAIN CONTENT ─────────────────────────────────────────
       React.createElement("main", {
         className: "app-main-content",
+        key: tab, /* v3.24: remonta el main al cambiar de tab para que tabEnter + stagger se reproduzcan */
         style:{ paddingBottom:32 }
       },
         tab === "hoy"     && React.createElement(HoyTab, Object.assign({ setTab:setTab }, planProps, { assets:assets })),
