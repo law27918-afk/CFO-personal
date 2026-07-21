@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icon-192.png" />
 <link rel="icon" href="./icon-192.png" type="image/png" />
-<title>CFO Personal · Gestión Financiera (v3.25.1)</title>
+<title>CFO Personal · Gestión Financiera (v3.25.3)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,500;9..144,560&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
@@ -372,18 +372,18 @@ body { transition: background-color 300ms ease, color 300ms ease; }
 }
 @keyframes barShimmer { to { transform: translateX(100%); } }
 
-/* ─── Hoy en 2 columnas en pantallas anchas (v3.25.1): aprovecha el espacio derecho.
-   El hero ocupa todo el ancho; el resto fluye en dos columnas tipo masonry. ─── */
-@media (min-width: 1500px) {
-  .hoy-layout { display: block !important; column-count: 2; column-gap: 20px; column-fill: balance; }
-  .hoy-layout > * { break-inside: avoid; margin-bottom: 20px; }
-  .hoy-layout > *:first-child { column-span: all; } /* hero a lo ancho */
-  /* v3.25.1: dentro de media columna no caben 4 KPIs en fila → 2×2 */
-  .hoy-layout .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  /* v3.25.1: Metas+Wishlist lado a lado no caben en media columna → apilados */
-  .hoy-layout .grid-2 { grid-template-columns: 1fr; }
-  /* v3.25.1: los títulos de sección no quedan huérfanos al final de una columna */
-  .hoy-sec-head { break-after: avoid-column; }
+/* ─── Hoy en 2 columnas en pantallas anchas (v3.25.3 · Rediseño Premium): rejilla fija
+   1.65fr / 1fr — columna principal (hero, acciones, KPIs, recomendaciones) a la
+   izquierda y rail fijo (Metas activas + Wishlist) a la derecha, como en el mockup. ─── */
+@media (min-width: 1100px) {
+  .hoy-layout {
+    display: grid !important;
+    grid-template-columns: 1.65fr 1fr;
+    align-items: start;
+    gap: 24px;
+  }
+  .hoy-layout > .hoy-col-main { display: flex; flex-direction: column; gap: inherit; min-width: 0; }
+  .hoy-layout > .hoy-col-rail { display: flex; flex-direction: column; gap: inherit; min-width: 0; }
 }
 
 /* ─── Snackbar con entrada spring ─── */
@@ -2356,6 +2356,8 @@ var HoyTab = function(props) {
 
   return React.createElement("div", { className: "hoy-layout", style: { display: "flex", flexDirection: "column", gap: T.space.xxl } },
 
+    React.createElement("div", { className: "hoy-col-main", style: { display: "flex", flexDirection: "column", gap: T.space.xxl, minWidth: 0 } },
+
     // ============ HERO: LIQUIDEZ ACTUAL (estilo ledger — tarjeta oscura fija) ============
     React.createElement("div", {
       style: {
@@ -2555,10 +2557,11 @@ var HoyTab = function(props) {
           React.createElement("div", { style: { fontSize: T.text.base, color: C.muted, lineHeight: 1.5 } }, r.body)
         );
       })
-    ),
+    )
+    ), // fin hoy-col-main
 
-    // ============ METAS + WISHLIST (lado a lado) ============
-    React.createElement("div", { className: "grid-2" },
+    // ============ METAS + WISHLIST (rail derecho fijo, v3.25.3) ============
+    React.createElement("div", { className: "hoy-col-rail", style: { display: "flex", flexDirection: "column", gap: T.space.xxl } },
       React.createElement(Panel, {
         title: "Metas activas",
         subtitle: metasActivas.length > 0 ? metasActivas.length + " metas pr\u00F3ximas por fecha" : "Sin metas activas",
@@ -9666,14 +9669,31 @@ var GasolinaTab = function(props) {
     if (logs.length < 2) return null;
     var sorted = logs.slice().sort(function(a,b){ return new Date(a.date)-new Date(b.date); });
     var MI_TO_KM = 1.60934; // factor de conversión millas → km
+    /* v3.25.2: litros consumidos en un tramo corregidos por nivel del tanque (rayitas).
+       consumido = litros cargados + (nivel_anterior − nivel_actual_antes_de_cargar) × L/rayita.
+       Corrige el sesgo de las cargas parciales; si faltan rayitas, cae al método clásico. */
+    function segmentLiters(prev, log) {
+      var loaded = Number(log.liters) || 0;
+      var prevAfter = prev.barsAfter !== null && prev.barsAfter !== undefined ? Number(prev.barsAfter) : null;
+      var curBefore = null;
+      if (log.barsBefore !== null && log.barsBefore !== undefined) curBefore = Number(log.barsBefore);
+      else if (log.barsAfter !== null && log.barsAfter !== undefined)
+        curBefore = Number(log.barsAfter) - loaded / LITERS_PER_BAR;
+      if (prevAfter !== null && curBefore !== null)
+        return Math.max(0, loaded + (prevAfter - curBefore) * LITERS_PER_BAR);
+      return loaded || null; // sin rayitas: método clásico (solo litros cargados)
+    }
     var kmLValues = sorted.reduce(function(acc, log, i) {
       if (i === 0) return acc;
       var prev = sorted[i-1];
-      if (prev.odometer && log.odometer && log.liters) {
+      if (prev.odometer && log.odometer) {
         var mi  = Number(log.odometer) - Number(prev.odometer);
         var km  = mi * MI_TO_KM; // convertir millas a km
-        var kml = km / Number(log.liters);
-        if (kml > 4 && kml < 25) acc.push(kml); // filtrar outliers
+        var consumed = segmentLiters(prev, log);
+        if (consumed && km > 0) {
+          var kml = km / consumed;
+          if (kml > 4 && kml < 25) acc.push(kml); // filtrar outliers
+        }
       }
       return acc;
     }, []);
@@ -9686,9 +9706,23 @@ var GasolinaTab = function(props) {
       return first && last && first !== last ? Number(last.odometer) - Number(first.odometer) : null;
     })();
     var totalKm    = totalMi ? totalMi * MI_TO_KM : null;
+    /* v3.25.2: rendimiento global = km totales ÷ litros consumidos totales,
+       ajustando por el cambio de nivel del tanque entre el primer y último registro.
+       Es la métrica más robusta cuando hay cargas parciales. */
+    var globalKml = (function(){
+      if (!totalKm) return null;
+      var first = sorted.find(function(l){ return l.odometer; });
+      var last  = [...sorted].reverse().find(function(l){ return l.odometer; });
+      var i0 = sorted.indexOf(first), i1 = sorted.indexOf(last);
+      var litersLoaded = sorted.slice(i0+1, i1+1).reduce(function(s,l){ return s+(Number(l.liters)||0); },0);
+      var lvl0 = first.barsAfter !== null && first.barsAfter !== undefined ? Number(first.barsAfter) : null;
+      var lvl1 = last.barsAfter  !== null && last.barsAfter  !== undefined ? Number(last.barsAfter)  : null;
+      var consumed = litersLoaded + (lvl0 !== null && lvl1 !== null ? (lvl0 - lvl1) * LITERS_PER_BAR : 0);
+      return consumed > 0 ? totalKm / consumed : null;
+    })();
     var costPerKm  = totalKm && totalAmt ? totalAmt / totalKm : null;
     var lastLog    = sorted[sorted.length-1];
-    return { avgKml, totalL, totalAmt, totalKm, totalMi, costPerKm, lastLog, kmLValues };
+    return { avgKml, globalKml, totalL, totalAmt, totalKm, totalMi, costPerKm, lastLog, kmLValues };
   }, [logs]);
 
   // Autonomía restante estimada desde rayitas actuales
@@ -10144,7 +10178,8 @@ var GasolinaTab = function(props) {
         label:"Rendimiento promedio",
         value: stats && stats.avgKml ? stats.avgKml.toFixed(1)+" km/L" : "—",
         sub: stats && stats.avgKml
-          ? (stats.avgKml >= KML_CITY ? "✓ Por encima del esperado" : "⚠ Por debajo del esperado ("+KML_CITY+" km/L)")
+          ? ((stats.avgKml >= KML_CITY ? "✓ Por encima del esperado" : "⚠ Por debajo del esperado ("+KML_CITY+" km/L)")
+             + (stats.globalKml ? " · global real: "+stats.globalKml.toFixed(1)+" km/L" : ""))
           : "Registra 2+ cargas para calcular",
         tone: stats && stats.avgKml ? (stats.avgKml >= KML_CITY ? "positive" : "warn") : "neutral",
         icon: IconTrendUp
@@ -10298,13 +10333,20 @@ var GasolinaTab = function(props) {
               React.createElement("tbody", null,
                 logs.slice().sort(function(a,b){ return new Date(b.date)-new Date(a.date); })
                   .map(function(log, i, arr) {
-                    // Calcular km/L respecto al registro anterior con odómetro
+                    // v3.25.2: km/L corregido por rayitas — litros consumidos = cargados + Δnivel
                     var prevWithOdo = arr.slice(i+1).find(function(l){ return l.odometer; });
                     var kml = null;
-                    if (log.odometer && prevWithOdo && prevWithOdo.odometer && log.liters) {
+                    if (log.odometer && prevWithOdo && prevWithOdo.odometer) {
                       var mi  = Number(log.odometer) - Number(prevWithOdo.odometer);
                       var km  = mi * 1.60934; // millas → km
-                      kml = km > 0 ? km / Number(log.liters) : null;
+                      var loaded = Number(log.liters) || 0;
+                      var prevAfter = prevWithOdo.barsAfter !== null && prevWithOdo.barsAfter !== undefined ? Number(prevWithOdo.barsAfter) : null;
+                      var curBefore = log.barsBefore !== null && log.barsBefore !== undefined ? Number(log.barsBefore)
+                        : (log.barsAfter !== null && log.barsAfter !== undefined ? Number(log.barsAfter) - loaded / LITERS_PER_BAR : null);
+                      var consumed = (prevAfter !== null && curBefore !== null)
+                        ? Math.max(0, loaded + (prevAfter - curBefore) * LITERS_PER_BAR)
+                        : (loaded || null);
+                      kml = consumed && km > 0 ? km / consumed : null;
                     }
                     var kmlColor = kml === null ? C.muted : kml >= KML_CITY ? C.success : kml >= 8 ? C.warn : C.danger;
                     return React.createElement("tr", { key:log.id, style:{ borderBottom:"1px solid "+C.borderSoft } },
@@ -10655,7 +10697,7 @@ var PersonalCFO = () => {
       // ── SIDEBAR ──────────────────────────────────────────
       React.createElement("aside", { className:"ledger-sidebar" },
         React.createElement("div", { className:"ls-brand" }, "CFO Personal"),
-        React.createElement("div", { className:"ls-brand-sub" }, "Centro financiero"),
+        React.createElement("div", { className:"ls-brand-sub" }, "Finanzas de un solo usuario"),
 
         React.createElement("div", { className:"ls-group-label" }, "Diario"),
         [primaryTabs[0], primaryTabs[3], primaryTabs[1]].map(function(t){
