@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icon-192.png" />
 <link rel="icon" href="./icon-192.png" type="image/png" />
-<title>CFO Personal · Gestión Financiera (v3.26.2)</title>
+<title>CFO Personal · Gestión Financiera (v3.27.0)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,500;9..144,560&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
@@ -2694,35 +2694,15 @@ var QuincenaTab = function(props) {
 // colección se está viendo (sin migrar datos), y CRUD que escribe exactamente
 // donde escribía antes.
 var MetasUnificadoTab = function(props) {
-  var _tipoSt = useState("recurrente"),
-      _tipoArr = _slicedToArray(_tipoSt, 2),
-      tipo = _tipoArr[0], setTipo = _tipoArr[1];
-
-  return React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: T.space.xl } },
-    React.createElement("div", {
-      style: { display:"flex", gap:T.space.xs, background:C.surfaceAlt, border:"1px solid "+C.border,
-               borderRadius: T.radius.full, padding: 3, width: "fit-content" }
-    },
-      React.createElement("button", {
-        onClick: function(){ setTipo("recurrente"); },
-        style: { padding:"6px 14px", borderRadius: T.radius.full, border:"none", cursor:"pointer",
-                 fontSize: T.text.sm5, fontWeight: 500, transition:"all 0.2s",
-                 background: tipo==="recurrente" ? C.primary : "transparent",
-                 color: tipo==="recurrente" ? C.onPrimary : C.muted }
-      }, "\uD83C\uDFAF Ahorro recurrente"),
-      React.createElement("button", {
-        onClick: function(){ setTipo("unica"); },
-        style: { padding:"6px 14px", borderRadius: T.radius.full, border:"none", cursor:"pointer",
-                 fontSize: T.text.sm5, fontWeight: 500, transition:"all 0.2s",
-                 background: tipo==="unica" ? C.primary : "transparent",
-                 color: tipo==="unica" ? C.onPrimary : C.muted }
-      }, "\uD83D\uDED2 Compra única")
-    ),
-    tipo === "recurrente" && React.createElement(GoalsTab, {
+  // v3.27 Rediseño Premium: el mockup muestra Metas y Wishlist juntas en una sola
+  // pantalla (antes un toggle "Ahorro recurrente / Compra única") — ahora ambas
+  // secciones se renderizan apiladas, cada una con su Panel/CRUD intacto.
+  return React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: T.space.xxxl } },
+    React.createElement(GoalsTab, {
       goals: props.goals, setGoals: props.setGoals,
       config: props.config, debts: props.debts
     }),
-    tipo === "unica" && React.createElement(WishlistTab, {
+    React.createElement(WishlistTab, {
       wishlist: props.wishlist, setWishlist: props.setWishlist,
       transactions: props.transactions, setTransactions: props.setTransactions,
       config: props.config, bills: props.bills, debts: props.debts,
@@ -2838,6 +2818,10 @@ var TransactionsTab = _ref9 => {
     _useState4 = _slicedToArray(_useState3, 2),
     newTx = _useState4[0],
     setNewTx = _useState4[1];
+  // v3.27 Rediseño Premium: modal de "Nueva transacción" (antes panel siempre visible)
+  var _useStateTxModal = useState(false),
+    _useStateTxModalA = _slicedToArray(_useStateTxModal, 2),
+    txModalOpen = _useStateTxModalA[0], setTxModalOpen = _useStateTxModalA[1];
   var addTx = () => {
     if (!newTx.amount || Number(newTx.amount) <= 0) {
       alert("Ingresa un monto válido");
@@ -2936,8 +2920,42 @@ var TransactionsTab = _ref9 => {
       flexDirection: "column",
       gap: 20
     }
-  }, /*#__PURE__*/React.createElement(SectionTitle, {
-    subtitle: "Registro completo de movimientos. KPIs y filtros en la cabecera."
+  },
+  // v3.27 Rediseño Premium: buscador + botón "Agregar transacción" prominente (mismo
+  // patrón que el mockup: input de búsqueda a la izquierda, CTA sólido a la derecha)
+  /*#__PURE__*/React.createElement("div", { style:{ display:"flex", gap:T.space.md2, flexWrap:"wrap" } },
+    /*#__PURE__*/React.createElement("input", {
+      type: "text", placeholder: "Buscar movimiento…",
+      value: filter.search,
+      onChange: function(e){ setFilter(Object.assign({}, filter, { search: e.target.value })); },
+      style: { flex:"1 1 240px", padding:"11px 16px", border:"1px solid "+C.border, borderRadius:T.radius.md,
+        fontSize:T.text.md, color:C.text, background:C.surface, boxSizing:"border-box" }
+    }),
+    /*#__PURE__*/React.createElement("button", {
+      id: "cfo-fab-target",
+      onClick: function(){ setTxModalOpen(true); },
+      style: { padding:"11px 20px", background:C.primary, color:C.onPrimary, border:"none",
+        borderRadius:T.radius.md, fontSize:T.text.md, fontWeight:600, cursor:"pointer",
+        display:"flex", alignItems:"center", gap:T.space.sm, whiteSpace:"nowrap" }
+    }, React.createElement(IconPlus, { size:14, color:C.onPrimary }), " Agregar transacción")
+  ),
+  // Chips de categoría (scroll horizontal) — filtro rápido, igual que el mockup
+  /*#__PURE__*/React.createElement("div", { className:"cfo-scroll", style:{ display:"flex", gap:T.space.sm, overflowX:"auto", paddingBottom:2 } },
+    ["Todas"].concat(CATEGORIES).map(function(c){
+      var on = filter.category === c;
+      return /*#__PURE__*/React.createElement("button", {
+        key: c,
+        onClick: function(){ setFilter(Object.assign({}, filter, { category: c })); },
+        style: { fontSize:T.text.base, padding:"7px 15px", borderRadius:T.radius.full, whiteSpace:"nowrap",
+          border: "1px solid " + (on ? C.primary : C.border),
+          background: on ? C.primary : C.surfaceAlt,
+          color: on ? C.onPrimary : C.text,
+          cursor:"pointer", fontWeight: on ? 600 : 400 }
+      }, c);
+    })
+  ),
+  /*#__PURE__*/React.createElement(SectionTitle, {
+    subtitle: "Registro completo de movimientos. KPIs y filtros avanzados abajo."
   }, "Registro de Transacciones"), /*#__PURE__*/React.createElement("div", {
     className: "grid-4"
   }, /*#__PURE__*/React.createElement(KpiCard, {
@@ -3018,10 +3036,22 @@ var TransactionsTab = _ref9 => {
     React.createElement("span", { style:{ color: C.danger } }, "Gastos: ", React.createElement("strong", null, fmt(filteredExpense))),
     React.createElement("span", null, "Neto: ", React.createElement("strong", null, fmt(filteredIncome - filteredExpense)))
   )
-  ), /*#__PURE__*/React.createElement(Panel, {
+  ),
+  // v3.27 Rediseño Premium: "Nueva transacción" ahora vive en un modal (antes panel
+  // siempre visible), disparado por el botón "+ Agregar transacción" de la cabecera.
+  txModalOpen && /*#__PURE__*/React.createElement("div", {
+    onClick: function(e){ if (e.target === e.currentTarget) setTxModalOpen(false); },
+    style: { position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000,
+      display:"flex", alignItems:"center", justifyContent:"center", padding:T.space.lg }
+  },
+  /*#__PURE__*/React.createElement("div", { style:{ maxWidth:640, width:"100%", maxHeight:"90vh", overflowY:"auto" } },
+  /*#__PURE__*/React.createElement(Panel, {
     title: "Nueva transacci\xF3n",
     subtitle: "Registra un movimiento real",
-    id: "cfo-fab-target"
+    action: /*#__PURE__*/React.createElement("button", {
+      onClick: function(){ setTxModalOpen(false); },
+      style: { background:"none", border:"none", cursor:"pointer", fontSize:T.text.xl, color:C.muted, lineHeight:1 }
+    }, "✕")
   }, /*#__PURE__*/React.createElement("div", {
     className: "form-grid-4",
     style: {
@@ -3124,7 +3154,7 @@ var TransactionsTab = _ref9 => {
   }, ACCOUNTS.map(a => /*#__PURE__*/React.createElement("option", {
     key: a
   }, a))))), /*#__PURE__*/React.createElement("button", {
-    onClick: addTx,
+    onClick: function(){ addTx(); setTxModalOpen(false); },
     style: {
       padding: "10px 16px",
       background: C.primary,
@@ -3141,100 +3171,107 @@ var TransactionsTab = _ref9 => {
   }, /*#__PURE__*/React.createElement(IconPlus, {
     size: 13,
     color: C.onPrimary
-  }), " Agregar transacci\xF3n")), /*#__PURE__*/React.createElement(Panel, {
+  }), " Agregar transacci\xF3n"))
+  ) // fin div maxWidth
+  ), // fin overlay modal
+  /*#__PURE__*/React.createElement(Panel, {
     title: "Historial (".concat(filtered.length, ")")
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      overflowX: "auto"
+  },
+  // v3.27 Rediseño Premium: lista agrupada por día (antes tabla plana), mismo
+  // patrón que el mockup — header de día con subtotal + filas tipo card.
+  (function(){
+    if (filtered.length === 0) {
+      return /*#__PURE__*/React.createElement("div", { style:{ textAlign:"center", padding:24, color:C.muted } },
+        "No hay transacciones aún. Agrega la primera arriba.");
     }
-  }, /*#__PURE__*/React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse",
-      fontSize: 12
-    }
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
-    style: { borderBottom: "2px solid ".concat(C.border) }
-  }, ["Fecha", "Tipo", "Categoría", "Descripción", "Método", "Monto", ""].map(h => /*#__PURE__*/React.createElement("th", {
-    key: h,
-    style: { textAlign: h === "Monto" ? "right" : "left", padding: "10px 8px", fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: C.muted }
-  }, h)))), /*#__PURE__*/React.createElement("tbody", null, filtered.length === 0 ? /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-    colSpan: 7, style: { textAlign: "center", padding: 24, color: C.muted }
-  }, "No hay transacciones aún. Agrega la primera arriba.")) : filtered.map(t => {
-    var isEditing = editTx && editTx.id === t.id;
-    if (isEditing) {
-      // Fila en modo edición
-      return React.createElement("tr", { key: t.id, style: { borderBottom: "1px solid "+C.border, background: C.surfaceAlt } },
-        React.createElement("td", { style:{ padding:"6px 8px" } },
-          React.createElement("input", { type:"date", value:editTx.date,
-            onChange:function(e){ setEditTx(Object.assign({},editTx,{date:e.target.value})); },
-            style:{ fontSize:12, border:"1px solid "+C.border, borderRadius:3, padding:"4px 6px", width:"100%" } })
-        ),
-        React.createElement("td", { style:{ padding:"6px 8px" } },
-          React.createElement("select", { value:editTx.type,
-            onChange:function(e){ setEditTx(Object.assign({},editTx,{type:e.target.value})); },
-            style:{ fontSize:12, border:"1px solid "+C.border, borderRadius:3, padding:"4px 6px" } },
-            ["Gasto","Ingreso","Ahorro"].map(function(v){ return React.createElement("option",{key:v},v); })
+    var DOW = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+    var MONTH_SHORT = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    var todayK = todayISO();
+    var yestK = (function(){ var d=new Date(); d.setDate(d.getDate()-1); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); })();
+    var groups = {};
+    var order = [];
+    filtered.forEach(function(t){
+      if (!groups[t.date]) { groups[t.date] = []; order.push(t.date); }
+      groups[t.date].push(t);
+    });
+    order.sort(function(a,b){ return a < b ? 1 : a > b ? -1 : 0; });
+    return /*#__PURE__*/React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:T.space.xl } },
+      order.map(function(dateKey){
+        var items = groups[dateKey];
+        var subtotal = items.reduce(function(s,t){ return s + (t.type === "Ingreso" ? Number(t.amount) : -Number(t.amount)); }, 0);
+        var d = new Date(dateKey + "T00:00:00");
+        var dayLabel = dateKey === todayK ? "Hoy" : dateKey === yestK ? "Ayer" : DOW[d.getDay()];
+        var fullLabel = dayLabel + " · " + d.getDate() + " " + MONTH_SHORT[d.getMonth()];
+        return /*#__PURE__*/React.createElement("div", { key: dateKey },
+          /*#__PURE__*/React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"baseline",
+            marginBottom:T.space.sm, padding:"0 2px" } },
+            /*#__PURE__*/React.createElement("span", { style:{ fontSize:T.text.sm, fontWeight:600, color:C.muted, textTransform:"capitalize" } }, fullLabel),
+            /*#__PURE__*/React.createElement("span", { className:"cfo-mono", style:{ fontSize:T.text.sm, fontWeight:600,
+              color: subtotal >= 0 ? C.success : C.danger } }, (subtotal >= 0 ? "+" : "−") + fmt(Math.abs(subtotal)))
+          ),
+          /*#__PURE__*/React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:1, background:C.surface,
+            border:"1px solid "+C.border, borderRadius:T.radius.md, overflow:"hidden" } },
+            items.map(function(t, i){
+              var isEditing = editTx && editTx.id === t.id;
+              if (isEditing) {
+                return /*#__PURE__*/React.createElement("div", { key:t.id, style:{ padding:T.space.md2+"px "+T.space.lg+"px",
+                  borderBottom: i < items.length-1 ? "1px solid "+C.borderSoft : "none", background:C.surfaceAlt } },
+                  /*#__PURE__*/React.createElement("div", { className:"form-grid-4", style:{ marginBottom:8 } },
+                    /*#__PURE__*/React.createElement("input", { type:"date", value:editTx.date,
+                      onChange:function(e){ setEditTx(Object.assign({},editTx,{date:e.target.value})); }, style:inputStyle }),
+                    /*#__PURE__*/React.createElement("select", { value:editTx.type,
+                      onChange:function(e){ setEditTx(Object.assign({},editTx,{type:e.target.value})); }, style:inputStyle },
+                      ["Gasto","Ingreso","Ahorro"].map(function(v){ return React.createElement("option",{key:v},v); })
+                    ),
+                    /*#__PURE__*/React.createElement("select", { value:editTx.category,
+                      onChange:function(e){ setEditTx(Object.assign({},editTx,{category:e.target.value})); }, style:inputStyle },
+                      CATEGORIES.map(function(c){ return React.createElement("option",{key:c},c); })
+                    ),
+                    /*#__PURE__*/React.createElement("input", { type:"number", step:"0.01", value:editTx.amount,
+                      onChange:function(e){ setEditTx(Object.assign({},editTx,{amount:e.target.value})); },
+                      style:Object.assign({},inputStyle,{fontFamily:T.font.mono,textAlign:"right"}) })
+                  ),
+                  /*#__PURE__*/React.createElement("input", { value:editTx.description||"", placeholder:"Descripción",
+                    onChange:function(e){ setEditTx(Object.assign({},editTx,{description:e.target.value})); },
+                    style:Object.assign({},inputStyle,{marginBottom:8}) }),
+                  /*#__PURE__*/React.createElement("div", { style:{display:"flex",gap:6} },
+                    /*#__PURE__*/React.createElement("button", { onClick:saveEdit,
+                      style:{ background:C.success, color:C.onPrimary, border:"none", borderRadius:T.radius.xs, padding:"6px 14px", fontSize:12, fontWeight:600, cursor:"pointer" } },
+                      "✓ Guardar"),
+                    /*#__PURE__*/React.createElement("button", { onClick:function(){ setEditTx(null); },
+                      style:{ background:"none", border:"1px solid "+C.border, borderRadius:T.radius.xs, padding:"6px 14px", fontSize:12, cursor:"pointer", color:C.muted } },
+                      "Cancelar")
+                  )
+                );
+              }
+              return /*#__PURE__*/React.createElement("div", {
+                key: t.id,
+                style: { display:"flex", alignItems:"center", gap:T.space.md2, padding:"14px "+T.space.lg+"px",
+                  borderBottom: i < items.length-1 ? "1px solid "+C.borderSoft : "none", background:C.surface }
+              },
+                /*#__PURE__*/React.createElement("div", { style:{ flex:1, minWidth:0 } },
+                  /*#__PURE__*/React.createElement("div", { style:{ fontSize:T.text.md, fontWeight:600, color:C.text,
+                    whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" } }, t.description || t.category),
+                  /*#__PURE__*/React.createElement("div", { style:{ fontSize:T.text.sm, color:C.muted, marginTop:1 } }, t.category)
+                ),
+                /*#__PURE__*/React.createElement("div", { className:"cfo-mono", style:{ fontSize:T.text.md, fontWeight:600,
+                  color: t.type === "Ingreso" ? C.success : C.danger, whiteSpace:"nowrap" } },
+                  (t.type === "Ingreso" ? "+" : "−") + fmt(t.amount)),
+                /*#__PURE__*/React.createElement("div", { style:{ display:"flex", gap:2, flexShrink:0 } },
+                  /*#__PURE__*/React.createElement("button", { onClick:function(){ startEdit(t); },
+                    style:{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:4, fontSize:12 } }, "✎"),
+                  /*#__PURE__*/React.createElement("button", { onClick: () => deleteTx(t.id),
+                    style:{ background: "none", border: "none", cursor: "pointer", color: C.mutedLight, padding: 4 } },
+                    /*#__PURE__*/React.createElement(IconTrash, { size: 13, color: C.mutedLight }))
+                )
+              );
+            })
           )
-        ),
-        React.createElement("td", { style:{ padding:"6px 8px" } },
-          React.createElement("select", { value:editTx.category,
-            onChange:function(e){ setEditTx(Object.assign({},editTx,{category:e.target.value})); },
-            style:{ fontSize:12, border:"1px solid "+C.border, borderRadius:3, padding:"4px 6px" } },
-            CATEGORIES.map(function(c){ return React.createElement("option",{key:c},c); })
-          )
-        ),
-        React.createElement("td", { style:{ padding:"6px 8px" } },
-          React.createElement("input", { value:editTx.description||"",
-            onChange:function(e){ setEditTx(Object.assign({},editTx,{description:e.target.value})); },
-            style:{ fontSize:12, border:"1px solid "+C.border, borderRadius:3, padding:"4px 6px", width:"100%" } })
-        ),
-        React.createElement("td", { style:{ padding:"6px 8px" } },
-          React.createElement("select", { value:editTx.paymentMethod||"Débito",
-            onChange:function(e){ setEditTx(Object.assign({},editTx,{paymentMethod:e.target.value})); },
-            style:{ fontSize:12, border:"1px solid "+C.border, borderRadius:3, padding:"4px 6px" } },
-            ["Débito","Crédito","Efectivo","Transferencia"].map(function(v){ return React.createElement("option",{key:v},v); })
-          )
-        ),
-        React.createElement("td", { style:{ padding:"6px 8px", textAlign:"right" } },
-          React.createElement("input", { type:"number", step:"0.01", value:editTx.amount,
-            onChange:function(e){ setEditTx(Object.assign({},editTx,{amount:e.target.value})); },
-            style:{ fontSize:13, fontWeight:600, border:"1px solid "+C.border, borderRadius:3, padding:"4px 6px", width:90, textAlign:"right" } })
-        ),
-        React.createElement("td", { style:{ padding:"6px 8px", textAlign:"right", whiteSpace:"nowrap" } },
-          React.createElement("button", { onClick:saveEdit,
-            style:{ background:C.success, color:C.onPrimary, border:"none", borderRadius:3, padding:"4px 10px", fontSize:11, fontWeight:600, cursor:"pointer", marginRight:4 } },
-            "✓"),
-          React.createElement("button", { onClick:function(){ setEditTx(null); },
-            style:{ background:"none", border:"1px solid "+C.border, borderRadius:3, padding:"4px 8px", fontSize:11, cursor:"pointer", color:C.muted } },
-            "✕")
-        )
-      );
-    }
-    // Fila normal
-    return /*#__PURE__*/React.createElement("tr", {
-      key: t.id, style: { borderBottom: "1px solid ".concat(C.borderSoft) }
-    },
-    /*#__PURE__*/React.createElement("td", { style:{ padding: "10px 8px" } }, t.date),
-    /*#__PURE__*/React.createElement("td", { style:{ padding: "10px 8px" } },
-      /*#__PURE__*/React.createElement("span", { style: { padding: "2px 7px", borderRadius: 2, fontSize: 10, fontWeight: 500,
-        background: t.type === "Ingreso" ? C.successSoft : C.dangerSoft,
-        color: t.type === "Ingreso" ? C.success : C.danger } }, t.type)),
-    /*#__PURE__*/React.createElement("td", { style:{ padding: "10px 8px" } }, t.category),
-    /*#__PURE__*/React.createElement("td", { style:{ padding: "10px 8px", color: C.muted } }, t.description || "—"),
-    /*#__PURE__*/React.createElement("td", { style:{ padding: "10px 8px", color: C.muted, fontSize: 11 } }, t.paymentMethod),
-    /*#__PURE__*/React.createElement("td", { style:{ padding: "10px 8px", textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 500,
-      color: t.type === "Ingreso" ? C.success : C.text } },
-      t.type === "Ingreso" ? "+" : "−", fmt(t.amount)),
-    /*#__PURE__*/React.createElement("td", { style:{ padding: "10px 8px", textAlign: "right", whiteSpace:"nowrap" } },
-      React.createElement("button", { onClick:function(){ startEdit(t); },
-        style:{ background:"none", border:"none", cursor:"pointer", color:C.primary, padding:"2px 6px", marginRight:2, fontSize:11 } },
-        "✎"),
-      /*#__PURE__*/React.createElement("button", { onClick: () => deleteTx(t.id),
-        style:{ background: "none", border: "none", cursor: "pointer", color: C.mutedLight, padding: 4 } },
-        /*#__PURE__*/React.createElement(IconTrash, { size: 13, color: C.mutedLight }))
-    ));
-  })))))
+        );
+      })
+    );
+  })()
+  )
   );
 };
 
@@ -6467,7 +6504,10 @@ var SettingsTab = _ref22 => {
   }, "Datos y Ajustes"),
   // Nota: la versión visible sube a v3.22 en la Fase T4, según el plan de temas.
   // Nota: versión actualizada a v3.22 (Fase T4 — sistema de temas dual).
-  React.createElement("div", { style:{ fontSize:T.text.xs, color:C.mutedLight, marginTop:-12 } }, "CFO Personal v3.22"),
+  React.createElement("div", { style:{ fontSize:T.text.xs, color:C.mutedLight, marginTop:-12 } }, "CFO Personal v3.27"),
+  // v3.27 Rediseño Premium: grid 2x2 (Apariencia|Categorías / Sincronización|Respaldo),
+  // igual que el mockup, en vez de panel único apilados en una sola columna.
+  /*#__PURE__*/React.createElement("div", { style:{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:T.space.xl } },
   /*#__PURE__*/React.createElement(Panel, {
     title: "Apariencia"
   }, /*#__PURE__*/React.createElement("div", {
@@ -6593,7 +6633,9 @@ var SettingsTab = _ref22 => {
   }, /*#__PURE__*/React.createElement(IconDownload, {
     size: 14,
     color: C.onPrimary
-  }), " Descargar backup (JSON)")), /*#__PURE__*/React.createElement(Panel, {
+  }), " Descargar backup (JSON)"))
+  ), // fin grid 2x2 Apariencia/Categorías/Sincronización/Exportar
+  /*#__PURE__*/React.createElement(Panel, {
     title: "Importar datos",
     subtitle: "Carga un archivo JSON exportado previamente"
   }, /*#__PURE__*/React.createElement("p", {
@@ -10220,6 +10262,11 @@ var GasolinaTab = function(props) {
       )
     ),
 
+    // v3.27 Rediseño Premium: gauge del tanque (columna principal) + KPIs (rail
+    // derecho), mismo patrón de Hoy/Deudas/Patrimonio y del mockup de Gasolina.
+    React.createElement("div", { className: "two-col-layout" },
+    React.createElement("div", { className: "col-main", style:{minWidth:0} },
+
     // ── Estado actual del tanque ─────────────────────────────────
     React.createElement("div", { style:Object.assign({},card,{ borderLeft:"4px solid "+(currentBars<=2?C.danger:currentBars<=4?C.warn:C.success) }) },
       React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:T.space.xl } },
@@ -10264,8 +10311,11 @@ var GasolinaTab = function(props) {
           )
         )
       )
-    ),
+    )
 
+    ), // fin col-main
+
+    React.createElement("div", { className: "col-rail", style:{minWidth:0} },
     // ── KPIs ────────────────────────────────────────────────────
     React.createElement("div", { className:"kpi-grid" },
       React.createElement(KpiCard, {
@@ -10298,7 +10348,9 @@ var GasolinaTab = function(props) {
         sub: "Desde primer registro con odómetro",
         icon: IconTrendUp
       })
-    ),
+    )
+    ) // fin col-rail
+    ), // fin two-col-layout
 
     // ── Formulario nueva carga / checkpoint ───────────────────────
     showForm && React.createElement("div", { style:card },
