@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icon-192.png" />
 <link rel="icon" href="./icon-192.png" type="image/png" />
-<title>CFO Personal · Gestión Financiera (v3.25.3)</title>
+<title>CFO Personal · Gestión Financiera (v3.26.0)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,500;9..144,560&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
@@ -372,19 +372,38 @@ body { transition: background-color 300ms ease, color 300ms ease; }
 }
 @keyframes barShimmer { to { transform: translateX(100%); } }
 
-/* ─── Hoy en 2 columnas en pantallas anchas (v3.25.3 · Rediseño Premium): rejilla fija
-   1.65fr / 1fr — columna principal (hero, acciones, KPIs, recomendaciones) a la
-   izquierda y rail fijo (Metas activas + Wishlist) a la derecha, como en el mockup. ─── */
+/* ─── Rejilla fija 2 columnas (Rediseño Premium v3.26): columna principal + rail
+   lateral fijo, reutilizada en todas las pestañas con esta forma de contenido
+   (antes solo existía para "Hoy" como .hoy-layout / .hoy-col-main / .hoy-col-rail,
+   que se conservan como alias por compatibilidad). ─── */
 @media (min-width: 1100px) {
-  .hoy-layout {
+  .hoy-layout, .two-col-layout {
     display: grid !important;
     grid-template-columns: 1.65fr 1fr;
     align-items: start;
     gap: 24px;
   }
-  .hoy-layout > .hoy-col-main { display: flex; flex-direction: column; gap: inherit; min-width: 0; }
-  .hoy-layout > .hoy-col-rail { display: flex; flex-direction: column; gap: inherit; min-width: 0; }
+  .hoy-layout > .hoy-col-main, .two-col-layout > .col-main {
+    display: flex; flex-direction: column; gap: inherit; min-width: 0;
+  }
+  .hoy-layout > .hoy-col-rail, .two-col-layout > .col-rail {
+    display: flex; flex-direction: column; gap: inherit; min-width: 0;
+  }
 }
+/* ─── Hero-card premium reutilizable: cabecera oscura con la métrica principal
+   de cada pestaña, mismo lenguaje visual que el hero de "Liquidez actual" en Hoy. ─── */
+.premium-hero {
+  border-radius: 16px; padding: 26px 30px; position: relative; overflow: hidden;
+}
+.premium-hero-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em;
+  opacity: 0.7; margin-bottom: 10px;
+}
+.premium-hero-value {
+  font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 42px; line-height: 1;
+  letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
+}
+@media (min-width: 640px) { .premium-hero-value { font-size: 50px; } }
 
 /* ─── Snackbar con entrada spring ─── */
 .snackbar-pop { animation: snackIn 320ms cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -1878,6 +1897,27 @@ var Panel = function(_ref4) {
     children
   );
 };
+// v3.26 — Rediseño Premium: hero oscuro reutilizable para la métrica principal de
+// cada pestaña (mismo lenguaje visual que "Liquidez actual" en Hoy). Recibe label,
+// value (string ya formateado) y children opcionales (barra de progreso, notas, etc.).
+var PremiumHero = function(props) {
+  var label = props.label, value = props.value, sub = props.sub, children = props.children;
+  return React.createElement("div", {
+    className: "premium-hero",
+    style: {
+      backgroundColor: C.primary,
+      backgroundImage: "radial-gradient(circle at 85% 20%, rgba(180,131,42,0.18), transparent 55%), linear-gradient(180deg, " + C.primary + " 0%, " + C.primarySoft + " 130%)",
+      color: "#F4F1E9"
+    }
+  },
+    React.createElement("div", { className: "premium-hero-label" }, label),
+    React.createElement("div", { className: "premium-hero-value" }, value),
+    sub && React.createElement("div", {
+      style: { fontSize: T.text.md, color: "rgba(244,241,233,0.72)", marginTop: T.space.md2, lineHeight: 1.55 }
+    }, sub),
+    children
+  );
+};
 // v3.23 — Tarea 3: estado vacío reutilizable con CTA. Se usa en las listas de las
 // pestañas principales (Movimientos, Metas, Deudas) en vez de dejar un panel en blanco.
 var EmptyState = function(props) {
@@ -3342,6 +3382,12 @@ var BudgetPlannerPanel = function(_ref_bp) {
 
   return React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:20 } },
 
+    React.createElement(PremiumHero, {
+      label: "Disponible en la quincena",
+      value: fmt(disponible),
+      sub: fmt(income) + " ingreso · " + fmt(totalPlanned) + " planeado"
+    }),
+
     // ── Header ──────────────────────────────────────────────────
     React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:10 } },
       React.createElement("div", null,
@@ -3843,7 +3889,11 @@ var BudgetTab = _ref0 => {
       gap: 20
     }
 
-  }, /*#__PURE__*/React.createElement(SectionTitle, {
+  }, /*#__PURE__*/React.createElement(PremiumHero, {
+    label: "Ejecutado en la quincena",
+    value: fmt(totalReal),
+    sub: "de " + fmt(rows.reduce(function(s,r){return s+r.budget;},0)) + " presupuestado desde el " + qStart
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
     subtitle: "Gastos desde el " + qStart + " · quincena actual"
   }, "Presupuesto Quincenal"), /*#__PURE__*/React.createElement("div", {
     className: "grid-4"
@@ -4325,6 +4375,11 @@ var DebtsTab = function(_ref1) {
   }
 
   return React.createElement("div", { style:{display:"flex",flexDirection:"column",gap:T.space.xxl} },
+    React.createElement(PremiumHero, {
+      label: "Deuda total",
+      value: fmt(totalDebt),
+      sub: debts.length + " deuda" + (debts.length !== 1 ? "s" : "") + " activa" + (debts.length !== 1 ? "s" : "") + " · pago mensual planeado " + fmt(debts.reduce(function(s,d){ return s+(d.monthlyPayment||d.minPayment||0); },0))
+    }),
     React.createElement(SectionTitle, {
       subtitle:"Agrega, edita o elimina tus deudas. El estimado de liquidación se calcula automáticamente con el pago mensual configurado."
     }, "Mis Deudas"),
@@ -5518,7 +5573,11 @@ var NetWorthTab = _ref12 => {
       flexDirection: "column",
       gap: T.space.xxl
     }
-  }, /*#__PURE__*/React.createElement(SectionTitle, {
+  }, /*#__PURE__*/React.createElement(PremiumHero, {
+    label: "Patrimonio neto",
+    value: fmt(netWorth),
+    sub: fmt(totalAssets) + " en activos \u2212 " + fmt(totalLiabilities) + " en pasivos"
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
     subtitle: "Activos \u2212 Pasivos = Patrimonio Neto"
   }, "Patrimonio Neto"), /*#__PURE__*/React.createElement("div", {
     className: "grid-3"
@@ -6018,6 +6077,12 @@ var ProjectionsTab = function(_ref13) {
         }))
       )
     ),
+
+    React.createElement(PremiumHero, {
+      label: "Ahorro neto del mes",
+      value: fmt(totalSaved),
+      sub: fmt(totalIncome) + " ingresos − " + fmt(totalExpense) + " gastos · " + fmtPct(savingsRate, 0) + " tasa de ahorro"
+    }),
 
     // ── KPIs DEL MES ─────────────────────────────────────────────
     React.createElement("div", { className: "kpi-grid" },
@@ -7031,7 +7096,11 @@ var BillsTab = _ref => {
       flexDirection: "column",
       gap: T.space.xxl
     }
-  }, /*#__PURE__*/React.createElement(SectionTitle, {
+  }, /*#__PURE__*/React.createElement(PremiumHero, {
+    label: "Pendiente por pagar",
+    value: fmt(totalPending),
+    sub: fmt(totalPaid) + " ya pagado de " + fmt(totalMonth) + " del mes"
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
     subtitle: "Checklist de pagos del mes organizados por quincena de cobro"
   }, "Pagos del Mes"), /*#__PURE__*/React.createElement("div", {
     className: "grid-4"
@@ -7677,7 +7746,11 @@ var GoalsTab = _ref => {
       flexDirection: "column",
       gap: T.space.xxl
     }
-  }, /*#__PURE__*/React.createElement(SectionTitle, {
+  }, /*#__PURE__*/React.createElement(PremiumHero, {
+    label: "Total ahorrado en metas",
+    value: fmt(totalSaved),
+    sub: "de " + fmt(totalTarget) + " objetivo · " + fmtPct(totalTarget > 0 ? totalSaved / totalTarget * 100 : 0, 0) + " de progreso global"
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
     subtitle: "Define tus metas de ahorro, registra dep\xF3sitos y calcula cu\xE1nto aportar para llegar a tiempo"
   }, "Metas de Ahorro"), /*#__PURE__*/React.createElement(SharedSavingsCard, {
     selfKey: "lawrence", partnerKey: "babe", selfLabel: "Tú", partnerLabel: "Dovey"
@@ -8637,6 +8710,11 @@ var WishlistTab = _ref => {
       gap: T.space.xxl
     }
   },
+  /*#__PURE__*/React.createElement(PremiumHero, {
+    label: "Por comprar",
+    value: fmt(totalPending),
+    sub: fmt(totalPurchased) + " ya comprado de " + fmt(totalPending + totalPurchased) + " en la lista"
+  }),
   /*#__PURE__*/React.createElement(SectionTitle, {
     subtitle: "Cosas que quieres comprar, asignadas a una quincena espec\xEDfica"
   }, "Lista de Deseos"), /*#__PURE__*/React.createElement("div", {
