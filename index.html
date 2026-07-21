@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icon-192.png" />
 <link rel="icon" href="./icon-192.png" type="image/png" />
-<title>CFO Personal · Gestión Financiera (v3.27.0)</title>
+<title>CFO Personal · Gestión Financiera (v3.28.0)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,500;9..144,560&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
@@ -3887,27 +3887,24 @@ var BudgetTab = _ref0 => {
   // Sub-nav render
   var budgetSubTabs = [
     { id: "actual",    label: "Presupuesto actual" },
-    { id: "planeador", label: "⭐ Planeador próxima quincena" }
+    { id: "planeador", label: "Planeador" }
   ];
 
   return /*#__PURE__*/React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:0 } },
 
-    // ── Sub-navegación ──────────────────────────────────────────
+    // ── Sub-navegación (v3.28: pill segmentado, igual que Gasto/Ingreso/Ahorro) ──
     React.createElement("div", {
-      style:{ display:"flex", gap:2, borderBottom:"2px solid "+C.border,
-              marginBottom:20, overflowX:"auto", scrollbarWidth:"none" }
+      style:{ display:"flex", gap:6, background:C.surfaceAlt, border:"1px solid "+C.border,
+              borderRadius:T.radius.full, padding:4, marginBottom:20, width:"fit-content", overflowX:"auto" }
     },
       budgetSubTabs.map(function(t) {
         var active = budgetSub === t.id;
         return React.createElement("button", {
           key: t.id,
-          className: "sub-nav-btn",
-          style:{ padding:"9px 18px", background:"none", border:"none",
-            borderBottom: active ? "2px solid "+C.primary : "2px solid transparent",
-            marginBottom:-2, cursor:"pointer",
-            fontSize:12.5, fontWeight: active ? 600 : 400,
-            color: active ? C.primary : C.muted,
-            whiteSpace:"nowrap", transition:"color 120ms ease" },
+          style:{ padding:"9px 18px", borderRadius:T.radius.full, border:"none", cursor:"pointer",
+            fontSize:12.5, fontWeight: active ? 600 : 500, transition:"all 0.2s",
+            background: active ? C.primary : "transparent",
+            color: active ? C.onPrimary : C.muted, whiteSpace:"nowrap" },
           onClick:function(){ setBudgetSub(t.id); }
         }, t.label);
       })
@@ -3991,140 +3988,114 @@ var BudgetTab = _ref0 => {
   })()), /*#__PURE__*/React.createElement("div", { className: "two-col-layout" },
   /*#__PURE__*/React.createElement("div", { className: "col-main", style:{minWidth:0} },
   /*#__PURE__*/React.createElement(Panel, {
-    title: "Detalle por Categor\xEDa"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      overflowX: "auto"
-    }
-  }, /*#__PURE__*/React.createElement("table", {
-    style: {
-      width: "100%",
-      borderCollapse: "collapse",
-      fontSize: 12.5
-    }
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
-    style: {
-      borderBottom: "2px solid ".concat(C.border)
-    }
-  }, ["Categoría", "Presupuesto", "Real", "Diferencia", "% Desv.", "Progreso"].map((h, i) => /*#__PURE__*/React.createElement("th", {
-    key: h,
-    style: {
-      textAlign: i === 0 ? "left" : i === 5 ? "left" : "right",
-      padding: "10px 8px",
-      fontSize: 10,
-      fontWeight: 600,
-      letterSpacing: "0.08em",
-      textTransform: "uppercase",
-      color: C.muted
-    }
-  }, h)))), /*#__PURE__*/React.createElement("tbody", null, (function(){
-    var budgetedRows = rows.filter(function(r){ return r.budget > 0; });
-    var unbudgetedRows = rows.filter(function(r){ return r.budget === 0 && r.real > 0; });
-    var otrosTotal = unbudgetedRows.reduce(function(s,r){ return s+r.real; }, 0);
-    var deseosItems = _wishlistRender.filter(function(w){ return !w.purchased && w.month===_nm && w.year===_ny && w.quincena===_nq; });
-    var renderRow = function(r) {
-      var bPeriod = r.budget;
-      var over = r.real > bPeriod;
-      var desv = bPeriod > 0 ? (r.real - bPeriod) / bPeriod * 100 : 0;
-      // v3.21 Fase 1: "Presupuesto actual" es solo-lectura — se retira la edición/borrado
-      // inline (ahora vive únicamente en el Planeador). Si tiene varios items, se listan
-      // sus montos como texto; si es uno solo, se muestra el total de la categoría.
-      var budgetCell;
-      if (r.items && r.items.length > 1) {
-        budgetCell = React.createElement("div", { style:{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"} },
-          r.items.map(function(item) {
-            return React.createElement("div", { key:item.id, style:{display:"flex",alignItems:"center",gap:4} },
-              React.createElement("span", { style:{fontSize:10,color:C.muted,maxWidth:80,textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"} }, item.name),
-              React.createElement("span", { style:{fontVariantNumeric:"tabular-nums",fontSize:12} }, fmt(item.amount))
-            );
-          })
+    title: "Detalle por Categor\xEDa",
+    action: React.createElement("button", {
+      onClick: function(){ setNewBudget({ name:"", category:"Otros", amount:"", quincenal:false }); setShowAddBudget(!showAddBudget); },
+      style: btnSecondary({ fontSize: T.text.base, padding: "6px 14px" })
+    }, showAddBudget ? "Cancelar" : "+ Nueva categor\xEDa")
+  },
+    // v3.28 Rediseño Premium: una card por categoría (antes tabla), con barra de
+    // progreso coloreada por salud (success <80%, warn 80-100%, danger >100%)
+    // y texto de estado, igual que el handoff de Presupuesto.
+    showAddBudget && React.createElement("div", {
+      style:{padding:14,background:C.surfaceAlt,border:"1px solid "+C.border,borderRadius:T.radius.sm,display:"flex",gap:10,flexWrap:"wrap",alignItems:"flex-end",marginBottom:14}
+    },
+      React.createElement("div", null,
+        React.createElement("label", {style:{fontSize:11,color:C.muted,display:"block",marginBottom:3}}, "Nombre"),
+        React.createElement("input", {type:"text",value:newBudget.name,placeholder:"Ej: Ropa",onChange:function(e){setNewBudget(Object.assign({},newBudget,{name:e.target.value}));},style:{padding:"6px 9px",border:"1px solid "+C.border,borderRadius:3,fontSize:12.5,background:C.surface,color:C.text,width:130}})
+      ),
+      React.createElement("div", null,
+        React.createElement("label", {style:{fontSize:11,color:C.muted,display:"block",marginBottom:3}}, "Categor\xEDa"),
+        React.createElement("select", {value:newBudget.category,onChange:function(e){setNewBudget(Object.assign({},newBudget,{category:e.target.value}));},style:{padding:"6px 9px",border:"1px solid "+C.border,borderRadius:3,fontSize:12.5,background:C.surface,color:C.text}},
+          CATEGORIES.filter(function(c){return c!=="Ingreso";}).map(function(c){return React.createElement("option",{key:c,value:c},c);})
+        )
+      ),
+      React.createElement("div", null,
+        React.createElement("label", {style:{fontSize:11,color:C.muted,display:"block",marginBottom:3}}, "Monto"),
+        React.createElement("input", {type:"number",step:"0.01",value:newBudget.amount,placeholder:"0.00",onChange:function(e){setNewBudget(Object.assign({},newBudget,{amount:e.target.value}));},style:{padding:"6px 9px",border:"1px solid "+C.border,borderRadius:3,fontSize:12.5,background:C.surface,color:C.text,width:90}})
+      ),
+      React.createElement("div", {style:{display:"flex",alignItems:"center",gap:6}},
+        React.createElement("input", {type:"checkbox",id:"qnl-new",checked:newBudget.quincenal,onChange:function(e){setNewBudget(Object.assign({},newBudget,{quincenal:e.target.checked}));}}),
+        React.createElement("label", {htmlFor:"qnl-new",style:{fontSize:12,color:C.muted,cursor:"pointer"}}, "Quincenal")
+      ),
+      React.createElement("button", {onClick:function(){ addBudgetCategory(); setShowAddBudget(false); },style:{padding:"6px 14px",background:C.primary,color: C.onPrimary,border:"none",borderRadius:3,fontSize:12.5,cursor:"pointer",fontWeight:500}}, "Agregar")
+    ),
+    (function(){
+      var budgetedRows = rows.filter(function(r){ return r.budget > 0; });
+      var unbudgetedRows = rows.filter(function(r){ return r.budget === 0 && r.real > 0; });
+      var otrosTotal = unbudgetedRows.reduce(function(s,r){ return s+r.real; }, 0);
+      var deseosItems = _wishlistRender.filter(function(w){ return !w.purchased && w.month===_nm && w.year===_ny && w.quincena===_nq; });
+
+      function catCard(r) {
+        var pct = r.budget > 0 ? (r.real / r.budget * 100) : 0;
+        var over = pct > 100;
+        var barColor = pct > 100 ? C.danger : pct >= 80 ? C.warn : C.success;
+        var statusText = pct > 100
+          ? fmtPct(pct - 100, 0) + " sobre el presupuesto"
+          : fmtPct(100 - pct, 0) + " disponible";
+        return React.createElement("div", {
+          key: r.cat,
+          style: { background: C.surface, border: "1px solid "+C.border, borderRadius: T.radius.md, padding: "16px 18px" }
+        },
+          React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:8, gap:10, flexWrap:"wrap" } },
+            React.createElement("div", { style:{ fontSize:T.text.md, fontWeight:600, color:C.text } }, r.cat),
+            React.createElement("div", { className:"cfo-mono", style:{ fontSize:T.text.base5, color:C.muted } },
+              fmt(r.real) + " / " + fmt(r.budget))
+          ),
+          React.createElement("div", { style:{ height:6, borderRadius:99, background:C.borderSoft, overflow:"hidden", marginBottom:8 } },
+            React.createElement("div", { style:{ height:"100%", width:Math.min(100,pct)+"%", borderRadius:99, background:barColor } })
+          ),
+          React.createElement("div", { style:{ fontSize:T.text.sm, color: over ? C.danger : C.muted } }, statusText)
         );
-      } else {
-        budgetCell = React.createElement("span", null, fmt(bPeriod));
       }
-      return /*#__PURE__*/React.createElement("tr", { key: r.cat, style:{ borderBottom:"1px solid ".concat(C.borderSoft) } },
-        /*#__PURE__*/React.createElement("td", { style:{padding:"12px 8px",fontWeight:500} }, r.cat),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"8px",textAlign:"right",fontVariantNumeric:"tabular-nums"} }, budgetCell),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"12px 8px",textAlign:"right",fontVariantNumeric:"tabular-nums"} }, fmt(r.real)),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"12px 8px",textAlign:"right",fontVariantNumeric:"tabular-nums",color:bPeriod-r.real>=0?C.success:C.danger,fontWeight:500} }, bPeriod-r.real>=0?"+":"", fmt(bPeriod-r.real)),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"12px 8px",textAlign:"right",fontVariantNumeric:"tabular-nums",color:over?C.danger:C.muted} }, desv>=0?"+":"", fmtPct(desv,1)),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"12px 8px",width:180} },
-          /*#__PURE__*/React.createElement("div", { style:{position:"relative",height:6,background:C.borderSoft,borderRadius:3} },
-            /*#__PURE__*/React.createElement("div", { style:{position:"absolute",height:"100%",width:Math.min(100,bPeriod>0?r.real/bPeriod*100:0)+"%",background:over?C.danger:(bPeriod>0?r.real/bPeriod*100:0)>80?C.warn:C.success,borderRadius:3} })
+
+      return React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:12 } },
+        budgetedRows.map(catCard),
+        unbudgetedRows.length > 0 && React.createElement("div", {
+          onClick:function(){ setExpandOtros(!expandOtros); },
+          style:{ background:C.surfaceAlt, border:"1px solid "+C.border, borderRadius:T.radius.md, padding:"16px 18px", cursor:"pointer" }
+        },
+          React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", gap:10, flexWrap:"wrap" } },
+            React.createElement("div", { style:{ fontSize:T.text.md, fontWeight:600, color:C.muted } },
+              (expandOtros?"▼ ":"► ") + "Otros (" + unbudgetedRows.length + " categor\xEDas, sin presupuestar)"),
+            React.createElement("div", { className:"cfo-mono", style:{ fontSize:T.text.base5, color:C.danger } }, fmt(otrosTotal))
+          ),
+          expandOtros && React.createElement("div", { style:{ marginTop:10, display:"flex", flexDirection:"column", gap:6 } },
+            unbudgetedRows.map(function(r){
+              return React.createElement("div", { key:"otros-"+r.cat, style:{ display:"flex", justifyContent:"space-between", fontSize:T.text.sm, color:C.muted } },
+                React.createElement("span", null, r.cat),
+                React.createElement("span", { className:"cfo-mono" }, fmt(r.real))
+              );
+            })
           )
+        ),
+        wishlistNextQ > 0 && React.createElement("div", {
+          onClick:function(){ setExpandDeseos(!expandDeseos); },
+          style:{ background:C.warnSoft, border:"1px solid "+C.border, borderRadius:T.radius.md, padding:"16px 18px", cursor:"pointer" }
+        },
+          React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", gap:10, flexWrap:"wrap" } },
+            React.createElement("div", { style:{ fontSize:T.text.md, fontWeight:600, color:C.warn } },
+              (expandDeseos?"▼ ":"► ") + "🛒 Deseos Q" + _nq + " (" + deseosItems.length + ")"),
+            React.createElement("div", { className:"cfo-mono", style:{ fontSize:T.text.base5, color:C.warn } }, fmt(wishlistNextQ))
+          ),
+          expandDeseos && React.createElement("div", { style:{ marginTop:10, display:"flex", flexDirection:"column", gap:6 } },
+            deseosItems.map(function(w){
+              return React.createElement("div", { key:"deseo-"+w.id, style:{ display:"flex", justifyContent:"space-between", fontSize:T.text.sm, color:C.warn } },
+                React.createElement("span", null, w.name),
+                React.createElement("span", { className:"cfo-mono" }, fmt(w.amount))
+              );
+            })
+          )
+        ),
+        React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", padding:"14px 18px", background:C.surfaceAlt, borderRadius:T.radius.md, fontWeight:600, gap:10, flexWrap:"wrap" } },
+          React.createElement("div", { className:"cfo-serif" }, "Total"),
+          React.createElement("div", { className:"cfo-mono", style:{ color: totalDiff>=0?C.success:C.danger } },
+            fmt(totalReal) + " / " + fmt(totalBudget))
         )
       );
-    };
-    var budgetedElems = budgetedRows.map(renderRow);
-    var otrosElems = unbudgetedRows.length > 0 ? [
-      /*#__PURE__*/React.createElement("tr", { key:"__otros__", style:{borderBottom:"1px solid "+C.borderSoft,cursor:"pointer"}, onClick:function(){setExpandOtros(!expandOtros);} },
-        /*#__PURE__*/React.createElement("td", { style:{padding:"12px 8px",fontWeight:500,color:C.muted} }, (expandOtros?"\u25bc":"\u25ba")+" Otros ("+unbudgetedRows.length+" categor\xEDas)"),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"12px 8px",textAlign:"right",color:C.muted} }, "\u2014"),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"12px 8px",textAlign:"right",fontVariantNumeric:"tabular-nums",color:C.danger} }, fmt(otrosTotal)),
-        /*#__PURE__*/React.createElement("td", { colSpan:3 })
-      )
-    ].concat(expandOtros ? unbudgetedRows.map(function(r){
-      return /*#__PURE__*/React.createElement("tr", { key:"otros-"+r.cat, style:{borderBottom:"1px solid "+C.borderSoft,background:C.surfaceAlt} },
-        /*#__PURE__*/React.createElement("td", { style:{padding:"9px 8px 9px 24px",color:C.muted,fontSize:12.5} }, r.cat),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"9px 8px",textAlign:"right",color:C.muted} }, "\u2014"),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"9px 8px",textAlign:"right",fontVariantNumeric:"tabular-nums"} }, fmt(r.real)),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"9px 8px",textAlign:"right",color:C.danger} }, "-"+fmt(r.real)),
-        /*#__PURE__*/React.createElement("td", { colSpan:2 })
-      );
-    }) : []) : [];
-    var deseosElems = wishlistNextQ > 0 ? [
-      /*#__PURE__*/React.createElement("tr", { key:"__deseos__", style:{borderBottom:"1px solid "+C.borderSoft,background:C.warnSoft,cursor:"pointer"}, onClick:function(){setExpandDeseos(!expandDeseos);} },
-        /*#__PURE__*/React.createElement("td", { style:{padding:"12px 8px",fontWeight:500,color:C.warn} }, (expandDeseos?"\u25bc":"\u25ba")+" \uD83D\uDED2 Deseos Q"+_nq+" ("+deseosItems.length+")"),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"12px 8px",textAlign:"right",fontVariantNumeric:"tabular-nums",color:C.warn} }, fmt(wishlistNextQ)),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"12px 8px",textAlign:"right",color:C.muted,fontSize:11} }, deseosItems.length+" art\xEDculo(s)"),
-        /*#__PURE__*/React.createElement("td", { colSpan:3 })
-      )
-    ].concat(expandDeseos ? deseosItems.map(function(w){
-      return /*#__PURE__*/React.createElement("tr", { key:"deseo-"+w.id, style:{borderBottom:"1px solid "+C.borderSoft,background:C.warnSoft} },
-        /*#__PURE__*/React.createElement("td", { style:{padding:"9px 8px 9px 24px",color:C.warn,fontSize:12.5} }, w.name),
-        /*#__PURE__*/React.createElement("td", { style:{padding:"9px 8px",textAlign:"right",fontVariantNumeric:"tabular-nums",color:C.warn} }, fmt(w.amount)),
-        /*#__PURE__*/React.createElement("td", { colSpan:4, style:{padding:"9px 8px",fontSize:11,color:C.muted} }, w.category+(w.notes?" \xB7 "+w.notes:""))
-      );
-    }) : []) : [];
-    return budgetedElems.concat(otrosElems).concat(deseosElems);
-  })(),
-  /*#__PURE__*/React.createElement("tr", {
-    style: {
-      borderTop: "2px solid ".concat(C.border),
-      background: C.surfaceAlt
-    }
-  }, /*#__PURE__*/React.createElement("td", {
-    style: {
-      padding: "14px 8px",
-      fontWeight: 600,
-      fontFamily: "'Fraunces', Georgia, serif",
-      fontSize: 14
-    }
-  }, "Total"), /*#__PURE__*/React.createElement("td", {
-    style: {
-      padding: "14px 8px",
-      textAlign: "right",
-      fontVariantNumeric: "tabular-nums",
-      fontWeight: 600
-    }
-  }, fmt(rows.reduce(function(s,r){return s+(r.quincenal?r.budget:r.budget);},0))), /*#__PURE__*/React.createElement("td", {
-    style: {
-      padding: "14px 8px",
-      textAlign: "right",
-      fontVariantNumeric: "tabular-nums",
-      fontWeight: 600
-    }
-  }, fmt(totalReal)), /*#__PURE__*/React.createElement("td", {
-    style: {
-      padding: "14px 8px",
-      textAlign: "right",
-      fontVariantNumeric: "tabular-nums",
-      fontWeight: 600,
-      color: totalDiff >= 0 ? C.success : C.danger
-    }
-  }, totalDiff >= 0 ? "+" : "", fmt(totalDiff)), /*#__PURE__*/React.createElement("td", {
-    colSpan: 2
-  }))))))),
+    })()
+  )
+  ),
   /*#__PURE__*/React.createElement("div", { className: "col-rail", style:{minWidth:0} },
   /* RETIRED v3.21 — "+ Agregar categoría al presupuesto" se retira de "Presupuesto actual"
      (Fase 1: esta vista pasa a ser solo-lectura). La edición de partidas de presupuesto
@@ -10808,11 +10779,11 @@ var PersonalCFO = () => {
     { id: "transactions", label: "Movimientos",  icon: IconBar       },
   ];
   // Secondary tabs (in mobile "more" drawer; all in top nav)
+  // v3.28 Rediseño Premium: se retiran Deudas / Patrimonio / Análisis (Calculadora ya
+  // estaba retirada desde v3.21) — el handoff de rediseño no las contempla. Los
+  // componentes DebtsTab/NetWorthTab/ProjectionsTab siguen definidos en el archivo
+  // (por si se restauran), solo dejan de tener entrada de navegación.
   var secondaryTabs = [
-    // { id: "calculadora",  label: "Calculadora",  icon: IconCalc      }, /* RETIRED v3.21 — se fusionó en Deudas (Simular / Simulador libre) */
-    { id: "debts",        label: "Deudas",       icon: IconCard      },
-    { id: "networth",     label: "Patrimonio",   icon: IconBriefcase },
-    { id: "projections",  label: "Análisis",     icon: IconDashboard }, // v3.21 Fase 4: renombrado de "Dashboard" — la proyección de deudas se movió a Deudas
     { id: "gasolina",     label: "Gasolina",     icon: IconGas       },
     { id: "settings",     label: "Datos",        icon: IconSettings  },
   ];
@@ -10858,7 +10829,7 @@ var PersonalCFO = () => {
 
         React.createElement("div", { className:"ls-group-label" }, "Planeaci\u00F3n"),
         /* v3.25: Gasolina se mueve de Sistema a Planeación */
-        [primaryTabs[2], secondaryTabs[0], secondaryTabs[1], secondaryTabs[2], secondaryTabs[3]].map(function(t){
+        [primaryTabs[2], secondaryTabs[0]].map(function(t){
           return React.createElement("button", {
             key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
             onClick: function(){ setTab(t.id); }
@@ -10869,7 +10840,7 @@ var PersonalCFO = () => {
         }),
 
         React.createElement("div", { className:"ls-group-label" }, "Sistema"),
-        [secondaryTabs[4]].map(function(t){
+        [secondaryTabs[1]].map(function(t){
           return React.createElement("button", {
             key: t.id, className: "ls-item" + (tab === t.id ? " active" : ""),
             onClick: function(){ setTab(t.id); }
@@ -10923,11 +10894,13 @@ var PersonalCFO = () => {
         tab === "hoy"     && React.createElement(HoyTab, Object.assign({ setTab:setTab }, planProps, { assets:assets })),
         tab === "budget"  && React.createElement(BudgetTab, { config:config, setConfig:setConfig, transactions:transactions, debts:debts, bills:bills, goals:goals, wishlist:wishlist }),
         tab === "plan"    && React.createElement(PlanTab, planProps),
-        tab === "debts"        && React.createElement(DebtsTab, { debts:debts, setDebts:setDebts }),
+        // v3.28 Rediseño Premium: se retiran las rutas de Deudas/Patrimonio/Análisis
+        // (Calculadora ya estaba retirada) — componentes siguen definidos, sin ruta.
+        // tab === "debts"        && React.createElement(DebtsTab, { debts:debts, setDebts:setDebts }),
         // tab === "calculadora"  && React.createElement(CalculadoraTab, null), /* RETIRED v3.21 */
         tab === "transactions" && React.createElement(TransactionsTab, { transactions:transactions, setTransactions:setTransactions, goals:goals, setGoals:setGoals }),
-        tab === "networth"    && React.createElement(NetWorthTab, { config:config, debts:debts, savings:savings, setSavings:setSavings, assets:assets, setAssets:setAssets, goals:goals }),
-        tab === "projections" && React.createElement(ProjectionsTab, { config:config, debts:debts, savings:savings, transactions:transactions }),
+        // tab === "networth"    && React.createElement(NetWorthTab, { config:config, debts:debts, savings:savings, setSavings:setSavings, assets:assets, setAssets:setAssets, goals:goals }),
+        // tab === "projections" && React.createElement(ProjectionsTab, { config:config, debts:debts, savings:savings, transactions:transactions }),
         tab === "gasolina"    && React.createElement(GasolinaTab, { setTransactions:setTransactions }),
         tab === "settings"    && React.createElement(SettingsTab, {
           transactions:transactions, setTransactions:setTransactions,
