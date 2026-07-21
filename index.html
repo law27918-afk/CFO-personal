@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icon-192.png" />
 <link rel="icon" href="./icon-192.png" type="image/png" />
-<title>CFO Personal · Gestión Financiera (v3.25.1)</title>
+<title>CFO Personal · Gestión Financiera (v3.26.0)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,500;9..144,560&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
@@ -372,19 +372,38 @@ body { transition: background-color 300ms ease, color 300ms ease; }
 }
 @keyframes barShimmer { to { transform: translateX(100%); } }
 
-/* ─── Hoy en 2 columnas en pantallas anchas (v3.25.1): aprovecha el espacio derecho.
-   El hero ocupa todo el ancho; el resto fluye en dos columnas tipo masonry. ─── */
-@media (min-width: 1500px) {
-  .hoy-layout { display: block !important; column-count: 2; column-gap: 20px; column-fill: balance; }
-  .hoy-layout > * { break-inside: avoid; margin-bottom: 20px; }
-  .hoy-layout > *:first-child { column-span: all; } /* hero a lo ancho */
-  /* v3.25.1: dentro de media columna no caben 4 KPIs en fila → 2×2 */
-  .hoy-layout .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  /* v3.25.1: Metas+Wishlist lado a lado no caben en media columna → apilados */
-  .hoy-layout .grid-2 { grid-template-columns: 1fr; }
-  /* v3.25.1: los títulos de sección no quedan huérfanos al final de una columna */
-  .hoy-sec-head { break-after: avoid-column; }
+/* ─── Rejilla fija 2 columnas (Rediseño Premium v3.26): columna principal + rail
+   lateral fijo, reutilizada en todas las pestañas con esta forma de contenido
+   (antes solo existía para "Hoy" como .hoy-layout / .hoy-col-main / .hoy-col-rail,
+   que se conservan como alias por compatibilidad). ─── */
+@media (min-width: 1100px) {
+  .hoy-layout, .two-col-layout {
+    display: grid !important;
+    grid-template-columns: 1.65fr 1fr;
+    align-items: start;
+    gap: 24px;
+  }
+  .hoy-layout > .hoy-col-main, .two-col-layout > .col-main {
+    display: flex; flex-direction: column; gap: inherit; min-width: 0;
+  }
+  .hoy-layout > .hoy-col-rail, .two-col-layout > .col-rail {
+    display: flex; flex-direction: column; gap: inherit; min-width: 0;
+  }
 }
+/* ─── Hero-card premium reutilizable: cabecera oscura con la métrica principal
+   de cada pestaña, mismo lenguaje visual que el hero de "Liquidez actual" en Hoy. ─── */
+.premium-hero {
+  border-radius: 16px; padding: 26px 30px; position: relative; overflow: hidden;
+}
+.premium-hero-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em;
+  opacity: 0.7; margin-bottom: 10px;
+}
+.premium-hero-value {
+  font-family: 'Fraunces', Georgia, serif; font-weight: 500; font-size: 42px; line-height: 1;
+  letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
+}
+@media (min-width: 640px) { .premium-hero-value { font-size: 50px; } }
 
 /* ─── Snackbar con entrada spring ─── */
 .snackbar-pop { animation: snackIn 320ms cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -1878,6 +1897,27 @@ var Panel = function(_ref4) {
     children
   );
 };
+// v3.26 — Rediseño Premium: hero oscuro reutilizable para la métrica principal de
+// cada pestaña (mismo lenguaje visual que "Liquidez actual" en Hoy). Recibe label,
+// value (string ya formateado) y children opcionales (barra de progreso, notas, etc.).
+var PremiumHero = function(props) {
+  var label = props.label, value = props.value, sub = props.sub, children = props.children;
+  return React.createElement("div", {
+    className: "premium-hero",
+    style: {
+      backgroundColor: C.primary,
+      backgroundImage: "radial-gradient(circle at 85% 20%, rgba(180,131,42,0.18), transparent 55%), linear-gradient(180deg, " + C.primary + " 0%, " + C.primarySoft + " 130%)",
+      color: "#F4F1E9"
+    }
+  },
+    React.createElement("div", { className: "premium-hero-label" }, label),
+    React.createElement("div", { className: "premium-hero-value" }, value),
+    sub && React.createElement("div", {
+      style: { fontSize: T.text.md, color: "rgba(244,241,233,0.72)", marginTop: T.space.md2, lineHeight: 1.55 }
+    }, sub),
+    children
+  );
+};
 // v3.23 — Tarea 3: estado vacío reutilizable con CTA. Se usa en las listas de las
 // pestañas principales (Movimientos, Metas, Deudas) en vez de dejar un panel en blanco.
 var EmptyState = function(props) {
@@ -2356,6 +2396,8 @@ var HoyTab = function(props) {
 
   return React.createElement("div", { className: "hoy-layout", style: { display: "flex", flexDirection: "column", gap: T.space.xxl } },
 
+    React.createElement("div", { className: "hoy-col-main", style: { display: "flex", flexDirection: "column", gap: T.space.xxl, minWidth: 0 } },
+
     // ============ HERO: LIQUIDEZ ACTUAL (estilo ledger — tarjeta oscura fija) ============
     React.createElement("div", {
       style: {
@@ -2555,10 +2597,11 @@ var HoyTab = function(props) {
           React.createElement("div", { style: { fontSize: T.text.base, color: C.muted, lineHeight: 1.5 } }, r.body)
         );
       })
-    ),
+    )
+    ), // fin hoy-col-main
 
-    // ============ METAS + WISHLIST (lado a lado) ============
-    React.createElement("div", { className: "grid-2" },
+    // ============ METAS + WISHLIST (rail derecho fijo, v3.25.3) ============
+    React.createElement("div", { className: "hoy-col-rail", style: { display: "flex", flexDirection: "column", gap: T.space.xxl } },
       React.createElement(Panel, {
         title: "Metas activas",
         subtitle: metasActivas.length > 0 ? metasActivas.length + " metas pr\u00F3ximas por fecha" : "Sin metas activas",
@@ -3339,6 +3382,12 @@ var BudgetPlannerPanel = function(_ref_bp) {
 
   return React.createElement("div", { style:{ display:"flex", flexDirection:"column", gap:20 } },
 
+    React.createElement(PremiumHero, {
+      label: "Disponible en la quincena",
+      value: fmt(disponible),
+      sub: fmt(income) + " ingreso · " + fmt(totalPlanned) + " planeado"
+    }),
+
     // ── Header ──────────────────────────────────────────────────
     React.createElement("div", { style:{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:10 } },
       React.createElement("div", null,
@@ -3840,7 +3889,11 @@ var BudgetTab = _ref0 => {
       gap: 20
     }
 
-  }, /*#__PURE__*/React.createElement(SectionTitle, {
+  }, /*#__PURE__*/React.createElement(PremiumHero, {
+    label: "Ejecutado en la quincena",
+    value: fmt(totalReal),
+    sub: "de " + fmt(rows.reduce(function(s,r){return s+r.budget;},0)) + " presupuestado desde el " + qStart
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
     subtitle: "Gastos desde el " + qStart + " · quincena actual"
   }, "Presupuesto Quincenal"), /*#__PURE__*/React.createElement("div", {
     className: "grid-4"
@@ -4322,6 +4375,11 @@ var DebtsTab = function(_ref1) {
   }
 
   return React.createElement("div", { style:{display:"flex",flexDirection:"column",gap:T.space.xxl} },
+    React.createElement(PremiumHero, {
+      label: "Deuda total",
+      value: fmt(totalDebt),
+      sub: debts.length + " deuda" + (debts.length !== 1 ? "s" : "") + " activa" + (debts.length !== 1 ? "s" : "") + " · pago mensual planeado " + fmt(debts.reduce(function(s,d){ return s+(d.monthlyPayment||d.minPayment||0); },0))
+    }),
     React.createElement(SectionTitle, {
       subtitle:"Agrega, edita o elimina tus deudas. El estimado de liquidación se calcula automáticamente con el pago mensual configurado."
     }, "Mis Deudas"),
@@ -5515,7 +5573,11 @@ var NetWorthTab = _ref12 => {
       flexDirection: "column",
       gap: T.space.xxl
     }
-  }, /*#__PURE__*/React.createElement(SectionTitle, {
+  }, /*#__PURE__*/React.createElement(PremiumHero, {
+    label: "Patrimonio neto",
+    value: fmt(netWorth),
+    sub: fmt(totalAssets) + " en activos \u2212 " + fmt(totalLiabilities) + " en pasivos"
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
     subtitle: "Activos \u2212 Pasivos = Patrimonio Neto"
   }, "Patrimonio Neto"), /*#__PURE__*/React.createElement("div", {
     className: "grid-3"
@@ -6015,6 +6077,12 @@ var ProjectionsTab = function(_ref13) {
         }))
       )
     ),
+
+    React.createElement(PremiumHero, {
+      label: "Ahorro neto del mes",
+      value: fmt(totalSaved),
+      sub: fmt(totalIncome) + " ingresos − " + fmt(totalExpense) + " gastos · " + fmtPct(savingsRate, 0) + " tasa de ahorro"
+    }),
 
     // ── KPIs DEL MES ─────────────────────────────────────────────
     React.createElement("div", { className: "kpi-grid" },
@@ -7028,7 +7096,11 @@ var BillsTab = _ref => {
       flexDirection: "column",
       gap: T.space.xxl
     }
-  }, /*#__PURE__*/React.createElement(SectionTitle, {
+  }, /*#__PURE__*/React.createElement(PremiumHero, {
+    label: "Pendiente por pagar",
+    value: fmt(totalPending),
+    sub: fmt(totalPaid) + " ya pagado de " + fmt(totalMonth) + " del mes"
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
     subtitle: "Checklist de pagos del mes organizados por quincena de cobro"
   }, "Pagos del Mes"), /*#__PURE__*/React.createElement("div", {
     className: "grid-4"
@@ -7674,7 +7746,11 @@ var GoalsTab = _ref => {
       flexDirection: "column",
       gap: T.space.xxl
     }
-  }, /*#__PURE__*/React.createElement(SectionTitle, {
+  }, /*#__PURE__*/React.createElement(PremiumHero, {
+    label: "Total ahorrado en metas",
+    value: fmt(totalSaved),
+    sub: "de " + fmt(totalTarget) + " objetivo · " + fmtPct(totalTarget > 0 ? totalSaved / totalTarget * 100 : 0, 0) + " de progreso global"
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
     subtitle: "Define tus metas de ahorro, registra dep\xF3sitos y calcula cu\xE1nto aportar para llegar a tiempo"
   }, "Metas de Ahorro"), /*#__PURE__*/React.createElement(SharedSavingsCard, {
     selfKey: "lawrence", partnerKey: "babe", selfLabel: "Tú", partnerLabel: "Dovey"
@@ -8634,6 +8710,11 @@ var WishlistTab = _ref => {
       gap: T.space.xxl
     }
   },
+  /*#__PURE__*/React.createElement(PremiumHero, {
+    label: "Por comprar",
+    value: fmt(totalPending),
+    sub: fmt(totalPurchased) + " ya comprado de " + fmt(totalPending + totalPurchased) + " en la lista"
+  }),
   /*#__PURE__*/React.createElement(SectionTitle, {
     subtitle: "Cosas que quieres comprar, asignadas a una quincena espec\xEDfica"
   }, "Lista de Deseos"), /*#__PURE__*/React.createElement("div", {
@@ -9666,14 +9747,31 @@ var GasolinaTab = function(props) {
     if (logs.length < 2) return null;
     var sorted = logs.slice().sort(function(a,b){ return new Date(a.date)-new Date(b.date); });
     var MI_TO_KM = 1.60934; // factor de conversión millas → km
+    /* v3.25.2: litros consumidos en un tramo corregidos por nivel del tanque (rayitas).
+       consumido = litros cargados + (nivel_anterior − nivel_actual_antes_de_cargar) × L/rayita.
+       Corrige el sesgo de las cargas parciales; si faltan rayitas, cae al método clásico. */
+    function segmentLiters(prev, log) {
+      var loaded = Number(log.liters) || 0;
+      var prevAfter = prev.barsAfter !== null && prev.barsAfter !== undefined ? Number(prev.barsAfter) : null;
+      var curBefore = null;
+      if (log.barsBefore !== null && log.barsBefore !== undefined) curBefore = Number(log.barsBefore);
+      else if (log.barsAfter !== null && log.barsAfter !== undefined)
+        curBefore = Number(log.barsAfter) - loaded / LITERS_PER_BAR;
+      if (prevAfter !== null && curBefore !== null)
+        return Math.max(0, loaded + (prevAfter - curBefore) * LITERS_PER_BAR);
+      return loaded || null; // sin rayitas: método clásico (solo litros cargados)
+    }
     var kmLValues = sorted.reduce(function(acc, log, i) {
       if (i === 0) return acc;
       var prev = sorted[i-1];
-      if (prev.odometer && log.odometer && log.liters) {
+      if (prev.odometer && log.odometer) {
         var mi  = Number(log.odometer) - Number(prev.odometer);
         var km  = mi * MI_TO_KM; // convertir millas a km
-        var kml = km / Number(log.liters);
-        if (kml > 4 && kml < 25) acc.push(kml); // filtrar outliers
+        var consumed = segmentLiters(prev, log);
+        if (consumed && km > 0) {
+          var kml = km / consumed;
+          if (kml > 4 && kml < 25) acc.push(kml); // filtrar outliers
+        }
       }
       return acc;
     }, []);
@@ -9686,9 +9784,23 @@ var GasolinaTab = function(props) {
       return first && last && first !== last ? Number(last.odometer) - Number(first.odometer) : null;
     })();
     var totalKm    = totalMi ? totalMi * MI_TO_KM : null;
+    /* v3.25.2: rendimiento global = km totales ÷ litros consumidos totales,
+       ajustando por el cambio de nivel del tanque entre el primer y último registro.
+       Es la métrica más robusta cuando hay cargas parciales. */
+    var globalKml = (function(){
+      if (!totalKm) return null;
+      var first = sorted.find(function(l){ return l.odometer; });
+      var last  = [...sorted].reverse().find(function(l){ return l.odometer; });
+      var i0 = sorted.indexOf(first), i1 = sorted.indexOf(last);
+      var litersLoaded = sorted.slice(i0+1, i1+1).reduce(function(s,l){ return s+(Number(l.liters)||0); },0);
+      var lvl0 = first.barsAfter !== null && first.barsAfter !== undefined ? Number(first.barsAfter) : null;
+      var lvl1 = last.barsAfter  !== null && last.barsAfter  !== undefined ? Number(last.barsAfter)  : null;
+      var consumed = litersLoaded + (lvl0 !== null && lvl1 !== null ? (lvl0 - lvl1) * LITERS_PER_BAR : 0);
+      return consumed > 0 ? totalKm / consumed : null;
+    })();
     var costPerKm  = totalKm && totalAmt ? totalAmt / totalKm : null;
     var lastLog    = sorted[sorted.length-1];
-    return { avgKml, totalL, totalAmt, totalKm, totalMi, costPerKm, lastLog, kmLValues };
+    return { avgKml, globalKml, totalL, totalAmt, totalKm, totalMi, costPerKm, lastLog, kmLValues };
   }, [logs]);
 
   // Autonomía restante estimada desde rayitas actuales
@@ -10144,7 +10256,8 @@ var GasolinaTab = function(props) {
         label:"Rendimiento promedio",
         value: stats && stats.avgKml ? stats.avgKml.toFixed(1)+" km/L" : "—",
         sub: stats && stats.avgKml
-          ? (stats.avgKml >= KML_CITY ? "✓ Por encima del esperado" : "⚠ Por debajo del esperado ("+KML_CITY+" km/L)")
+          ? ((stats.avgKml >= KML_CITY ? "✓ Por encima del esperado" : "⚠ Por debajo del esperado ("+KML_CITY+" km/L)")
+             + (stats.globalKml ? " · global real: "+stats.globalKml.toFixed(1)+" km/L" : ""))
           : "Registra 2+ cargas para calcular",
         tone: stats && stats.avgKml ? (stats.avgKml >= KML_CITY ? "positive" : "warn") : "neutral",
         icon: IconTrendUp
@@ -10298,13 +10411,20 @@ var GasolinaTab = function(props) {
               React.createElement("tbody", null,
                 logs.slice().sort(function(a,b){ return new Date(b.date)-new Date(a.date); })
                   .map(function(log, i, arr) {
-                    // Calcular km/L respecto al registro anterior con odómetro
+                    // v3.25.2: km/L corregido por rayitas — litros consumidos = cargados + Δnivel
                     var prevWithOdo = arr.slice(i+1).find(function(l){ return l.odometer; });
                     var kml = null;
-                    if (log.odometer && prevWithOdo && prevWithOdo.odometer && log.liters) {
+                    if (log.odometer && prevWithOdo && prevWithOdo.odometer) {
                       var mi  = Number(log.odometer) - Number(prevWithOdo.odometer);
                       var km  = mi * 1.60934; // millas → km
-                      kml = km > 0 ? km / Number(log.liters) : null;
+                      var loaded = Number(log.liters) || 0;
+                      var prevAfter = prevWithOdo.barsAfter !== null && prevWithOdo.barsAfter !== undefined ? Number(prevWithOdo.barsAfter) : null;
+                      var curBefore = log.barsBefore !== null && log.barsBefore !== undefined ? Number(log.barsBefore)
+                        : (log.barsAfter !== null && log.barsAfter !== undefined ? Number(log.barsAfter) - loaded / LITERS_PER_BAR : null);
+                      var consumed = (prevAfter !== null && curBefore !== null)
+                        ? Math.max(0, loaded + (prevAfter - curBefore) * LITERS_PER_BAR)
+                        : (loaded || null);
+                      kml = consumed && km > 0 ? km / consumed : null;
                     }
                     var kmlColor = kml === null ? C.muted : kml >= KML_CITY ? C.success : kml >= 8 ? C.warn : C.danger;
                     return React.createElement("tr", { key:log.id, style:{ borderBottom:"1px solid "+C.borderSoft } },
@@ -10655,7 +10775,7 @@ var PersonalCFO = () => {
       // ── SIDEBAR ──────────────────────────────────────────
       React.createElement("aside", { className:"ledger-sidebar" },
         React.createElement("div", { className:"ls-brand" }, "CFO Personal"),
-        React.createElement("div", { className:"ls-brand-sub" }, "Centro financiero"),
+        React.createElement("div", { className:"ls-brand-sub" }, "Finanzas de un solo usuario"),
 
         React.createElement("div", { className:"ls-group-label" }, "Diario"),
         [primaryTabs[0], primaryTabs[3], primaryTabs[1]].map(function(t){
