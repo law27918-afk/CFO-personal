@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CFO Personal · Rediseño Premium (v4.0.1)</title>
+<title>CFO Personal · Rediseño Premium (v4.0.2)</title>
 <meta name="description" content="Centro financiero personal — Hoy, Movimientos, Metas & Wishlist, Presupuesto, Gasolina y Datos & Configuración. Sincronizado con Firebase.">
 <meta name="theme-color" content="#16382B">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -138,7 +138,11 @@
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
-const STORAGE_KEY = "cfo-personal-v1";
+// v4.0.2: se sube la versión de la clave de localStorage a propósito — cualquier
+// navegador que ya haya cargado la demo (v4.0.0/4.0.1) tiene esos datos de ejemplo
+// cacheados bajo la clave vieja, y el merge de loadLocalState() los prioriza sobre
+// el seedData() real del código. Cambiar la clave invalida esa caché vieja de raíz.
+const STORAGE_KEY = "cfo-personal-v2";
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyAk5rkDCcqdr0oNltA-9JXeUcADbCEoUAU",
   authDomain: "finance-15496.firebaseapp.com",
@@ -152,7 +156,11 @@ const FIRESTORE_COLLECTION = "cfo_data";
 // saneada) — la app vieja usaba _docId("cfo_user", key) para cada doc individual;
 // si las reglas de seguridad de Firestore están escritas para ese patrón, un docId
 // que no lo respete se rechaza en silencio (permission-denied) y la app nunca sincroniza.
-const FIRESTORE_DOC_ID = "cfo_user__cfo_app_state_v4";
+// v4.0.2: se renueva también el docId — si alguna vez se llegó a escribir la demo
+// vieja bajo "cfo_user__cfo_app_state_v4" (antes de esta corrección), ese doc
+// remoto seguiría bajando por onSnapshot y pisando los datos reales otra vez.
+// Un docId nuevo garantiza que el primer valor que se escribe es el seed real.
+const FIRESTORE_DOC_ID = "cfo_user__cfo_app_state_v5";
 
 const DEFAULT_CATEGORIES = ["Despensa","Transporte","Restaurantes","Suscripciones","Salud","Entretenimiento","Nómina","Ahorro"];
 
