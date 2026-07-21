@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="apple-touch-icon" href="./icon-192.png" />
 <link rel="icon" href="./icon-192.png" type="image/png" />
-<title>CFO Personal · Gestión Financiera (v3.26.1)</title>
+<title>CFO Personal · Gestión Financiera (v3.26.2)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,500;9..144,560&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
@@ -3951,7 +3951,9 @@ var BudgetTab = _ref0 => {
       tone: "neutral",
       icon: IconTarget
     });
-  })()), /*#__PURE__*/React.createElement(Panel, {
+  })()), /*#__PURE__*/React.createElement("div", { className: "two-col-layout" },
+  /*#__PURE__*/React.createElement("div", { className: "col-main", style:{minWidth:0} },
+  /*#__PURE__*/React.createElement(Panel, {
     title: "Detalle por Categor\xEDa"
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -4085,7 +4087,8 @@ var BudgetTab = _ref0 => {
     }
   }, totalDiff >= 0 ? "+" : "", fmt(totalDiff)), /*#__PURE__*/React.createElement("td", {
     colSpan: 2
-  })))))),
+  }))))))),
+  /*#__PURE__*/React.createElement("div", { className: "col-rail", style:{minWidth:0} },
   /* RETIRED v3.21 — "+ Agregar categoría al presupuesto" se retira de "Presupuesto actual"
      (Fase 1: esta vista pasa a ser solo-lectura). La edición de partidas de presupuesto
      futuro vive en el Planeador próxima quincena.
@@ -4225,6 +4228,8 @@ var BudgetTab = _ref0 => {
       );
     })()
   )
+  ) // cierre col-rail
+  ) // cierre two-col-layout
   ) // cierre div "actual"
   ); // cierre div wrapper
 };
