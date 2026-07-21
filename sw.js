@@ -1,9 +1,10 @@
 // ══════════════════════════════════════════════════════
-// CFO Personal — Service Worker (v3.23, Fase 1)
+// CFO Personal — Service Worker
 // Cache-first para librerías/fuentes de CDN, network-first para el HTML
-// (para detectar versión nueva), y nunca intercepta Firestore ni otras APIs.
+// (para detectar versión nueva). App 100% local: sin llamadas a backend
+// que deban excluirse del cache.
 // ══════════════════════════════════════════════════════
-var CACHE_NAME = "cfo-personal-v3.24";
+var CACHE_NAME = "cfo-personal-v1.0";
 var APP_SHELL = "./index.html";
 
 var PRECACHE_URLS = [
@@ -12,14 +13,12 @@ var PRECACHE_URLS = [
   "./manifest.webmanifest",
   "https://unpkg.com/react@18.2.0/umd/react.production.min.js",
   "https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js",
-  "https://unpkg.com/prop-types@15.8.1/prop-types.min.js",
-  "https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.min.js",
+  "https://unpkg.com/@babel/standalone@7.24.7/babel.min.js",
   "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,500;9..144,560&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
 ];
 
 var CDN_HOSTS = [
   "unpkg.com",
-  "cdn.jsdelivr.net",
   "fonts.googleapis.com",
   "fonts.gstatic.com"
 ];
@@ -37,8 +36,7 @@ self.addEventListener("install", function (event) {
     })
   );
   // No se llama self.skipWaiting() aquí a propósito: se espera a que el usuario
-  // confirme "Actualizar" en el snackbar (ver mensaje SKIP_WAITING abajo), para
-  // no interrumpir una sesión activa con un cambio de versión silencioso.
+  // recargue, para no interrumpir una sesión activa con un cambio de versión silencioso.
 });
 
 self.addEventListener("activate", function (event) {
@@ -59,7 +57,7 @@ self.addEventListener("message", function (event) {
 
 self.addEventListener("fetch", function (event) {
   var req = event.request;
-  if (req.method !== "GET") return; // no interceptar escrituras (Firestore, etc.)
+  if (req.method !== "GET") return;
 
   var url = new URL(req.url);
 
@@ -97,6 +95,5 @@ self.addEventListener("fetch", function (event) {
     return;
   }
 
-  // Todo lo demás (Firestore, firebasejs, APIs) va directo a la red sin pasar por el SW —
-  // los datos financieros nunca deben servirse desde cache.
+  // Todo lo demás: directo a la red (no hay backend propio que cachear).
 });
