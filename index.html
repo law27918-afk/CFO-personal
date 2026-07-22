@@ -1197,19 +1197,33 @@ const TANK_LITERS = 70;
 const GAUGE_BARS = 12;
 const LITERS_PER_BAR = TANK_LITERS / GAUGE_BARS; // ~5.83L por rayita
 
+// v3.25.2 (restaurado): litros realmente consumidos en un tramo, corregidos por
+// nivel de tanque (rayitas) en vez de asumir que "litros cargados" = "litros
+// consumidos" — necesario porque las cargas suelen ser parciales.
+// consumido = litros cargados + (nivel_anterior_después − nivel_actual_antes_de_cargar) × L/rayita.
+// Si faltan rayitas en cualquiera de los dos registros, cae al método clásico (solo litros cargados).
+function segmentLiters(prevBarsAfter, liters, barsBefore, barsAfter) {
+  const curBefore = barsBefore != null ? barsBefore : (barsAfter != null ? barsAfter - liters / LITERS_PER_BAR : null);
+  if (prevBarsAfter != null && curBefore != null) return Math.max(0, liters + (prevBarsAfter - curBefore) * LITERS_PER_BAR);
+  return liters || null;
+}
+
 // Medidor en forma de media luna (semicírculo, lado plano hacia abajo) con 12
 // divisiones — las marcas se reparten de -90° (izquierda) a +90° (derecha),
 // pivotando desde el centro inferior del contenedor.
-function FuelGauge({ pct }) {
+function FuelGauge({ pct, onTickClick }) {
   const R = 100;
   const ticks = [];
   const filled = Math.round((pct / 100) * 12);
   for (let i = 0; i < 12; i++) {
     const deg = -90 + i * (180 / 11);
     const active = i < filled;
+    const idx = i;
     ticks.push(
-      <div key={i} style={{ position: "absolute", left: "50%", bottom: 0, width: 3, height: 17, borderRadius: 2,
-        background: active ? "var(--accent)" : "var(--border)",
+      <div key={i} onClick={onTickClick ? () => onTickClick(idx + 1) : undefined}
+        title={onTickClick ? "Ajustar a " + (idx + 1) + " rayitas" : undefined}
+        style={{ position: "absolute", left: "50%", bottom: 0, width: 3, height: 17, borderRadius: 2,
+        background: active ? "var(--accent)" : "var(--border)", cursor: onTickClick ? "pointer" : "default",
         transform: "translateX(-50%) translateY(-" + R + "px) rotate(" + deg + "deg)",
         transformOrigin: "50% " + R + "px" }}></div>
     );
@@ -1262,10 +1276,15 @@ function GasolinaScreen({ state, actions }) {
   const kmlPromedio = kmlValidos.length ? (kmlValidos.reduce((a,b) => a + b.kml, 0) / kmlValidos.length) : 0;
   const kmlGlobal = kmlValidos.length > 1 ? kmlPromedio * 0.96 : kmlPromedio;
   const costoPorKm = (logs.length && logs[0].kml) ? (logs[0].cost / (logs[0].liters * logs[0].kml)) : 0;
-  const currentBars = Math.round((state.tankPct / 100) * GAUGE_BARS);
+  const currentBars = Math.round((state.tankPct / 100) * GAUGE_BARS * 2) / 2;
   const litersRemaining = currentBars * LITERS_PER_BAR;
   const autonomia = kmlPromedio ? Math.round(litersRemaining * kmlPromedio) : 0;
   const status = tankStatus(state.tankPct);
+
+  function adjustBars(delta) {
+    const next = Math.max(0, Math.min(GAUGE_BARS, Math.round((currentBars + delta) * 2) / 2));
+    actions.setCurrentBars(next);
+  }
 
   function updateField(key, val) { setForm(f => ({ ...f, [key]: val })); }
 
@@ -1308,14 +1327,24 @@ function GasolinaScreen({ state, actions }) {
     <div data-screen-label="Gasolina">
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 26, marginBottom: 18,
         display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
-        <FuelGauge pct={state.tankPct} />
+        <FuelGauge pct={state.tankPct} onTickClick={n => actions.setCurrentBars(n)} />
         <div style={{ flex: "1 1 200px", minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 600, color: status.color, marginBottom: 8 }}>{status.text}</div>
           <div className="cfo-mono" style={{ fontSize: 13, color: "var(--text)", marginBottom: 4 }}>
             {currentBars} de {GAUGE_BARS} rayitas
           </div>
-          <div className="cfo-mono" style={{ fontSize: 13, color: "var(--muted)" }}>
+          <div className="cfo-mono" style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
             ~{litersRemaining.toFixed(1)} L restantes
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 6 }}>Ajustar nivel actual</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button type="button" className="cfo-btn" onClick={() => adjustBars(-0.5)}
+              style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)",
+                color: "var(--text)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>−</button>
+            <span className="cfo-mono" style={{ fontSize: 13, minWidth: 30, textAlign: "center" }}>{currentBars}</span>
+            <button type="button" className="cfo-btn" onClick={() => adjustBars(0.5)}
+              style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)",
+                color: "var(--text)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>+</button>
           </div>
         </div>
       </div>
@@ -1576,7 +1605,11 @@ function App() {
     deleteWish: (id) => setState(s => ({ ...s, wishlist: s.wishlist.filter(w => w.id !== id) })),
     addFuel: (payload) => setState(s => {
       const prev = s.fuelLogs[0];
-      const kml = prev && payload.odometer > prev.odometer ? Number(((payload.odometer - prev.odometer) / payload.liters).toFixed(1)) : Number((11 + Math.random() * 3).toFixed(1));
+      const prevBarsAfter = prev && prev.barsAfter != null ? prev.barsAfter : null;
+      // v3.25.2 (restaurado): el consumo real de un tramo se corrige por rayitas
+      // cuando están disponibles, en vez de asumir que litros cargados = litros gastados.
+      const consumed = segmentLiters(prevBarsAfter, payload.liters, payload.barsBefore, payload.barsAfter) || payload.liters;
+      const kml = prev && payload.odometer > prev.odometer ? Number(((payload.odometer - prev.odometer) / consumed).toFixed(1)) : Number((11 + Math.random() * 3).toFixed(1));
       const date = payload.date || todayISO();
       const entry = {
         id: uid(), date, liters: payload.liters, cost: payload.cost, odometer: payload.odometer, kml,
@@ -1597,9 +1630,14 @@ function App() {
     }),
     updateFuel: (id, payload) => setState(s => ({
       ...s,
-      fuelLogs: s.fuelLogs.map(f => f.id === id ? { ...f, ...payload } : f)
+      fuelLogs: s.fuelLogs.map(f => f.id === id ? { ...f, ...payload } : f),
+      // Si el registro editado es la carga más reciente y trae "rayitas después",
+      // el tanque actual se sincroniza con ese valor (misma regla que al crear).
+      tankPct: (s.fuelLogs[0] && s.fuelLogs[0].id === id && payload.barsAfter != null)
+        ? Math.round((payload.barsAfter / GAUGE_BARS) * 100) : s.tankPct
     })),
     deleteFuel: (id) => setState(s => ({ ...s, fuelLogs: s.fuelLogs.filter(f => f.id !== id) })),
+    setCurrentBars: (bars) => setState(s => ({ ...s, tankPct: Math.max(0, Math.min(100, Math.round((bars / GAUGE_BARS) * 100 * 10) / 10)) })),
     addCategory: (name) => setState(s => ({ ...s, categories: [...s.categories, name] })),
     removeCategory: (name) => setState(s => ({ ...s, categories: s.categories.filter(c => c !== name) })),
     addBudget: (payload) => setState(s => ({ ...s, budgets: [...s.budgets, { id: uid(), category: payload.category, amount: payload.amount }] })),
