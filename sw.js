@@ -3,7 +3,7 @@
 // Cache-first para librerías/fuentes de CDN, network-first para el HTML
 // (para detectar versión nueva), y nunca intercepta Firestore ni otras APIs.
 // ══════════════════════════════════════════════════════
-var CACHE_NAME = "cfo-personal-v3.24";
+var CACHE_NAME = "cfo-personal-v3.25";
 var APP_SHELL = "./index.html";
 
 var PRECACHE_URLS = [
