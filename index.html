@@ -81,12 +81,15 @@
     .cfo-main { padding: 32px 40px 48px; }
     .cfo-grid2 { grid-template-columns: 1.65fr 1fr; gap: 24px; }
     .cfo-kpigrid { grid-template-columns: repeat(4,1fr); gap: 14px; }
-    .cfo-goalgrid { grid-template-columns: repeat(3,1fr); gap: 18px; }
+    .cfo-goalgrid { grid-template-columns: repeat(3,1fr); grid-auto-rows: 1fr; gap: 18px; }
     .cfo-panelgrid { grid-template-columns: repeat(2,1fr); gap: 18px; }
     .cfo-histrow { grid-template-columns: 1.6fr 0.8fr 0.9fr 0.9fr; align-items: center; gap: 14px; }
   }
 
   .cfo-btn { font-family: "IBM Plex Sans", sans-serif; font-weight: 600; cursor: pointer; border: none; }
+  .cfo-goalcard { position: relative; display: flex; flex-direction: column; }
+  .cfo-goalcard .cfo-goal-del { opacity: 0; transition: opacity .15s; }
+  .cfo-goalcard:hover .cfo-goal-del, .cfo-goalcard:focus-within .cfo-goal-del { opacity: 1; }
   .cfo-btn:disabled { cursor: not-allowed; opacity: .5; }
   .cfo-mono { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
   .cfo-serif { font-family: Fraunces, Georgia, serif; }
@@ -216,6 +219,16 @@ function categoryIcon(cat) {
   const c = String(cat || "");
   for (const [re, icon] of CATEGORY_ICON_MAP) if (re.test(c)) return icon;
   return "📦";
+}
+
+// Color derivado de la categoría (para el avatar de la wishlist) — determinístico,
+// tomado solo de los tokens de paleta existentes.
+const CATEGORY_COLOR_TOKENS = ["var(--primary)", "var(--accent)", "var(--success)", "var(--warn)", "var(--danger)", "var(--accent-alt)"];
+function categoryColor(cat) {
+  const c = String(cat || "");
+  let sum = 0;
+  for (let i = 0; i < c.length; i++) sum += c.charCodeAt(i);
+  return CATEGORY_COLOR_TOKENS[sum % CATEGORY_COLOR_TOKENS.length];
 }
 
 // Rango [inicio, fin) de la quincena que contiene "today", y de la próxima quincena.
@@ -828,11 +841,21 @@ function MetasWishlistScreen({ state, actions }) {
   const [contribGoal, setContribGoal] = useState(null);
   const [addSheet, setAddSheet] = useState(null); // 'goal' | 'wish' | null
 
+  function confirmDeleteGoal(id, name) {
+    if (confirm("¿Eliminar la meta \"" + name + "\"? Esta acción no se puede deshacer.")) actions.deleteGoal(id);
+  }
+  function confirmDeleteWish(id, name) {
+    if (confirm("¿Eliminar \"" + name + "\" de tu wishlist? Esta acción no se puede deshacer.")) actions.deleteWish(id);
+  }
+
+  const ghostBtnStyle = { background: "none", color: "var(--accent)", fontSize: 12.5 };
+  const sectionHeaderStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 };
+
   return (
     <div data-screen-label="Metas y Wishlist">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--muted)" }}>Metas</div>
-        <button className="cfo-btn" onClick={() => setAddSheet("goal")} style={{ background: "none", color: "var(--accent)", fontSize: 12.5 }}>+ Nueva meta</button>
+      <div style={sectionHeaderStyle}>
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--muted)" }}>Metas · {state.goals.length} activa{state.goals.length === 1 ? "" : "s"}</div>
+        <button className="cfo-btn" onClick={() => setAddSheet("goal")} style={ghostBtnStyle}>+ Nueva meta</button>
       </div>
       <div className="cfo-goalgrid" style={{ marginBottom: 28 }}>
         {state.goals.map(g => {
@@ -843,19 +866,25 @@ function MetasWishlistScreen({ state, actions }) {
           const daysLeft = targetD ? Math.ceil((targetD - today) / 86400000) : null;
           const quincenasLeft = daysLeft != null ? Math.max(1, Math.ceil(daysLeft / 15)) : null;
           const aporteSugerido = quincenasLeft ? remaining / quincenasLeft : null;
+          const isZero = pct === 0;
+          const isDone = pct >= 100;
           return (
-            <div key={g.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 14 }}>
+            <div key={g.id} className="cfo-goalcard" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{g.name}</div>
-                <button className="cfo-btn" onClick={() => actions.deleteGoal(g.id)} title="Eliminar"
+                <button className="cfo-btn cfo-goal-del" onClick={() => confirmDeleteGoal(g.id, g.name)} title="Eliminar"
                   style={{ background: "none", color: "var(--muted-light)", fontSize: 15, padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
               </div>
-              <div className="cfo-serif" style={{ fontSize: 38, fontWeight: 500, color: "var(--accent)", marginBottom: 12 }}>{pct}%</div>
+              <div className="cfo-serif" style={{ fontSize: 32, fontWeight: 500, color: isZero ? "var(--muted-light)" : "var(--accent)", marginBottom: 10 }}>{pct}%</div>
               <div style={{ height: 8, borderRadius: 99, background: "var(--surface-alt)", overflow: "hidden", marginBottom: 10 }}>
-                <div style={{ height: "100%", borderRadius: 99, background: "linear-gradient(90deg,var(--primary),var(--accent))", boxShadow: "rgba(180,131,42,0.5) 0 0 10px", width: pct + "%" }}></div>
+                <div style={{ height: "100%", borderRadius: 99,
+                  background: isZero ? "var(--muted-light)" : "linear-gradient(90deg,var(--primary),var(--accent))",
+                  boxShadow: isZero ? "none" : "rgba(180,131,42,0.5) 0 0 10px",
+                  width: (isZero ? 2 : pct) + "%" }}></div>
               </div>
-              <div className="cfo-mono" style={{ fontSize: 12.5, color: "var(--text)", marginBottom: 4 }}>{fmtMoney(g.saved)} <span style={{ color: "var(--muted)" }}>de</span> {fmtMoney(g.target)}</div>
-              <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>Faltan {fmtMoney(remaining)}</div>
+              <div className="cfo-mono" style={{ fontSize: 12.5, marginBottom: 10 }}>
+                <span style={{ color: "var(--text)" }}>{fmtMoney(g.saved)}</span> <span style={{ color: "var(--muted)" }}>de {fmtMoney(g.target)} ·</span> <span style={{ fontWeight: 600, color: "var(--muted)" }}>Faltan {fmtMoney(remaining)}</span>
+              </div>
               {targetD && (
                 <div style={{ fontSize: 11.5, color: daysLeft < 0 ? "var(--danger)" : "var(--muted)", marginBottom: 4 }}>
                   {daysLeft < 0 ? "Venció el " : "Vence el "}
@@ -864,27 +893,38 @@ function MetasWishlistScreen({ state, actions }) {
                 </div>
               )}
               {aporteSugerido > 0 && remaining > 0 && (
-                <div style={{ fontSize: 11.5, color: "var(--accent)", marginBottom: 16 }}>
+                <div style={{ fontSize: 11.5, color: "var(--accent)", marginBottom: 12 }}>
                   Aporta ~{fmtMoney(aporteSugerido)} cada quincena para llegar a tiempo
                 </div>
               )}
-              {(!targetD || aporteSugerido == null) && <div style={{ marginBottom: 16 }}></div>}
-              <button className="cfo-btn" onClick={() => setContribGoal(g)} style={{ width: "100%", background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: 10, fontSize: 13 }}>Aportar</button>
+              {(!targetD || aporteSugerido == null) && <div style={{ marginBottom: 12 }}></div>}
+              <div style={{ marginTop: "auto" }}>
+                {isDone ? (
+                  <div style={{ width: "100%", textAlign: "center", background: "var(--success-soft)", color: "var(--success)", borderRadius: 9, height: 36, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600 }}>
+                    ✓ Completada
+                  </div>
+                ) : (
+                  <button className="cfo-btn" onClick={() => setContribGoal(g)}
+                    style={{ width: "100%", height: 36, background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, fontSize: 13 }}>Aportar</button>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--muted)" }}>Wishlist</div>
-        <button className="cfo-btn" onClick={() => setAddSheet("wish")} style={{ background: "none", color: "var(--accent)", fontSize: 12.5 }}>+ Nuevo deseo</button>
+      <div style={sectionHeaderStyle}>
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--muted)" }}>Wishlist · {state.wishlist.length} deseo{state.wishlist.length === 1 ? "" : "s"}</div>
+        <button className="cfo-btn" onClick={() => setAddSheet("wish")} style={ghostBtnStyle}>+ Nuevo deseo</button>
       </div>
       <div className="cfo-goalgrid">
         {state.wishlist.map(w => (
-          <div key={w.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 18, display: "flex", flexDirection: "column", gap: 10, position: "relative" }}>
-            <button className="cfo-btn" onClick={() => actions.deleteWish(w.id)} style={{ position: "absolute", top: 10, right: 12, background: "none", color: "var(--muted-light)", fontSize: 16 }}>×</button>
+          <div key={w.id} className="cfo-goalcard" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 18, gap: 10, position: "relative" }}>
+            <button className="cfo-btn cfo-goal-del" onClick={() => confirmDeleteWish(w.id, w.name)} style={{ position: "absolute", top: 10, right: 12, background: "none", color: "var(--muted-light)", fontSize: 16 }}>×</button>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--surface-alt)", flex: "0 0 auto" }}></div>
+              <div style={{ width: 38, height: 38, borderRadius: "50%", background: categoryColor(w.category), color: "var(--on-primary)", flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 600 }}>
+                {String(w.name || "?").trim().charAt(0).toUpperCase()}
+              </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600 }}>{w.name}</div>
                 <div style={{ fontSize: 11, color: "var(--muted-light)" }}>{w.category || "General"}</div>
