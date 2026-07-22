@@ -533,11 +533,11 @@ function fmtRelativeTime(ts) {
 
 // ---------- shared bits ----------
 
-function KPICard({ label, value, note, mono, valueSize, noteColor }) {
+function KPICard({ label, value, note, mono, valueSize, valueColor, noteColor }) {
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
       <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 8 }}>{label}</div>
-      <div className={"cfo-serif" + (mono !== false ? " cfo-mono" : "")} style={{ fontSize: valueSize || 22, fontWeight: 500, color: "var(--text)" }}>{value}</div>
+      <div className={"cfo-serif" + (mono !== false ? " cfo-mono" : "")} style={{ fontSize: valueSize || 22, fontWeight: 500, color: valueColor || "var(--text)" }}>{value}</div>
       {note && <div style={{ fontSize: 11, color: noteColor || "var(--success)", marginTop: 4 }}>{note}</div>}
     </div>
   );
@@ -970,6 +970,32 @@ function PresupuestoScreen({ state, actions }) {
   const proyeccionGasto = Math.round(ritmo * diasTotalesQ);
   const ingresoEsperadoActual = state.finance.ingresoEsperadoQuincenal || 0;
   const proyeccionRestante = Math.round(ingresoEsperadoActual - proyeccionGasto);
+  const diasRestantes = Math.max(0, diasTotalesQ - diasTranscurridos);
+
+  // Semántica de color por categoría — Ahorro se invierte (pasarse de la meta es
+  // positivo); el resto: verde <80%, dorado 80–100% (incluye el límite exacto), rojo >100%.
+  function budgetRowStyle(r) {
+    const isAhorro = /ahorro/i.test(r.category);
+    if (isAhorro) {
+      if (r.pct >= 100) {
+        return { color: "var(--success)", text: Math.round(r.pct - 100) + "% sobre la meta ✓", bar: "var(--success)" };
+      }
+      const barA = r.pct >= 80 ? "var(--warn)" : "var(--success)";
+      return { color: r.pct >= 80 ? "var(--warn)" : "var(--success)", text: Math.round(100 - r.pct) + "% para tu meta", bar: barA };
+    }
+    if (r.pct > 100) {
+      return { color: "var(--danger)", text: Math.round(r.pct - 100) + "% sobre el presupuesto", bar: "var(--danger)" };
+    }
+    if (r.pct === 100) {
+      return { color: "var(--warn)", text: "Al límite del presupuesto", bar: "var(--warn)" };
+    }
+    const bar = "linear-gradient(90deg, var(--success), var(--warn))";
+    return { color: r.pct >= 80 ? "var(--warn)" : "var(--success)", text: Math.round(100 - r.pct) + "% disponible", bar };
+  }
+
+  function confirmDeleteBudget(id, category) {
+    if (confirm("¿Eliminar el presupuesto de \"" + category + "\"? Esta acción no se puede deshacer.")) actions.deleteBudget(id);
+  }
 
   function startEdit(r) { setEditingId(r.id); setEditValue(String(r.amount)); }
   function saveEdit() {
@@ -1005,58 +1031,60 @@ function PresupuestoScreen({ state, actions }) {
           <div className="cfo-kpigrid" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 18 }}>
             <KPICard label="Proyectado a gastar esta quincena" value={fmtMoney(proyeccionGasto)}
               note={"Llevas " + fmtMoney(totalReal) + " en " + diasTranscurridos + " de " + diasTotalesQ + " días"} />
-            <KPICard label="Te quedaría proyectado" value={fmtMoney(proyeccionRestante)} />
+            <KPICard label="Te quedaría proyectado" value={fmtMoney(proyeccionRestante)}
+              valueColor={proyeccionRestante >= 0 ? "var(--success)" : "var(--danger)"}
+              note={"para " + diasRestantes + " día" + (diasRestantes === 1 ? "" : "s") + " restantes"} />
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--muted)" }}>Presupuesto por categoría</div>
             <button className="cfo-btn" onClick={() => setShowAdd(true)} style={{ background: "none", color: "var(--accent)", fontSize: 12.5 }}>+ Nueva categoría</button>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="cfo-panelgrid">
             {rows.map(r => {
-              const over = r.pct > 100;
-              const barColor = over ? "var(--danger)" : r.pct >= 80 ? "var(--warn)" : "var(--success)";
-              const statusText = over
-                ? Math.round(r.pct - 100) + "% sobre el presupuesto"
-                : Math.round(100 - r.pct) + "% disponible";
+              const rs = budgetRowStyle(r);
               const isEditing = editingId === r.id;
               return (
-                <div key={r.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, gap: 10, flexWrap: "wrap" }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>{r.category}</div>
-                    {isEditing ? (
-                      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span className="cfo-mono" style={{ fontSize: 12.5, color: "var(--muted)" }}>{fmtMoney(r.real)} /</span>
-                        <input type="number" step="0.01" min="0" autoFocus value={editValue}
-                          onChange={e => setEditValue(e.target.value)}
-                          onBlur={saveEdit}
-                          onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditingId(null); }}
-                          className="cfo-mono"
-                          style={{ width: 80, fontSize: 12.5, border: "1px solid var(--primary)", borderRadius: 6, padding: "2px 6px", background: "var(--bg)", color: "var(--text)" }} />
-                      </span>
-                    ) : (
-                      <div className="cfo-mono" onClick={() => startEdit(r)} title="Tocar para editar el presupuesto"
-                        style={{ fontSize: 12.5, color: "var(--muted)", cursor: "pointer", borderBottom: "1px dashed var(--border)" }}>
-                        {fmtMoney(r.real)} / {fmtMoney(r.amount)}
-                      </div>
-                    )}
+                <div key={r.id} style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 8,
+                  background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px", minHeight: 64 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{r.category}</span>
+                      <span style={{ fontSize: 11, color: rs.color, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{rs.text}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      {isEditing ? (
+                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span className="cfo-mono" style={{ fontSize: 12, color: "var(--muted)" }}>{fmtMoney(r.real)} /</span>
+                          <input type="number" step="0.01" min="0" autoFocus value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onBlur={saveEdit}
+                            onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditingId(null); }}
+                            className="cfo-mono"
+                            style={{ width: 74, fontSize: 12, border: "1px solid var(--primary)", borderRadius: 6, padding: "2px 6px", background: "var(--bg)", color: "var(--text)" }} />
+                        </span>
+                      ) : (
+                        <div className="cfo-mono" onClick={() => startEdit(r)} title="Tocar para editar el presupuesto"
+                          style={{ fontSize: 12, whiteSpace: "nowrap", cursor: "pointer", borderBottom: "1px dashed var(--border)" }}>
+                          <span style={{ color: rs.color }}>{fmtMoney(r.real)}</span>
+                          <span style={{ color: "var(--muted)" }}> / {fmtMoney(r.amount)}</span>
+                        </div>
+                      )}
+                      <button className="cfo-btn" onClick={() => confirmDeleteBudget(r.id, r.category)} title="Eliminar categoría"
+                        style={{ background: "none", color: "var(--muted-light)", fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
+                    </div>
                   </div>
-                  <div style={{ height: 6, borderRadius: 99, background: "var(--surface-alt)", overflow: "hidden", marginBottom: 8 }}>
-                    <div style={{ height: "100%", width: Math.min(100, r.pct) + "%", borderRadius: 99, background: barColor }}></div>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ fontSize: 12, color: over ? "var(--danger)" : "var(--muted)" }}>{statusText}</div>
-                    <button className="cfo-btn" onClick={() => actions.deleteBudget(r.id)} title="Eliminar categoría"
-                      style={{ background: "none", color: "var(--muted-light)", fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
+                  <div style={{ height: 8, borderRadius: 99, background: "var(--surface-alt)", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: Math.min(100, r.pct) + "%", borderRadius: 99, background: rs.bar }}></div>
                   </div>
                 </div>
               );
             })}
-            {rows.length === 0 && <div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", padding: "30px 0" }}>Sin categorías presupuestadas todavía.</div>}
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px", background: "var(--surface-alt)", borderRadius: 12, fontWeight: 600 }}>
-              <div className="cfo-serif">Total</div>
-              <div className="cfo-mono">{fmtMoney(totalReal)} / {fmtMoney(totalBudget)}</div>
-            </div>
+            {rows.length === 0 && <div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", padding: "30px 0", gridColumn: "1 / -1" }}>Sin categorías presupuestadas todavía.</div>}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px", background: "var(--surface-alt)", borderRadius: 12, fontWeight: 600, marginTop: 10 }}>
+            <div className="cfo-serif">Total</div>
+            <div className="cfo-mono">{fmtMoney(totalReal)} / {fmtMoney(totalBudget)}</div>
           </div>
         </div>
       )}
