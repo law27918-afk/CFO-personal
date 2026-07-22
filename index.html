@@ -7,7 +7,2141 @@
 <meta name="description" content="Centro financiero personal — Hoy, Movimientos, Metas & Wishlist, Presupuesto, Gasolina y Datos & Configuración. Sincronizado con Firebase.">
 <meta name="theme-color" content="#16382B">
 <meta name="apple-mobile-web-app-capable" content="yes"<!DOCTYPE html>
+<html lang="es"><!DOCTYPE html>
 <html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CFO Personal · Rediseño Premium (v4.5.2)</title>
+<meta name="description" content="Centro financiero personal — Hoy, Movimientos, Metas & Wishlist, Presupuesto, Gasolina y Datos & Configuración. Sincronizado con Firebase.">
+<meta name="theme-color" content="#16382B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CFO Personal">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,440;9..144,500;9..144,560&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { height: 100%; margin: 0; }
+  *, ::before, ::after { box-sizing: border-box; }
+  body { background: #0B0D08; font-family: "IBM Plex Sans", sans-serif; }
+
+  #app-frame { min-height: 100vh; }
+  #root { min-height: 100vh; }
+
+  .cfo-root {
+    --bg: #F4F1E9; --surface: #FFFFFF; --surface-alt: #EFEAD9; --surface2: #E7ECE2;
+    --primary: #16382B; --primary-soft: #24503C; --accent: #B4832A;
+    --text: #1C201C; --muted: #565F56; --muted-light: #9AA096;
+    --success: #24503C; --success-soft: #E7ECE2; --danger: #A23E2C; --danger-soft: #F3E2DD;
+    --warn: #8A6420; --warn-soft: #EFE1C3; --border: #E3DECF; --border-soft: #EDE8D8;
+    --on-primary: #F4F1E9; --accent-alt: #6c5af7;
+    --shadow-lg: 0 4px 14px rgba(22,56,43,0.16); --shadow-sm: 0 1px 3px rgba(28,32,28,0.05);
+    background: var(--bg); color: var(--text); font-family: "IBM Plex Sans", sans-serif;
+    position: relative; overflow: hidden; transition: background .2s;
+    width: 100%; min-height: 100vh; container: cfo / inline-size;
+  }
+  .cfo-root[data-theme="dark"] {
+    --bg: #14180F; --surface: #1B2118; --surface-alt: #232A1F; --surface2: #232A1F;
+    --primary: #7FBE9C; --primary-soft: #6FA98A; --accent: #D9B25E;
+    --text: #ECE7D8; --muted: #A7AC9D; --muted-light: #7C8275;
+    --success: #7FBE9C; --success-soft: rgba(127,190,156,0.15);
+    --danger: #E08972; --danger-soft: rgba(224,137,114,0.15);
+    --warn: #D9B25E; --warn-soft: rgba(217,178,94,0.15);
+    --border: rgba(255,255,255,0.08); --border-soft: rgba(255,255,255,0.05);
+    --on-primary: #14180F; --accent-alt: #A78BFA; --shadow-lg: none; --shadow-sm: none;
+  }
+  .cfo-root::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(600px 400px at 85% -10%, rgba(180,131,42,0.10), transparent 60%),
+                radial-gradient(700px 500px at -10% 20%, rgba(22,56,43,0.14), transparent 55%);
+  }
+  .cfo-root[data-theme="dark"]::before {
+    background: radial-gradient(600px 400px at 85% -10%, rgba(217,178,94,0.09), transparent 60%),
+                radial-gradient(700px 500px at -10% 10%, rgba(127,190,156,0.10), transparent 55%);
+  }
+  .cfo-root::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: .5;
+    background-image: radial-gradient(rgba(0,0,0,.05) 1px, transparent 1px); background-size: 3px 3px;
+  }
+  .cfo-root[data-theme="dark"]::after {
+    opacity: .3; background-image: radial-gradient(rgba(255,255,255,.06) 1px, transparent 1px);
+  }
+
+  .cfo-shell { position: relative; z-index: 1; display: flex; }
+  /* v4.5.3: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
+     DENTRO de la fila no sumaba altura extra, pero al sacarlo afuera como header (fix
+     anterior) la altura total pasó a ser topbar + shell(100vh) + bottomnav, más alta
+     que la pantalla. El bottom-nav es sticky (no fixed), así que quedaba pegado al final
+     de ese documento más largo — visible solo tras hacer scroll. cfo-root ya aporta el
+     min-height:100vh que hace falta para pantallas con poco contenido. */
+  html, body { overflow-x: hidden; } /* v4.5.2: sin scroll horizontal fantasma en móvil */
+  .cfo-sidebar { display: none; }
+  .cfo-bottomnav { display: flex; }
+  .cfo-topbar { display: flex; }
+  .cfo-main { flex: 1 1 0; min-width: 0; padding: 20px 16px 96px; }
+  .cfo-grid2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  .cfo-kpigrid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+  .cfo-goalgrid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .cfo-panelgrid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .cfo-histrow { display: grid; grid-template-columns: 1fr; gap: 10px; }
+
+  @media (min-width: 880px) {
+    .cfo-sidebar { display: flex; }
+    .cfo-bottomnav { display: none; }
+    .cfo-topbar { display: none; }
+    .cfo-main { padding: 32px 40px 48px; }
+    .cfo-grid2 { grid-template-columns: 1.65fr 1fr; gap: 24px; }
+    .cfo-kpigrid { grid-template-columns: repeat(4,1fr); gap: 14px; }
+    .cfo-goalgrid { grid-template-columns: repeat(3,1fr); grid-auto-rows: 1fr; gap: 18px; }
+    .cfo-panelgrid { grid-template-columns: repeat(2,1fr); gap: 18px; }
+    .cfo-histrow { grid-template-columns: 1.6fr 0.8fr 0.9fr 0.9fr; align-items: center; gap: 14px; }
+  }
+
+  .cfo-btn { font-family: "IBM Plex Sans", sans-serif; font-weight: 600; cursor: pointer; border: none; }
+  .cfo-goalcard { position: relative; display: flex; flex-direction: column; }
+  .cfo-goalcard .cfo-goal-del { opacity: 0; transition: opacity .15s; }
+  .cfo-goalcard:hover .cfo-goal-del, .cfo-goalcard:focus-within .cfo-goal-del { opacity: 1; }
+  .cfo-btn:disabled { cursor: not-allowed; opacity: .5; }
+  .cfo-mono { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+  .cfo-serif { font-family: Fraunces, Georgia, serif; }
+  .cfo-scroll::-webkit-scrollbar { height: 0; width: 6px; }
+  .cfo-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+  input, select, textarea { font-family: "IBM Plex Sans", sans-serif; outline: none; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .cfo-navbtn { background: none; }
+
+  /* v4.4: móvil — tablas con scroll horizontal en vez de romper el layout,
+     segmentos que envuelven, y formularios a una columna en pantallas chicas */
+  .cfo-tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .cfo-tablewrap::-webkit-scrollbar { height: 5px; }
+  .cfo-tablewrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+  .cfo-seg { flex-wrap: wrap; max-width: 100%; }
+  @media (max-width: 560px) {
+    .cfo-kpigrid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
+    .cfo-main { padding: 14px 12px 96px; }
+    .cfo-table { min-width: 560px !important; }
+  }
+
+  .cfo-overlay {
+    position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.45);
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  @media (min-width: 880px) {
+    .cfo-overlay { align-items: center; }
+  }
+  .cfo-sheet {
+    background: var(--surface); width: 100%; max-width: 480px; border-radius: 18px 18px 0 0;
+    padding: 22px 22px 28px; color: var(--text); max-height: 88vh; overflow-y: auto;
+  }
+  @media (min-width: 880px) {
+    .cfo-sheet { border-radius: 16px; padding: 26px; }
+  }
+  .cfo-seg { display: flex; gap: 6px; background: var(--surface-alt); padding: 4px; border-radius: 10px; margin-bottom: 14px; }
+  .cfo-seg button { flex: 1; padding: 9px; border-radius: 8px; font-size: 12.5px; background: none; color: var(--muted); white-space: nowrap; }
+  .cfo-seg button.active { background: var(--primary); color: var(--on-primary); }
+  .cfo-field { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--text); margin-bottom: 10px; }
+  .cfo-toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 80;
+    background: var(--primary); color: var(--on-primary); font-size: 13px; padding: 10px 18px;
+    border-radius: 99px; box-shadow: var(--shadow-lg); white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div id="app-frame"><div id="root"></div></div>
+
+<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"
+  onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js'"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"
+  onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js'"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"
+  onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js'"></script>
+
+<!-- Firebase (Firestore) — persistencia en la nube, un solo documento con todo el estado -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
+
+// v4.0.2: se sube la versión de la clave de localStorage a propósito — cualquier
+// navegador que ya haya cargado la demo (v4.0.0/4.0.1) tiene esos datos de ejemplo
+// cacheados bajo la clave vieja, y el merge de loadLocalState() los prioriza sobre
+// el seedData() real del código. Cambiar la clave invalida esa caché vieja de raíz.
+const STORAGE_KEY = "cfo-personal-v2";
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAk5rkDCcqdr0oNltA-9JXeUcADbCEoUAU",
+  authDomain: "finance-15496.firebaseapp.com",
+  projectId: "finance-15496",
+  storageBucket: "finance-15496.firebasestorage.app",
+  messagingSenderId: "21578800532",
+  appId: "1:21578800532:web:906406d3ceeb2f822ec381"
+};
+const FIRESTORE_COLLECTION = "cfo_data";
+// v4.0.1: mismo patrón de nombre de documento que la app anterior (uid + "__" + key
+// saneada) — la app vieja usaba _docId("cfo_user", key) para cada doc individual;
+// si las reglas de seguridad de Firestore están escritas para ese patrón, un docId
+// que no lo respete se rechaza en silencio (permission-denied) y la app nunca sincroniza.
+// v4.0.2: se renueva también el docId — si alguna vez se llegó a escribir la demo
+// vieja bajo "cfo_user__cfo_app_state_v4" (antes de esta corrección), ese doc
+// remoto seguiría bajando por onSnapshot y pisando los datos reales otra vez.
+// Un docId nuevo garantiza que el primer valor que se escribe es el seed real.
+const FIRESTORE_DOC_ID = "cfo_user__cfo_app_state_v5";
+
+const DEFAULT_CATEGORIES = ["Despensa","Transporte","Restaurantes","Suscripciones","Salud","Entretenimiento","Nómina","Ahorro"];
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+function todayISO() { return new Date().toISOString().slice(0,10); }
+
+function fmtMoney(n) {
+  const v = Number(n) || 0;
+  const sign = v < 0 ? "-" : "";
+  return sign + "$" + Math.abs(Math.round(v)).toLocaleString("es-MX");
+}
+
+function fmtDateLabel(iso) {
+  const d = new Date(iso + "T00:00:00");
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const dISO = d.toISOString().slice(0,10);
+  const tISO = today.toISOString().slice(0,10);
+  const yISO = yesterday.toISOString().slice(0,10);
+  const weekday = d.toLocaleDateString("es-MX", { weekday: "long" });
+  const day = d.getDate();
+  const month = d.toLocaleDateString("es-MX", { month: "short" }).replace(".", "");
+  const suffix = weekday + " " + day + " " + month;
+  if (dISO === tISO) return "Hoy · " + suffix;
+  if (dISO === yISO) return "Ayer · " + suffix;
+  return suffix.charAt(0).toUpperCase() + suffix.slice(1);
+}
+
+function fmtShortDate(iso) {
+  const d = new Date(iso + "T00:00:00");
+  return d.getDate().toString().padStart(2,"0") + " " + d.toLocaleDateString("es-MX", { month: "short" }).replace(".", "");
+}
+
+// Ícono por categoría (Movimientos) — coincidencia por palabra clave, sin depender
+// de que el usuario use exactamente los nombres por defecto.
+const CATEGORY_ICON_MAP = [
+  [/alimenta|despensa|super|comida|restaurant/i, "🍽️"],
+  [/transporte|gasolina|panapass|uber|taxi/i, "🚗"],
+  [/entreten|cine|salida|ocio/i, "🎬"],
+  [/suscrip/i, "📱"],
+  [/servici/i, "💡"],
+  [/deuda|tarjeta|cr[ée]dito/i, "💳"],
+  [/salud|farmacia|m[ée]dic/i, "🏥"],
+  [/ahorro/i, "💰"],
+  [/tecnolog[ií]a|electr[oó]nic/i, "💻"],
+  [/apuesta|bet/i, "🎲"],
+  [/ropa|vestua/i, "👕"],
+  [/n[oó]mina|ingreso|salario|sueldo/i, "💵"],
+  [/regalo/i, "🎁"],
+];
+function categoryIcon(cat) {
+  const c = String(cat || "");
+  for (const [re, icon] of CATEGORY_ICON_MAP) if (re.test(c)) return icon;
+  return "📦";
+}
+
+// Color derivado de la categoría (para el avatar de la wishlist) — determinístico,
+// tomado solo de los tokens de paleta existentes.
+const CATEGORY_COLOR_TOKENS = ["var(--primary)", "var(--accent)", "var(--success)", "var(--warn)", "var(--danger)", "var(--accent-alt)"];
+function categoryColor(cat) {
+  const c = String(cat || "");
+  let sum = 0;
+  for (let i = 0; i < c.length; i++) sum += c.charCodeAt(i);
+  return CATEGORY_COLOR_TOKENS[sum % CATEGORY_COLOR_TOKENS.length];
+}
+
+// Rango [inicio, fin) de la quincena que contiene "today", y de la próxima quincena.
+const PAY_DAYS = [10, 25];
+function getQuincenaRange(today) {
+  const y = today.getFullYear(), m = today.getMonth(), dom = today.getDate();
+  let start, end;
+  if (dom < PAY_DAYS[0]) { start = new Date(y, m - 1, PAY_DAYS[1]); end = new Date(y, m, PAY_DAYS[0]); }
+  else if (dom < PAY_DAYS[1]) { start = new Date(y, m, PAY_DAYS[0]); end = new Date(y, m, PAY_DAYS[1]); }
+  else { start = new Date(y, m, PAY_DAYS[1]); end = new Date(y, m + 1, PAY_DAYS[0]); }
+  return { start, end };
+}
+function getNextQuincenaDate(today) {
+  const y = today.getFullYear(), m = today.getMonth(), dom = today.getDate();
+  if (dom < PAY_DAYS[0]) return new Date(y, m, PAY_DAYS[0]);
+  if (dom < PAY_DAYS[1]) return new Date(y, m, PAY_DAYS[1]);
+  return new Date(y, m + 1, PAY_DAYS[0]);
+}
+
+function seedData() {
+  // v4.0.1: datos migrados desde tu backup real (cfobackup20260720.json, exportado
+  // 2026-07-20) — reemplaza la demo de ejemplo. Deuda/ahorro/gasolina son cálculos
+  // derivados de ese backup (ver README para el detalle de cada fórmula).
+  return {
+    theme: "light",
+    categories: ["Entretenimiento", "Otros", "Suscripciones", "Alimentación", "Servicios", "Transporte", "Deuda", "Salud", "Ahorro", "Tecnología", "Apuestas", "Otro", "Panapass", "Ropa", "Ingreso"],
+    finance: {
+      baseAssets: 0, deudaTotal: 1776.3, tasaAhorroMeta: 30, patrimonioDelta: 0,
+      ingresoEsperadoQuincenal: 597, fijosYDeuda: 192.16
+    },
+    liquidez: 14.09,
+    ahorroAcumulado: 210.0,
+    ahorroMesAnterior: 100.0,
+    transactions: [
+      { id: "tx-1784556755990", date: "2026-07-20", desc: "parque omar agua de coco", category: "Entretenimiento", type: "gasto", amount: 4.0 },
+      { id: "tx-1784556707554", date: "2026-07-20", desc: "salsa pizza machetazo", category: "Otros", type: "gasto", amount: 2.8 },
+      { id: "tx-1784556637586", date: "2026-07-20", desc: "Price smart almuerzo", category: "Entretenimiento", type: "gasto", amount: 10.56 },
+      { id: "tx-1784556608451", date: "2026-07-20", desc: "mas me dan", category: "Otros", type: "gasto", amount: 2.45 },
+      { id: "tx-1784556570034", date: "2026-07-20", desc: "Super DOMINGO WC", category: "Otros", type: "gasto", amount: 22.46 },
+      { id: "tx-1784318405085", date: "2026-07-17", desc: "Claude Sub", category: "Suscripciones", type: "gasto", amount: 20.0 },
+      { id: "tx-1784318386488", date: "2026-07-17", desc: "ADP", category: "Alimentación", type: "gasto", amount: 1.9 },
+      { id: "tx-1784222471853", date: "2026-07-16", desc: "Machetazo", category: "Alimentación", type: "gasto", amount: 2.67 },
+      { id: "tx-1784222369155", date: "2026-07-16", desc: "Netflix", category: "Servicios", type: "gasto", amount: 13.99 },
+      { id: "tx-1784208569407", date: "2026-07-16", desc: "Arrocha", category: "Otros", type: "gasto", amount: 3.09 },
+      { id: "tx-1784208550509", date: "2026-07-16", desc: "Las flores", category: "Entretenimiento", type: "gasto", amount: 20.0 },
+      { id: "tx-1784208540265", date: "2026-07-16", desc: "Barrio pizza", category: "Entretenimiento", type: "gasto", amount: 20.95 },
+      { id: "tx-1784125896599", date: "2026-07-15", desc: "Arrocha", category: "Otros", type: "gasto", amount: 3.94 },
+      { id: "tx-1784125872592", date: "2026-07-15", desc: "Papa me debia", category: "Otros", type: "ingreso", amount: 25.0 },
+      { id: "tx-1784033778874", date: "2026-07-14", desc: "Telefono", category: "Servicios", type: "gasto", amount: 20.18 },
+      { id: "tx-1784033618710", date: "2026-07-14", desc: "Preste a papa gasolina", category: "Otros", type: "gasto", amount: 10.0 },
+      { id: "tx-1784033590399", date: "2026-07-14", desc: "ADP", category: "Alimentación", type: "gasto", amount: 6.44 },
+      { id: "tx-1784033547274", date: "2026-07-14", desc: "Minigolf", category: "Entretenimiento", type: "gasto", amount: 10.0 },
+      { id: "tx-1784033529134", date: "2026-07-14", desc: "Papas locas", category: "Entretenimiento", type: "gasto", amount: 17.0 },
+      { id: "tx-gas-1784033501029", date: "2026-07-14", desc: "Gasolina (66.5L @ $1.08)", category: "Transporte", type: "gasto", amount: 72.0 },
+      { id: "tx-1783979154878", date: "2026-07-13", desc: "Luz papa", category: "Deuda", type: "gasto", amount: 50.0 },
+      { id: "tx-1783947510749", date: "2026-07-13", desc: "Arrocha", category: "Otros", type: "gasto", amount: 6.44 },
+      { id: "tx-1783886513209", date: "2026-07-12", desc: "Riba cosas varias", category: "Alimentación", type: "gasto", amount: 12.6 },
+      { id: "tx-1783886482020", date: "2026-07-12", desc: "Papa super", category: "Otros", type: "gasto", amount: 15.0 },
+      { id: "tx-1783869132372", date: "2026-07-12", desc: "Hdd case", category: "Otros", type: "gasto", amount: 5.93 },
+      { id: "tx-1783869016738", date: "2026-07-12", desc: "Mcdo", category: "Otros", type: "gasto", amount: 3.25 },
+      { id: "tx-1783869005931", date: "2026-07-12", desc: "Buena vista Bar salida", category: "Otros", type: "gasto", amount: 11.0 },
+      { id: "tx-1783773883932", date: "2026-07-11", desc: "Robux", category: "Otros", type: "gasto", amount: 10.0 },
+      { id: "tx-1783773863861", date: "2026-07-11", desc: "One blade guard intimate", category: "Salud", type: "gasto", amount: 5.99 },
+      { id: "tx-1783773854677", date: "2026-07-11", desc: "One blade repuesto", category: "Salud", type: "gasto", amount: 14.99 },
+      { id: "tx-1783773781138", date: "2026-07-11", desc: "Nailong", category: "Entretenimiento", type: "gasto", amount: 13.99 },
+      { id: "tx-1783719032582", date: "2026-07-10", desc: "Batido mcdo", category: "Alimentación", type: "gasto", amount: 3.1 },
+      { id: "tx-1783718907129", date: "2026-07-10", desc: "Tienda", category: "Alimentación", type: "gasto", amount: 5.6 },
+      { id: "tx-1783696823316", date: "2026-07-10", desc: "Babeahorro", category: "Ahorro", type: "gasto", amount: 10.0 },
+      { id: "tx-1783695613734", date: "2026-07-09", desc: "Cine", category: "Otros", type: "gasto", amount: 13.0 },
+      { id: "tx-1783695402451", date: "2026-07-10", desc: "Ahorro", category: "Ahorro", type: "gasto", amount: 100.0 },
+      { id: "tx-1783695385468", date: "2026-07-10", desc: "ADP", category: "Alimentación", type: "gasto", amount: 2.25 },
+      { id: "tx-1783695331419", date: "2026-07-10", desc: "Empanada lucas", category: "Alimentación", type: "gasto", amount: 2.45 },
+      { id: "tx-1783693827545", date: "2026-07-10", desc: "Tarjeta Intereses y mensualidades", category: "Deuda", type: "gasto", amount: 50.0 },
+      { id: "tx-1783693119922", date: "2026-07-10", desc: "Gasolina", category: "Transporte", type: "gasto", amount: 20.0 },
+      { id: "tx-1783693063028", date: "2026-07-10", desc: "Salario", category: "Alimentación", type: "ingreso", amount: 597.0 },
+      { id: "tx-1783601974810", date: "2026-07-09", desc: "Cont", category: "Otros", type: "gasto", amount: 17.0 },
+      { id: "tx-1783601863792", date: "2026-07-09", desc: "Panapass", category: "Transporte", type: "gasto", amount: 2.5 },
+      { id: "tx-1783601851714", date: "2026-07-09", desc: "ADP", category: "Alimentación", type: "gasto", amount: 2.8 },
+      { id: "tx-1783601784158", date: "2026-07-09", desc: "Tarjeta mensualidad ROJA", category: "Otros", type: "gasto", amount: 4.86 },
+      { id: "tx-1783601758987", date: "2026-07-09", desc: "Super 99", category: "Alimentación", type: "gasto", amount: 8.03 },
+      { id: "tx-1783601730056", date: "2026-07-09", desc: "ADP", category: "Alimentación", type: "gasto", amount: 2.0 },
+      { id: "tx-1783601715537", date: "2026-07-09", desc: "Machetazo", category: "Alimentación", type: "gasto", amount: 1.86 },
+      { id: "tx-1783341797001", date: "2026-07-06", desc: "Internet", category: "Servicios", type: "gasto", amount: 40.0 },
+      { id: "tx-1783207896945", date: "2026-07-04", desc: "Super", category: "Alimentación", type: "gasto", amount: 5.52 },
+      { id: "tx-1783207862491", date: "2026-07-04", desc: "Aceite", category: "Transporte", type: "gasto", amount: 5.9 },
+      { id: "tx-1783200731197", date: "2026-07-04", desc: "La casa del helado", category: "Entretenimiento", type: "gasto", amount: 7.4 },
+      { id: "tx-1783200707805", date: "2026-07-04", desc: "Flacarica", category: "Entretenimiento", type: "gasto", amount: 26.75 },
+      { id: "tx-1783105460431", date: "2026-07-03", desc: "Cobro BG", category: "Alimentación", type: "gasto", amount: 3.73 },
+      { id: "tx-1783105228888", date: "2026-07-03", desc: "ADP", category: "Alimentación", type: "gasto", amount: 2.8 },
+      { id: "tx-1783002264852", date: "2026-07-02", desc: "Lucas matine", category: "Otros", type: "gasto", amount: 8.22 },
+      { id: "tx-1783002256871", date: "2026-07-02", desc: "Cobro banca en linea", category: "Otros", type: "gasto", amount: 10.7 },
+      { id: "tx-1782967980566", date: "2026-07-02", desc: "Panapass", category: "Transporte", type: "gasto", amount: 5.0 },
+      { id: "tx-1782967969458", date: "2026-07-02", desc: "Olive garden", category: "Entretenimiento", type: "gasto", amount: 32.0 },
+      { id: "tx-1782967946566", date: "2026-07-02", desc: "Push", category: "Entretenimiento", type: "gasto", amount: 25.0 },
+      { id: "tx-1782917196704", date: "2026-07-01", desc: "Arrocha", category: "Alimentación", type: "gasto", amount: 6.0 },
+      { id: "tx-1782853529313", date: "2026-06-30", desc: "Cont", category: "Entretenimiento", type: "gasto", amount: 20.0 },
+      { id: "tx-1782853484206", date: "2026-06-30", desc: "Ahorro", category: "Ahorro", type: "gasto", amount: 100.0 },
+      { id: "tx-gas-1782843939289", date: "2026-06-30", desc: "Gasolina (0.0L @ $1.27)", category: "Transporte", type: "gasto", amount: 0.0 },
+      { id: "tx-1782826193008", date: "2026-06-30", desc: "masbox", category: "Otros", type: "gasto", amount: 4.9 },
+      { id: "tx-1782826171942", date: "2026-06-30", desc: "Flores", category: "Entretenimiento", type: "gasto", amount: 12.0 },
+      { id: "tx-1782741136145", date: "2026-06-29", desc: "Cont", category: "Otros", type: "gasto", amount: 5.0 },
+      { id: "tx-1782741124160", date: "2026-06-29", desc: "Donde stan", category: "Alimentación", type: "gasto", amount: 6.5 },
+      { id: "tx-1782740623722", date: "2026-06-29", desc: "SSD", category: "Otros", type: "gasto", amount: 26.25 },
+      { id: "tx-1782740575540", date: "2026-06-29", desc: "Cloudflare dominio", category: "Otros", type: "gasto", amount: 5.3 },
+      { id: "tx-1782740529256", date: "2026-06-29", desc: "Rey sabado casa milagros", category: "Entretenimiento", type: "gasto", amount: 8.77 },
+      { id: "tx-gas-1782592860335", date: "2026-06-27", desc: "Gasolina (60.3L @ $1.09)", category: "Transporte", type: "gasto", amount: 66.0 },
+      { id: "tx-gas-1782512618728", date: "2026-06-26", desc: "Gasolina (9.1L @ $1.09)", category: "Transporte", type: "gasto", amount: 10.0 },
+      { id: "tx-1782496702379", date: "2026-06-26", desc: "Chocolate", category: "Alimentación", type: "gasto", amount: 2.72 },
+      { id: "tx-1782496686993", date: "2026-06-26", desc: "Aceite", category: "Transporte", type: "gasto", amount: 6.4 },
+      { id: "tx-1782488889300", date: "2026-06-26", desc: "Robux para lucas", category: "Otros", type: "gasto", amount: 10.0 },
+      { id: "tx-1782479655286", date: "2026-06-26", desc: "Servidor Optiplex (wishlist)", category: "Tecnología", type: "gasto", amount: 65.0 },
+      { id: "tx-1782413223257", date: "2026-06-25", desc: "Latinbet", category: "Apuestas", type: "gasto", amount: 4.5 },
+      { id: "tx-1782413215662", date: "2026-06-25", desc: "Mcdo mcflurry batido", category: "Entretenimiento", type: "gasto", amount: 5.1 },
+      { id: "tx-1782398199450", date: "2026-06-25", desc: "abuela", category: "Otros", type: "ingreso", amount: 5.0 },
+      { id: "tx-1782398187846", date: "2026-06-25", desc: "Arrocha", category: "Otros", type: "gasto", amount: 5.61 },
+      { id: "tx-1782398029583", date: "2026-06-25", desc: "Gasolina", category: "Transporte", type: "gasto", amount: 10.0 },
+      { id: "tx-1782396893056", date: "2026-06-24", desc: "Spotify", category: "Servicios", type: "gasto", amount: 5.99 },
+      { id: "tx-1782386371049", date: "2026-06-25", desc: "Salario", category: "Alimentación", type: "ingreso", amount: 597.0 },
+      { id: "tx-1782386259638", date: "2026-06-24", desc: "Latin", category: "Apuestas", type: "gasto", amount: 6.36 },
+      { id: "tx-1782386192592", date: "2026-06-24", desc: "Latinbet", category: "Apuestas", type: "gasto", amount: 11.66 },
+      { id: "tx-1782386178955", date: "2026-06-23", desc: "Preste a papa", category: "Otros", type: "gasto", amount: 20.0 },
+      { id: "tx-1782133488261", date: "2026-06-22", desc: "Latinbet", category: "Apuestas", type: "gasto", amount: 3.0 },
+      { id: "tx-1782133452958", date: "2026-06-22", desc: "Pacific center la bottega", category: "Alimentación", type: "gasto", amount: 3.95 },
+      { id: "tx-1782133399930", date: "2026-06-22", desc: "Regalo dia del padre (wishlist)", category: "Otro", type: "gasto", amount: 17.11 },
+      { id: "tx-1781883680996", date: "2026-06-19", desc: "Mcdonalss", category: "Alimentación", type: "gasto", amount: 6.99 },
+      { id: "tx-1781883634092", date: "2026-06-19", desc: "Gasolina", category: "Transporte", type: "gasto", amount: 25.0 },
+      { id: "tx-1781883620589", date: "2026-06-19", desc: "Latinbet", category: "Apuestas", type: "gasto", amount: 7.5 },
+      { id: "tx-1781790789682", date: "2026-06-18", desc: "Pase de mas para pizza", category: "Otros", type: "gasto", amount: 3.5 },
+      { id: "tx-1781790681956", date: "2026-06-18", desc: "Pizza PAPAJOHNS", category: "Alimentación", type: "gasto", amount: 15.98 },
+      { id: "tx-1781711542482", date: "2026-06-17", desc: "Panapass", category: "Panapass", type: "gasto", amount: 3.5 },
+      { id: "tx-1781711501658", date: "2026-06-17", desc: "Latinbet", category: "Apuestas", type: "gasto", amount: 5.0 },
+      { id: "tx-1781616757537", date: "2026-06-16", desc: "Desconocido", category: "Otros", type: "gasto", amount: 1.34 },
+      { id: "tx-1781616697341", date: "2026-06-16", desc: "Panapass", category: "Transporte", type: "gasto", amount: 2.5 },
+      { id: "tx-1781616632894", date: "2026-06-16", desc: "Snacks arrocha", category: "Alimentación", type: "gasto", amount: 5.34 },
+      { id: "tx-1781588380133", date: "2026-06-16", desc: "Cine", category: "Entretenimiento", type: "gasto", amount: 12.0 },
+      { id: "tx-1781588311635", date: "2026-06-16", desc: "Papas locas", category: "Entretenimiento", type: "gasto", amount: 15.0 },
+      { id: "tx-1781588302938", date: "2026-06-16", desc: "Acropolis", category: "Entretenimiento", type: "gasto", amount: 10.0 },
+      { id: "tx-1781548910792", date: "2026-06-15", desc: "Amv", category: "Otros", type: "gasto", amount: 10.54 },
+      { id: "tx-1781548894575", date: "2026-06-15", desc: "Raenco", category: "Otros", type: "gasto", amount: 12.44 },
+      { id: "tx-1781532150065", date: "2026-06-15", desc: "Mcdonalds caja grande", category: "Alimentación", type: "gasto", amount: 8.95 },
+      { id: "tx-1781532076107", date: "2026-06-15", desc: "Netflix", category: "Servicios", type: "gasto", amount: 13.99 },
+      { id: "tx-1781442999353", date: "2026-06-14", desc: "Salida Anibal y Ammy", category: "Entretenimiento", type: "gasto", amount: 10.0 },
+      { id: "tx-1781378289351", date: "2026-06-13", desc: "Panapass", category: "Transporte", type: "gasto", amount: 5.0 },
+      { id: "tx-1781378252051", date: "2026-06-13", desc: "Corte de pelo", category: "Salud", type: "gasto", amount: 23.54 },
+      { id: "tx-1781378230348", date: "2026-06-13", desc: "Pizza", category: "Alimentación", type: "gasto", amount: 12.0 },
+      { id: "tx-1781289957312", date: "2026-06-12", desc: "Jugo", category: "Alimentación", type: "gasto", amount: 1.55 },
+      { id: "tx-1781276423929", date: "2026-06-12", desc: "Arrocha Agua y Arandanos", category: "Alimentación", type: "gasto", amount: 3.54 },
+      { id: "tx-1781212075009", date: "2026-06-11", desc: "Bbq yo mama (wishlist)", category: "Alimentación", type: "gasto", amount: 4.28 },
+      { id: "tx-1781212038708", date: "2026-06-11", desc: "Stonewall Bacon Queso (wishlist)", category: "Alimentación", type: "gasto", amount: 5.8 },
+      { id: "tx-1781203455457", date: "2026-06-11", desc: "Yogurt bebible", category: "Alimentación", type: "gasto", amount: 1.25 },
+      { id: "tx-1781203428413", date: "2026-06-11", desc: "Figuritas mundial", category: "Otros", type: "gasto", amount: 6.25 },
+      { id: "tx-1781203396686", date: "2026-06-11", desc: "Garbanzos (wishlist)", category: "Alimentación", type: "gasto", amount: 1.59 },
+      { id: "tx-1781203391277", date: "2026-06-11", desc: "Galletas sanisimo (wishlist)", category: "Alimentación", type: "gasto", amount: 3.15 },
+      { id: "tx-1781202516026", date: "2026-06-11", desc: "Vinagre de arroz (wishlist)", category: "Alimentación", type: "gasto", amount: 1.25 },
+      { id: "tx-1781193377359", date: "2026-06-11", desc: "Puerto de carga laptop (wishlist)", category: "Tecnología", type: "gasto", amount: 5.5 },
+      { id: "tx-1781193373893", date: "2026-06-11", desc: "Shampoo (wishlist)", category: "Salud", type: "gasto", amount: 7.92 },
+      { id: "tx-1781190175147", date: "2026-06-11", desc: "Mesygina", category: "Salud", type: "gasto", amount: 7.08 },
+      { id: "tx-1781186618534", date: "2026-06-11", desc: "Panapass", category: "Transporte", type: "gasto", amount: 5.0 },
+      { id: "tx-1781186595159", date: "2026-06-11", desc: "Sueter de la sele (wishlist)", category: "Ropa", type: "gasto", amount: 30.0 },
+      { id: "tx-1781114300392", date: "2026-06-10", desc: "Aceite", category: "Transporte", type: "gasto", amount: 7.47 },
+      { id: "tx-1781114258637", date: "2026-06-10", desc: "Kitkat", category: "Alimentación", type: "gasto", amount: 0.99 },
+      { id: "tx-1781114241199", date: "2026-06-10", desc: "Mcdonalds", category: "Alimentación", type: "gasto", amount: 8.99 },
+      { id: "tx-1781105505122", date: "2026-06-10", desc: "Mesyginas colombia", category: "Salud", type: "gasto", amount: 6.54 },
+      { id: "tx-1781102829675", date: "2026-06-10", desc: "Pastillas colombia", category: "Salud", type: "gasto", amount: 4.0 },
+      { id: "tx-1781102262051", date: "2026-06-10", desc: "Latinbet", category: "Otros", type: "gasto", amount: 5.3 },
+      { id: "tx-1781101376593", date: "2026-06-10", desc: "Internet ", category: "Servicios", type: "gasto", amount: 40.0 },
+      { id: "tx-1781101324702", date: "2026-06-10", desc: "Telefono movil", category: "Servicios", type: "gasto", amount: 20.18 },
+      { id: "tx-1781100413776", date: "2026-06-10", desc: "Mal calculo", category: "Otros", type: "gasto", amount: 3.51 },
+      { id: "tx-1781099620895", date: "2026-06-10", desc: "BAC Comisiones", category: "Otros", type: "gasto", amount: 5.4 },
+      { id: "tx-1781099210209", date: "2026-06-10", desc: "Tarjeta de credito Intereses", category: "Deuda", type: "gasto", amount: 43.0 },
+      { id: "tx-1781099076530", date: "2026-06-10", desc: "Panapass", category: "Transporte", type: "gasto", amount: 3.0 },
+      { id: "tx-1781099066021", date: "2026-06-10", desc: "Gasolina", category: "Transporte", type: "gasto", amount: 60.0 },
+      { id: "tx-1781094487411", date: "2026-06-10", desc: "Salario", category: "Ingreso", type: "ingreso", amount: 597.0 },
+      { id: "tx-1780950336241", date: "2026-06-08", desc: "latinbet", category: "Otros", type: "gasto", amount: 2.5 },
+      { id: "tx-1780924840382", date: "2026-06-07", desc: "Perrier", category: "Alimentación", type: "gasto", amount: 1.55 },
+      { id: "tx-1780924821936", date: "2026-06-07", desc: "Gasolina", category: "Transporte", type: "gasto", amount: 15.0 },
+      { id: "tx-1780924802656", date: "2026-06-07", desc: "Panapass", category: "Transporte", type: "gasto", amount: 5.0 }
+    ],
+    goals: [
+      { id: "goal-1780674840036", name: "Viaje con babe", target: 1500, saved: 0, targetDate: "2027-04-15" },
+      { id: "goal-1780675657748", name: "Iphone 18 pro max", target: 900, saved: 0, targetDate: "2026-11-25" },
+      { id: "goal-1782940157036", name: "Boleto colombia Mama", target: 300, saved: 100, targetDate: "2026-09-10" },
+      { id: "goal-1782940229041", name: "Regalo lucas cumpleaños", target: 200, saved: 100, targetDate: "2026-08-25" },
+      { id: "goal-1783363892904", name: "Catalizador", target: 90, saved: 0, targetDate: "2026-10-10" },
+      { id: "goal-1784126478730", name: "Zapatillas fake", target: 50, saved: 0, targetDate: "2026-10-10" },
+      { id: "goal-1784126633883", name: "Perfume", target: 90, saved: 0, targetDate: "2026-10-25" }
+    ],
+    wishlist: [
+      { id: "wish-1780673142634", name: "Yogurt griego", category: "Alimentación", price: 5 },
+      { id: "wish-1784556900565", name: "Proteina", category: "Salud", price: 35 }
+    ],
+    fuelLogs: [
+      { id: "gas-1784033501029", date: "2026-07-14", liters: 66.54, cost: 72, odometer: 497.0, kml: 0.7 },
+      { id: "gas-1783944814724", date: "2026-07-13", liters: 18.07, cost: 20, odometer: 433.0, kml: 7.2 },
+      { id: "gas-1782592860335", date: "2026-06-27", liters: 60.27, cost: 66, odometer: 134.6, kml: 0.1 },
+      { id: "gas-1782512618728", date: "2026-06-26", liters: 9.13, cost: 10, odometer: 129.6, kml: 3.6 },
+      { id: "gas-1782389898225", date: "2026-06-25", liters: 9.13, cost: 10, odometer: 96.7, kml: 7.0 },
+      { id: "gas-1781883761452", date: "2026-06-19", liters: 22.4, cost: 25, odometer: 0.0, kml: 9.5 }
+    ],
+    tankPct: 100,
+    pending: [
+      { id: "bill-net", text: "Netflix (Suscripciones)", amount: -13.99, done: false, affects: null },
+      { id: "bill-spo", text: "Spotify (Suscripciones)", amount: -5.99, done: false, affects: null },
+      { id: "bill-1780586108365", text: "Internet (Servicios)", amount: -40, done: false, affects: null },
+      { id: "bill-1781101251397", text: "Telefono movil (Servicios)", amount: -20.18, done: false, affects: null },
+      { id: "bill-1784318440960", text: "Claude (Suscripciones)", amount: -20, done: false, affects: null }
+    ],
+    budgets: [
+      { id: "budget-seed-0", category: "Transporte", amount: 102.0 },
+      { id: "budget-seed-1", category: "Servicios", amount: 20.18 },
+      { id: "budget-seed-2", category: "Suscripciones", amount: 19.98 },
+      { id: "budget-seed-3", category: "Deuda", amount: 100.0 },
+      { id: "budget-seed-4", category: "Ahorro", amount: 100.0 },
+      { id: "budget-seed-5", category: "Entretenimiento", amount: 115.0 },
+      { id: "budget-seed-6", category: "Alimentación", amount: 10.0 }
+    ],
+    // Montos editados por categoría en el Planeador (clave = nombre de categoría);
+    // las categorías sin entrada aquí toman por default el monto presupuestado real.
+    planner: {},
+    plannerScheduled: null,
+    quincena: { day: 9, total: 15 }
+  };
+}
+
+function loadLocalState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return seedData();
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.transactions) return seedData();
+    return Object.assign(seedData(), parsed);
+  } catch (e) { return seedData(); }
+}
+
+function saveLocalState(state) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+// ---------- Firebase (Firestore) sync ----------
+// Un solo documento con todo el estado — simple y suficiente para un solo usuario.
+let _fbApp = null;
+function getDb() {
+  if (typeof firebase === "undefined") return null;
+  if (_fbApp) return firebase.firestore(_fbApp);
+  try {
+    try { _fbApp = firebase.app(); }
+    catch (e) { _fbApp = firebase.initializeApp(FIREBASE_CONFIG); }
+    return firebase.firestore(_fbApp);
+  } catch (e) { console.error("Firebase init:", e.message); return null; }
+}
+
+function useFirebaseSync(state, setState) {
+  const [syncStatus, setSyncStatus] = useState({ connected: false, syncing: false, lastSyncedAt: null, error: null });
+  const lastWriteTs = useRef(0);
+  const writeTimer = useRef(null);
+  const firstSnapshot = useRef(true);
+
+  // Suscripción en tiempo real: al montar, y cada vez que cambie el doc remoto.
+  useEffect(() => {
+    const db = getDb();
+    if (!db) { setSyncStatus(s => ({ ...s, connected: false, error: "Sin conexión a Firestore" })); return; }
+    const ref = db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC_ID);
+    const unsub = ref.onSnapshot(
+      (doc) => {
+        setSyncStatus(s => ({ ...s, connected: true, error: null }));
+        if (!doc.exists) { firstSnapshot.current = false; return; }
+        const data = doc.data();
+        if (!data || !data.value) { firstSnapshot.current = false; return; }
+        // Ignora el eco de nuestra propia escritura reciente.
+        if (data.ts && data.ts <= lastWriteTs.current) { firstSnapshot.current = false; return; }
+        try {
+          const remote = JSON.parse(data.value);
+          setState(remote);
+          setSyncStatus(s => ({ ...s, lastSyncedAt: Date.now() }));
+        } catch (e) {}
+        firstSnapshot.current = false;
+      },
+      (err) => {
+        setSyncStatus(s => ({ ...s, connected: false, error: err.message }));
+      }
+    );
+    return () => unsub();
+    // eslint-disable-next-line
+  }, []);
+
+  // Escritura con debounce cada vez que cambia el estado local.
+  useEffect(() => {
+    const db = getDb();
+    if (!db) return;
+    if (writeTimer.current) clearTimeout(writeTimer.current);
+    writeTimer.current = setTimeout(() => {
+      const ts = Date.now();
+      lastWriteTs.current = ts;
+      setSyncStatus(s => ({ ...s, syncing: true }));
+      db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC_ID)
+        .set({ value: JSON.stringify(state), ts })
+        .then(() => setSyncStatus(s => ({ ...s, syncing: false, connected: true, lastSyncedAt: Date.now(), error: null })))
+        .catch((err) => setSyncStatus(s => ({ ...s, syncing: false, error: err.message })));
+    }, 400);
+    return () => clearTimeout(writeTimer.current);
+  }, [state]);
+
+  return syncStatus;
+}
+
+function fmtRelativeTime(ts) {
+  if (!ts) return "nunca";
+  const diffMs = Date.now() - ts;
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "justo ahora";
+  if (mins === 1) return "hace 1 min";
+  if (mins < 60) return "hace " + mins + " min";
+  const hrs = Math.floor(mins / 60);
+  if (hrs === 1) return "hace 1 hora";
+  return "hace " + hrs + " horas";
+}
+
+// ---------- shared bits ----------
+
+function KPICard({ label, value, note, mono, valueSize, valueColor, noteColor }) {
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 8 }}>{label}</div>
+      <div className={"cfo-serif" + (mono !== false ? " cfo-mono" : "")} style={{ fontSize: valueSize || 22, fontWeight: 500, color: valueColor || "var(--text)" }}>{value}</div>
+      {note && <div style={{ fontSize: 11, color: noteColor || "var(--success)", marginTop: 4 }}>{note}</div>}
+    </div>
+  );
+}
+
+function Toast({ message }) {
+  if (!message) return null;
+  return <div className="cfo-toast">{message}</div>;
+}
+
+// ---------- Hoy ----------
+
+function HoyScreen({ state, actions }) {
+  const liquidezPct = Math.min(100, Math.round((state.quincena.day / state.quincena.total) * 100));
+  const totalIngresoMes = useMemo(() => state.transactions.filter(t => t.type === "ingreso").reduce((a,b)=>a+b.amount,0), [state.transactions]);
+  const totalAhorroMes = useMemo(() => state.transactions.filter(t => t.type === "ahorro").reduce((a,b)=>a+b.amount,0), [state.transactions]);
+  const tasaAhorro = totalIngresoMes > 0 ? Math.round(((totalAhorroMes) / totalIngresoMes) * 100) : state.finance.tasaAhorroMeta;
+  const patrimonioNeto = state.finance.baseAssets + state.ahorroAcumulado - state.finance.deudaTotal;
+
+  const restaurantSpend = useMemo(() => state.transactions.filter(t => t.type === "gasto" && t.category === "Restaurantes").reduce((a,b)=>a+b.amount,0), [state.transactions]);
+
+  return (
+    <div data-screen-label="Hoy">
+      <div className="cfo-grid2">
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+
+          <div style={{ background: "var(--primary)", color: "var(--on-primary)", borderRadius: 16, padding: "28px 26px", position: "relative", overflow: "hidden" }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", opacity: .7, marginBottom: 10 }}>Liquidez actual</div>
+            <div className="cfo-serif cfo-mono" style={{ fontSize: 56, fontWeight: 500, lineHeight: 1, letterSpacing: "-0.01em" }}>{fmtMoney(state.liquidez)}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 22, marginBottom: 8 }}>
+              <span style={{ fontSize: 12, opacity: .75 }}>Quincena en curso</span>
+              <span className="cfo-mono" style={{ fontSize: 12, opacity: .9 }}>Día {state.quincena.day} de {state.quincena.total}</span>
+            </div>
+            <div style={{ height: 8, borderRadius: 99, background: "rgba(255,255,255,0.16)", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: liquidezPct + "%", borderRadius: 99, background: "var(--accent)", boxShadow: "rgba(180,131,42,0.55) 0 0 14px" }}></div>
+            </div>
+          </div>
+
+          <div className="cfo-kpigrid">
+            <KPICard label="Patrimonio neto" value={fmtMoney(patrimonioNeto)} note={(state.finance.patrimonioDelta >= 0 ? "+" : "") + state.finance.patrimonioDelta + "% vs. mes anterior"} />
+            <KPICard label="Deuda total" value={fmtMoney(state.finance.deudaTotal)} note="Se actualiza al pagar" />
+            <KPICard label="Ahorro acumulado" value={fmtMoney(state.ahorroAcumulado)} note={"+" + fmtMoney(state.ahorroAcumulado - state.ahorroMesAnterior) + " este mes"} />
+            <KPICard label="Tasa de ahorro" value={tasaAhorro + "%"} note={"meta: " + state.finance.tasaAhorroMeta + "%"} />
+          </div>
+
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px" }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>Acciones pendientes</div>
+            {state.pending.map(p => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderBottom: "1px solid var(--border-soft)" }}>
+                <input type="checkbox" checked={p.done} onChange={() => actions.togglePending(p.id)} style={{ width: 17, height: 17, accentColor: "var(--primary)" }} />
+                <div style={{ flex: 1, fontSize: 13, color: p.done ? "var(--muted-light)" : "var(--text)", textDecoration: p.done ? "line-through" : "none" }}>{p.text}</div>
+                {p.amount != null && <div className="cfo-mono" style={{ fontSize: 13, color: "var(--danger)" }}>{fmtMoney(p.amount)}</div>}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {restaurantSpend > 1500 && (
+              <div style={{ background: "var(--surface)", borderLeft: "3px solid var(--danger)", borderRadius: 10, padding: "14px 16px" }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>Gasto en restaurantes elevado</div>
+                <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5 }}>Llevas {fmtMoney(restaurantSpend)} en esta categoría. Vigílalo esta quincena.</div>
+              </div>
+            )}
+            <div style={{ background: "var(--surface)", borderLeft: "3px solid var(--success)", borderRadius: 10, padding: "14px 16px" }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>Vas bien con tu meta de ahorro</div>
+              <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5 }}>Sigue aportando a tus metas activas para llegar antes de lo planeado.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 18px" }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>Metas activas</div>
+            {state.goals.map(g => {
+              const pct = g.target > 0 ? Math.min(100, Math.round((g.saved / g.target) * 100)) : 0;
+              return (
+                <div key={g.id} style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 6 }}>
+                    <span>{g.name}</span>
+                    <span className="cfo-serif" style={{ color: "var(--accent)", fontWeight: 600 }}>{pct}%</span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 99, background: "var(--surface-alt)", overflow: "hidden" }}>
+                    <div style={{ height: "100%", borderRadius: 99, background: "linear-gradient(90deg, var(--primary), var(--accent))", width: pct + "%" }}></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 18px" }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>Wishlist</div>
+            {state.wishlist.map(w => (
+              <div key={w.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--border-soft)" }}>
+                <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--surface-alt)", flex: "0 0 auto" }}></div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 500 }}>{w.name}</div>
+                  <div className="cfo-mono" style={{ fontSize: 11.5, color: "var(--muted)" }}>{fmtMoney(w.price)}</div>
+                </div>
+                <div style={{ fontSize: 11, color: "var(--accent)", whiteSpace: "nowrap" }}>{state.liquidez > 0 ? Math.round((w.price / state.liquidez) * 100) : 0}%</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Movimientos ----------
+
+function AddTransactionSheet({ categories, onClose, onSave }) {
+  const [type, setType] = useState("gasto");
+  const [desc, setDesc] = useState("");
+  const [category, setCategory] = useState(categories[0] || "");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(todayISO());
+
+  function submit(e) {
+    e.preventDefault();
+    const n = parseFloat(amount);
+    if (!desc.trim() || !n || n <= 0) return;
+    onSave({ id: uid(), date, desc: desc.trim(), category, type, amount: n });
+  }
+
+  return (
+    <div className="cfo-overlay" onClick={onClose}>
+      <div className="cfo-sheet" onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Agregar transacción</div>
+        <form onSubmit={submit}>
+          <div className="cfo-seg">
+            {["gasto","ingreso","ahorro"].map(t => (
+              <button type="button" key={t} className={type === t ? "active" : ""} onClick={() => setType(t)}>
+                {t === "gasto" ? "Gasto" : t === "ingreso" ? "Ingreso" : "Ahorro"}
+              </button>
+            ))}
+          </div>
+          <input className="cfo-field" placeholder="Descripción" value={desc} onChange={e => setDesc(e.target.value)} required />
+          <select className="cfo-field" value={category} onChange={e => setCategory(e.target.value)}>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input className="cfo-field" type="number" step="0.01" min="0" placeholder="Monto" value={amount} onChange={e => setAmount(e.target.value)} required />
+          <input className="cfo-field" type="date" value={date} onChange={e => setDate(e.target.value)} />
+          <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+            <button type="button" className="cfo-btn" onClick={onClose} style={{ flex: 1, background: "var(--surface-alt)", color: "var(--text)", borderRadius: 9, padding: 12, fontSize: 13 }}>Cancelar</button>
+            <button type="submit" className="cfo-btn" style={{ flex: 1, background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: 12, fontSize: 13 }}>Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function MovimientosScreen({ state, actions }) {
+  const [query, setQuery] = useState("");
+  const [activeCat, setActiveCat] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+
+  const filtered = useMemo(() => {
+    return state.transactions.filter(t => {
+      if (activeCat && t.category !== activeCat) return false;
+      if (query && !t.desc.toLowerCase().includes(query.toLowerCase())) return false;
+      return true;
+    });
+  }, [state.transactions, query, activeCat]);
+
+  const groups = useMemo(() => {
+    const byDate = {};
+    filtered.slice().sort((a,b) => b.date.localeCompare(a.date) || 0).forEach(t => {
+      if (!byDate[t.date]) byDate[t.date] = [];
+      byDate[t.date].push(t);
+    });
+    return Object.keys(byDate).sort((a,b) => b.localeCompare(a)).map(d => ({ date: d, items: byDate[d] }));
+  }, [filtered]);
+
+  return (
+    <div data-screen-label="Movimientos" style={{ position: "relative" }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+        <input placeholder="Buscar movimiento..." value={query} onChange={e => setQuery(e.target.value)}
+          style={{ flex: 1, minWidth: 160, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 9, padding: "10px 14px", fontSize: 13, color: "var(--text)" }} />
+        <button className="cfo-btn" onClick={() => setShowAdd(true)} style={{ background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: "10px 18px", fontSize: 13, whiteSpace: "nowrap" }}>+ Agregar transacción</button>
+      </div>
+      <div className="cfo-scroll" style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 18, paddingBottom: 2 }}>
+        {state.categories.map(c => (
+          <div key={c} onClick={() => setActiveCat(activeCat === c ? null : c)}
+            style={{ cursor: "pointer", fontSize: 12, padding: "6px 14px", borderRadius: 99, background: activeCat === c ? "var(--primary)" : "var(--surface-alt)", color: activeCat === c ? "var(--on-primary)" : "var(--text)", border: "1px solid var(--border)", whiteSpace: "nowrap" }}>
+            {c}
+          </div>
+        ))}
+      </div>
+
+      {groups.length === 0 && <div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", padding: "40px 0" }}>Sin movimientos que coincidan.</div>}
+
+      {groups.map(g => {
+        const subtotal = g.items.reduce((a,b) => a + (b.type === "gasto" ? -b.amount : b.amount), 0);
+        return (
+          <div key={g.date} style={{ marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>{fmtDateLabel(g.date)}</div>
+              <div className="cfo-mono" style={{ fontSize: 12.5, color: "var(--muted)" }}>Subtotal {fmtMoney(subtotal)}</div>
+            </div>
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+              {g.items.map((t, i) => (
+                <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderBottom: i < g.items.length - 1 ? "1px solid var(--border-soft)" : "none" }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--surface-alt)", flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{categoryIcon(t.category)}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>{t.desc}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{t.category}</div>
+                  </div>
+                  <div className="cfo-mono" style={{ fontSize: 13.5, color: t.type === "gasto" ? "var(--danger)" : "var(--success)", whiteSpace: "nowrap" }}>
+                    {t.type === "gasto" ? "-" : "+"}{fmtMoney(t.amount)}
+                  </div>
+                  <button className="cfo-btn" onClick={() => actions.deleteTransaction(t.id)} title="Eliminar"
+                    style={{ background: "none", color: "var(--muted-light)", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>×</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {showAdd && <AddTransactionSheet categories={state.categories} onClose={() => setShowAdd(false)}
+        onSave={(tx) => { actions.addTransaction(tx); setShowAdd(false); }} />}
+    </div>
+  );
+}
+
+// ---------- Metas & Wishlist ----------
+
+function ContributeSheet({ goal, onClose, onSave }) {
+  const [amount, setAmount] = useState("");
+  function submit(e) {
+    e.preventDefault();
+    const n = parseFloat(amount);
+    if (!n || n <= 0) return;
+    onSave(goal.id, n);
+  }
+  return (
+    <div className="cfo-overlay" onClick={onClose}>
+      <div className="cfo-sheet" onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Aportar a {goal.name}</div>
+        <div style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 16 }}>Se descuenta de tu liquidez actual.</div>
+        <form onSubmit={submit}>
+          <input className="cfo-field" type="number" step="0.01" min="0" autoFocus placeholder="Monto a aportar" value={amount} onChange={e => setAmount(e.target.value)} required />
+          <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+            <button type="button" className="cfo-btn" onClick={onClose} style={{ flex: 1, background: "var(--surface-alt)", color: "var(--text)", borderRadius: 9, padding: 12, fontSize: 13 }}>Cancelar</button>
+            <button type="submit" className="cfo-btn" style={{ flex: 1, background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: 12, fontSize: 13 }}>Aportar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AddGoalSheet({ onClose, onSave, kind }) {
+  const [name, setName] = useState("");
+  const [target, setTarget] = useState("");
+  const [category, setCategory] = useState("");
+  const [targetDate, setTargetDate] = useState("");
+  function submit(e) {
+    e.preventDefault();
+    if (!name.trim() || !target) return;
+    onSave({ name: name.trim(), target: parseFloat(target), category: category.trim(), targetDate: targetDate || null });
+  }
+  return (
+    <div className="cfo-overlay" onClick={onClose}>
+      <div className="cfo-sheet" onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>{kind === "goal" ? "Nueva meta" : "Nuevo deseo"}</div>
+        <form onSubmit={submit}>
+          <input className="cfo-field" placeholder="Nombre" value={name} onChange={e => setName(e.target.value)} required />
+          {kind === "wish" && <input className="cfo-field" placeholder="Categoría" value={category} onChange={e => setCategory(e.target.value)} />}
+          <input className="cfo-field" type="number" step="0.01" min="0" placeholder={kind === "goal" ? "Monto objetivo" : "Precio"} value={target} onChange={e => setTarget(e.target.value)} required />
+          {kind === "goal" && (
+            <>
+              <label style={{ fontSize: 11.5, color: "var(--muted)", display: "block", marginBottom: 4 }}>Fecha objetivo (opcional)</label>
+              <input className="cfo-field" type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)} />
+            </>
+          )}
+          <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+            <button type="button" className="cfo-btn" onClick={onClose} style={{ flex: 1, background: "var(--surface-alt)", color: "var(--text)", borderRadius: 9, padding: 12, fontSize: 13 }}>Cancelar</button>
+            <button type="submit" className="cfo-btn" style={{ flex: 1, background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: 12, fontSize: 13 }}>Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function MetasWishlistScreen({ state, actions }) {
+  const [contribGoal, setContribGoal] = useState(null);
+  const [addSheet, setAddSheet] = useState(null); // 'goal' | 'wish' | null
+
+  function confirmDeleteGoal(id, name) {
+    if (confirm("¿Eliminar la meta \"" + name + "\"? Esta acción no se puede deshacer.")) actions.deleteGoal(id);
+  }
+  function confirmDeleteWish(id, name) {
+    if (confirm("¿Eliminar \"" + name + "\" de tu wishlist? Esta acción no se puede deshacer.")) actions.deleteWish(id);
+  }
+
+  const ghostBtnStyle = { background: "none", color: "var(--accent)", fontSize: 12.5 };
+  const sectionHeaderStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 };
+
+  const [gwSub, setGwSub] = useState("metas"); /* v4.4 */
+
+  return (
+    <div data-screen-label="Metas y Wishlist">
+      {/* v4.4: Metas y Wishlist separadas en pestañas, mismo patrón que Presupuesto/Planeador */}
+      <div className="cfo-seg" style={{ width: "fit-content", marginBottom: 20 }}>
+        <button className={gwSub === "metas" ? "active" : ""} onClick={() => setGwSub("metas")} style={{ padding: "9px 18px" }}>Metas · {state.goals.length}</button>
+        <button className={gwSub === "wishlist" ? "active" : ""} onClick={() => setGwSub("wishlist")} style={{ padding: "9px 18px" }}>Wishlist · {state.wishlist.length}</button>
+      </div>
+
+      {gwSub === "metas" && (<div>
+      <div style={sectionHeaderStyle}>
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--muted)" }}>Metas · {state.goals.length} activa{state.goals.length === 1 ? "" : "s"}</div>
+        <button className="cfo-btn" onClick={() => setAddSheet("goal")} style={ghostBtnStyle}>+ Nueva meta</button>
+      </div>
+      <div className="cfo-goalgrid" style={{ marginBottom: 28 }}>
+        {state.goals.map(g => {
+          const pct = g.target > 0 ? Math.min(100, Math.round((g.saved / g.target) * 100)) : 0;
+          const remaining = Math.max(0, g.target - g.saved);
+          const today = new Date(); today.setHours(0,0,0,0);
+          const targetD = g.targetDate ? new Date(g.targetDate + "T00:00:00") : null;
+          const daysLeft = targetD ? Math.ceil((targetD - today) / 86400000) : null;
+          const quincenasLeft = daysLeft != null ? Math.max(1, Math.ceil(daysLeft / 15)) : null;
+          const aporteSugerido = quincenasLeft ? remaining / quincenasLeft : null;
+          const isZero = pct === 0;
+          const isDone = pct >= 100;
+          return (
+            <div key={g.id} className="cfo-goalcard" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{g.name}</div>
+                <button className="cfo-btn cfo-goal-del" onClick={() => confirmDeleteGoal(g.id, g.name)} title="Eliminar"
+                  style={{ background: "none", color: "var(--muted-light)", fontSize: 15, padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
+              </div>
+              <div className="cfo-serif" style={{ fontSize: 32, fontWeight: 500, color: isZero ? "var(--muted-light)" : "var(--accent)", marginBottom: 10 }}>{pct}%</div>
+              <div style={{ height: 8, borderRadius: 99, background: "var(--surface-alt)", overflow: "hidden", marginBottom: 10 }}>
+                <div style={{ height: "100%", borderRadius: 99,
+                  background: isZero ? "var(--muted-light)" : "linear-gradient(90deg,var(--primary),var(--accent))",
+                  boxShadow: isZero ? "none" : "rgba(180,131,42,0.5) 0 0 10px",
+                  width: (isZero ? 2 : pct) + "%" }}></div>
+              </div>
+              <div className="cfo-mono" style={{ fontSize: 12.5, marginBottom: 10 }}>
+                <span style={{ color: "var(--text)" }}>{fmtMoney(g.saved)}</span> <span style={{ color: "var(--muted)" }}>de {fmtMoney(g.target)} ·</span> <span style={{ fontWeight: 600, color: "var(--muted)" }}>Faltan {fmtMoney(remaining)}</span>
+              </div>
+              {targetD && (
+                <div style={{ fontSize: 11.5, color: daysLeft < 0 ? "var(--danger)" : "var(--muted)", marginBottom: 4 }}>
+                  {daysLeft < 0 ? "Venció el " : "Vence el "}
+                  {targetD.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}
+                  {daysLeft >= 0 && " · " + daysLeft + " días"}
+                </div>
+              )}
+              {aporteSugerido > 0 && remaining > 0 && (
+                <div style={{ fontSize: 11.5, color: "var(--accent)", marginBottom: 12 }}>
+                  Aporta ~{fmtMoney(aporteSugerido)} cada quincena para llegar a tiempo
+                </div>
+              )}
+              {(!targetD || aporteSugerido == null) && <div style={{ marginBottom: 12 }}></div>}
+              <div style={{ marginTop: "auto" }}>
+                {isDone ? (
+                  <div style={{ width: "100%", textAlign: "center", background: "var(--success-soft)", color: "var(--success)", borderRadius: 9, height: 36, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600 }}>
+                    ✓ Completada
+                  </div>
+                ) : (
+                  <button className="cfo-btn" onClick={() => setContribGoal(g)}
+                    style={{ width: "100%", height: 36, background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, fontSize: 13 }}>Aportar</button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      </div>)}
+
+      {gwSub === "wishlist" && (<div>
+      <div style={sectionHeaderStyle}>
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--muted)" }}>Wishlist · {state.wishlist.length} deseo{state.wishlist.length === 1 ? "" : "s"}</div>
+        <button className="cfo-btn" onClick={() => setAddSheet("wish")} style={ghostBtnStyle}>+ Nuevo deseo</button>
+      </div>
+      <div className="cfo-goalgrid">
+        {state.wishlist.map(w => (
+          <div key={w.id} className="cfo-goalcard" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 18, gap: 10, position: "relative" }}>
+            <button className="cfo-btn cfo-goal-del" onClick={() => confirmDeleteWish(w.id, w.name)} style={{ position: "absolute", top: 10, right: 12, background: "none", color: "var(--muted-light)", fontSize: 16 }}>×</button>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 38, height: 38, borderRadius: "50%", background: categoryColor(w.category), color: "var(--on-primary)", flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 600 }}>
+                {String(w.name || "?").trim().charAt(0).toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{w.name}</div>
+                <div style={{ fontSize: 11, color: "var(--muted-light)" }}>{w.category || "General"}</div>
+              </div>
+            </div>
+            <div className="cfo-mono" style={{ fontSize: 19, fontWeight: 500 }}>{fmtMoney(w.price)}</div>
+            <div style={{ fontSize: 11.5, color: "var(--accent)", background: "var(--warn-soft)", display: "inline-block", padding: "3px 9px", borderRadius: 99, width: "fit-content" }}>
+              {state.liquidez > 0 ? Math.round((w.price / state.liquidez) * 100) : 0}% de tu liquidez
+            </div>
+          </div>
+        ))}
+      </div>
+      </div>)}
+
+      {contribGoal && <ContributeSheet goal={contribGoal} onClose={() => setContribGoal(null)}
+        onSave={(id, amount) => { actions.contributeGoal(id, amount); setContribGoal(null); }} />}
+      {addSheet && <AddGoalSheet kind={addSheet} onClose={() => setAddSheet(null)}
+        onSave={(payload) => { addSheet === "goal" ? actions.addGoal(payload) : actions.addWish(payload); setAddSheet(null); }} />}
+    </div>
+  );
+}
+
+// ---------- Presupuesto ----------
+
+function AddBudgetSheet({ categories, onClose, onSave }) {
+  const [category, setCategory] = useState(categories[0] || "");
+  const [amount, setAmount] = useState("");
+  function submit(e) {
+    e.preventDefault();
+    const n = parseFloat(amount);
+    if (!category || !n || n <= 0) return;
+    onSave({ category, amount: n });
+  }
+  return (
+    <div className="cfo-overlay" onClick={onClose}>
+      <div className="cfo-sheet" onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Nueva categoría de presupuesto</div>
+        <form onSubmit={submit}>
+          <select className="cfo-field" value={category} onChange={e => setCategory(e.target.value)}>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <input className="cfo-field" type="number" step="0.01" min="0" placeholder="Monto presupuestado" value={amount} onChange={e => setAmount(e.target.value)} required />
+          <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+            <button type="button" className="cfo-btn" onClick={onClose} style={{ flex: 1, background: "var(--surface-alt)", color: "var(--text)", borderRadius: 9, padding: 12, fontSize: 13 }}>Cancelar</button>
+            <button type="submit" className="cfo-btn" style={{ flex: 1, background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: 12, fontSize: 13 }}>Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function PresupuestoScreen({ state, actions }) {
+  const [sub, setSub] = useState("actual"); // 'actual' | 'planeador'
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editValue, setEditValue] = useState("");
+
+  const today = new Date();
+  const { start: qStart, end: qEnd } = getQuincenaRange(today);
+  const qStartISO = qStart.toISOString().slice(0,10);
+  const qEndISO = qEnd.toISOString().slice(0,10);
+
+  const realByCategory = useMemo(() => {
+    const map = {};
+    state.transactions
+      .filter(t => t.type === "gasto" && t.date >= qStartISO && t.date < qEndISO)
+      .forEach(t => { map[t.category] = (map[t.category] || 0) + t.amount; });
+    return map;
+  }, [state.transactions, qStartISO, qEndISO]);
+
+  // Redondeado a 1 decimal para no depender de comparaciones de punto flotante
+  // exactas (dos categorías al 100% real, ej. 20/20 y 100/100, deben caer en la
+  // misma rama aunque la suma de transacciones arrastre imprecisión de floats).
+  const rows = state.budgets.map(b => ({
+    ...b,
+    real: realByCategory[b.category] || 0,
+    pct: b.amount > 0 ? Math.round((realByCategory[b.category] || 0) / b.amount * 1000) / 10 : 0
+  }));
+  const totalBudget = rows.reduce((s,r) => s + r.amount, 0);
+  const totalReal = rows.reduce((s,r) => s + r.real, 0);
+
+  // Proyección de la quincena en curso, según cuánto ha avanzado
+  const diasTotalesQ = Math.max(1, Math.round((qEnd - qStart) / 86400000));
+  const diasTranscurridos = Math.min(diasTotalesQ, Math.max(1, Math.round((today - qStart) / 86400000) + 1));
+  const ritmo = totalReal / diasTranscurridos;
+  const proyeccionGasto = Math.round(ritmo * diasTotalesQ);
+  const ingresoEsperadoActual = state.finance.ingresoEsperadoQuincenal || 0;
+  const proyeccionRestante = Math.round(ingresoEsperadoActual - proyeccionGasto);
+  const diasRestantes = Math.max(0, diasTotalesQ - diasTranscurridos);
+
+  // Semántica de color por categoría — Ahorro se invierte (pasarse de la meta es
+  // positivo); el resto: verde <80%, dorado 80–100% (incluye el límite exacto), rojo >100%.
+  function budgetRowStyle(r) {
+    const isAhorro = /ahorro/i.test(r.category);
+    if (isAhorro) {
+      if (r.pct >= 100) {
+        return { color: "var(--success)", text: Math.round(r.pct - 100) + "% sobre la meta ✓", bar: "var(--success)" };
+      }
+      const barA = r.pct >= 80 ? "var(--warn)" : "var(--success)";
+      return { color: r.pct >= 80 ? "var(--warn)" : "var(--success)", text: Math.round(100 - r.pct) + "% para tu meta", bar: barA };
+    }
+    if (r.pct > 100) {
+      return { color: "var(--danger)", text: Math.round(r.pct - 100) + "% sobre el presupuesto", bar: "var(--danger)" };
+    }
+    if (r.pct === 100) {
+      return { color: "var(--warn)", text: "Al límite del presupuesto", bar: "var(--warn)" };
+    }
+    const bar = "linear-gradient(90deg, var(--success), var(--warn))";
+    return { color: r.pct >= 80 ? "var(--warn)" : "var(--success)", text: Math.round(100 - r.pct) + "% disponible", bar };
+  }
+
+  function confirmDeleteBudget(id, category) {
+    if (confirm("¿Eliminar el presupuesto de \"" + category + "\"? Esta acción no se puede deshacer.")) actions.deleteBudget(id);
+  }
+
+  function startEdit(r) { setEditingId(r.id); setEditValue(String(r.amount)); }
+
+  /* v4.5.1: edición inline del planeador — idéntica en comportamiento a la del presupuesto */
+  const [editingPlan, setEditingPlan] = useState(null); // { cat, field: "pct"|"amount" }
+  const [planValue, setPlanValue] = useState("");
+  function startEditPlan(cat, field, current) { setEditingPlan({ cat, field }); setPlanValue(String(current)); }
+  function saveEditPlan() {
+    if (!editingPlan) return;
+    const n = parseFloat(planValue);
+    if (!isNaN(n) && n >= 0) {
+      if (editingPlan.field === "pct") setRowPct(editingPlan.cat, n);
+      else setRowAmount(editingPlan.cat, n);
+    }
+    setEditingPlan(null);
+  }
+  function saveEdit() {
+    const n = parseFloat(editValue);
+    if (!isNaN(n) && n >= 0) actions.updateBudgetAmount(editingId, n);
+    setEditingId(null);
+  }
+
+  // Planeador — precarga las categorías y montos desde el Presupuesto real
+  // (state.budgets); el usuario puede ajustar cada una, y ese ajuste se guarda
+  // en state.planner por categoría hasta que se aplique o se borre la categoría.
+  const ingresoEsperado = state.finance.ingresoEsperadoQuincenal || 0;
+  const fijosYDeuda = state.finance.fijosYDeuda || 0;
+  const disponibleARepartir = Math.max(0, ingresoEsperado - fijosYDeuda);
+  const plannerRows = state.budgets.map(b => ({
+    category: b.category,
+    amount: state.planner[b.category] != null ? state.planner[b.category] : b.amount
+  }));
+  const totalPlanner = plannerRows.reduce((s,r) => s + r.amount, 0);
+  const totalPct = disponibleARepartir > 0 ? Math.round((totalPlanner / disponibleARepartir) * 1000) / 10 : 0;
+
+  function setRowAmount(category, amount) { actions.setPlannerAmount(category, Math.max(0, amount)); }
+  function setRowPct(category, pct) { setRowAmount(category, Math.round(disponibleARepartir * pct / 100)); }
+
+  const [editingFinance, setEditingFinance] = useState(null); // 'ingreso' | 'fijos' | null
+  const [financeValue, setFinanceValue] = useState("");
+  function startEditFinance(field, current) { setEditingFinance(field); setFinanceValue(String(current)); }
+  function saveEditFinance(field) {
+    const n = parseFloat(financeValue);
+    if (!isNaN(n) && n >= 0) actions.updateFinance(field, n);
+    setEditingFinance(null);
+  }
+
+  const nextDate = getNextQuincenaDate(today);
+  const nextDateISO = nextDate.toISOString().slice(0,10);
+  const nextLabel = "Próxima quincena · " + nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
+  const scheduled = state.plannerScheduled;
+
+  return (
+    <div data-screen-label="Presupuesto">
+      <div className="cfo-seg" style={{ width: "fit-content", marginBottom: 20 }}>
+        <button className={sub === "actual" ? "active" : ""} onClick={() => setSub("actual")} style={{ padding: "9px 18px" }}>Presupuesto actual</button>
+        <button className={sub === "planeador" ? "active" : ""} onClick={() => setSub("planeador")} style={{ padding: "9px 18px" }}>Planeador</button>
+      </div>
+
+      {sub === "actual" && (
+        <div>
+          {/* v4.4: KPIs densos estilo CFO original */}
+          <div className="cfo-kpigrid" style={{ marginBottom: 12 }}>
+            <KPICard label="Presupuestado" value={fmtMoney(totalBudget)} valueSize={27} note="Total quincena" />
+            <KPICard label="Ejecutado" value={fmtMoney(totalReal)} valueSize={27} note="Gastos reales" />
+            <KPICard label="Diferencia" value={(totalBudget - totalReal >= 0 ? "+" : "−") + fmtMoney(Math.abs(totalBudget - totalReal))} valueSize={27}
+              valueColor={totalBudget - totalReal >= 0 ? "var(--success)" : "var(--danger)"}
+              note={totalBudget - totalReal >= 0 ? "Disponible" : "Excedido"} />
+            <KPICard label="% Ejecución" value={totalBudget > 0 ? Math.round((totalReal / totalBudget) * 100) + "%" : "—"} valueSize={27}
+              valueColor={totalReal > totalBudget ? "var(--danger)" : totalReal >= totalBudget * 0.8 ? "var(--warn)" : "var(--success)"}
+              note="Sobre presupuesto" />
+          </div>
+          <div className="cfo-kpigrid" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 18 }}>
+            <KPICard label="Proyectado a gastar esta quincena" value={fmtMoney(proyeccionGasto)} valueSize={27}
+              note={"Llevas " + fmtMoney(totalReal) + " en " + diasTranscurridos + " de " + diasTotalesQ + " días"} />
+            <KPICard label="Te quedaría proyectado" value={fmtMoney(proyeccionRestante)} valueSize={27}
+              valueColor={proyeccionRestante >= 0 ? "var(--success)" : "var(--danger)"}
+              note={"para " + diasRestantes + " día" + (diasRestantes === 1 ? "" : "s") + " restantes"} />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--muted)" }}>Presupuesto por categoría</div>
+            <button className="cfo-btn" onClick={() => setShowAdd(true)} style={{ background: "none", color: "var(--accent)", fontSize: 12.5 }}>+ Nueva categoría</button>
+          </div>
+          {/* v4.4: tabla densa estilo CFO original — Presupuesto editable (clic), Diferencia y % Desv. con signo */}
+          <div className="cfo-tablewrap" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "6px 16px 10px" }}>
+            <table className="cfo-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
+              <thead>
+                <tr>
+                  {["Categoría","Presupuesto","Real","Diferencia","% Desv.","Progreso"].map(h => (
+                    <th key={h} style={{ textAlign: h === "Categoría" ? "left" : "right", padding: "12px 8px",
+                      fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase",
+                      color: "var(--muted)", borderBottom: "1px solid var(--border)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(r => {
+                  const rs = budgetRowStyle(r);
+                  const isEditing = editingId === r.id;
+                  const isAhorro = /ahorro/i.test(r.category);
+                  const diff = r.amount - r.real;
+                  const diffPositivo = isAhorro ? diff <= 0 : diff >= 0; // en Ahorro, pasarse es bueno
+                  const desv = r.amount > 0 ? ((r.real - r.amount) / r.amount) * 100 : 0;
+                  return (
+                    <tr key={r.id}>
+                      <td style={{ padding: "11px 8px", fontSize: 13.5, fontWeight: 600, borderBottom: "1px solid var(--border-soft)", whiteSpace: "nowrap" }}>{r.category}</td>
+                      <td className="cfo-mono" style={{ padding: "11px 8px", fontSize: 13, textAlign: "right", borderBottom: "1px solid var(--border-soft)", whiteSpace: "nowrap" }}>
+                        {isEditing ? (
+                          <input type="number" step="0.01" min="0" autoFocus value={editValue}
+                            onChange={e => setEditValue(e.target.value)} onBlur={saveEdit}
+                            onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditingId(null); }}
+                            className="cfo-mono"
+                            style={{ width: 84, fontSize: 13, textAlign: "right", border: "1px solid var(--primary)", borderRadius: 6, padding: "2px 5px", background: "var(--bg)", color: "var(--text)" }} />
+                        ) : (
+                          <span onClick={() => startEdit(r)} title="Tocar para editar" style={{ cursor: "pointer", borderBottom: "1px dashed var(--border)" }}>{fmtMoney(r.amount)}</span>
+                        )}
+                        <button className="cfo-btn" onClick={() => confirmDeleteBudget(r.id, r.category)} title="Eliminar"
+                          style={{ background: "none", color: "var(--muted-light)", fontSize: 13, padding: "0 0 0 7px", lineHeight: 1 }}>×</button>
+                      </td>
+                      <td className="cfo-mono" style={{ padding: "11px 8px", fontSize: 13, textAlign: "right", borderBottom: "1px solid var(--border-soft)", color: rs.color, whiteSpace: "nowrap" }}>{fmtMoney(r.real)}</td>
+                      <td className="cfo-mono" style={{ padding: "11px 8px", fontSize: 13, textAlign: "right", borderBottom: "1px solid var(--border-soft)", whiteSpace: "nowrap",
+                        color: diffPositivo ? "var(--success)" : "var(--danger)" }}>
+                        {(diff >= 0 ? "+" : "−") + fmtMoney(Math.abs(diff))}
+                      </td>
+                      <td className="cfo-mono" style={{ padding: "11px 8px", fontSize: 12.5, textAlign: "right", borderBottom: "1px solid var(--border-soft)", whiteSpace: "nowrap",
+                        color: (isAhorro ? desv >= 0 : desv <= 0) ? "var(--success)" : "var(--danger)" }}>
+                        {(desv >= 0 ? "+" : "−") + Math.abs(desv).toFixed(1) + "%"}
+                      </td>
+                      <td style={{ padding: "11px 8px", borderBottom: "1px solid var(--border-soft)", minWidth: 130 }}>
+                        <div style={{ height: 7, borderRadius: 99, background: "var(--surface-alt)", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: Math.min(100, r.pct) + "%", borderRadius: 99, background: rs.bar }}></div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {rows.length === 0 && (
+                  <tr><td colSpan={6} style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", padding: "30px 0" }}>Sin categorías presupuestadas todavía.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", background: "var(--surface-alt)", borderRadius: 12, fontWeight: 600, marginTop: 10 }}>
+            <div className="cfo-serif" style={{ fontSize: 17 }}>Total</div>
+            <div className="cfo-mono" style={{ fontSize: 21 }}>
+              <span style={{ color: totalReal > totalBudget ? "var(--danger)" : "var(--success)" }}>{fmtMoney(totalReal)}</span>
+              <span style={{ color: "var(--muted)" }}> / {fmtMoney(totalBudget)}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sub === "planeador" && (
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 22 }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--accent)", fontWeight: 700, marginBottom: 6 }}>Planeador</div>
+          <div className="cfo-serif" style={{ fontSize: 20, fontWeight: 500, marginBottom: 18 }}>{nextLabel}</div>
+
+          {scheduled && (
+            <div style={{ background: "var(--warn-soft)", borderRadius: 10, padding: "10px 14px", marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ fontSize: 12.5, color: "var(--warn)" }}>
+                Hay un plan guardado para aplicarse el {new Date(scheduled.applyDate + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "long" })}
+              </div>
+              <button className="cfo-btn" onClick={() => actions.cancelScheduledPlan()} style={{ background: "none", color: "var(--warn)", fontSize: 12, textDecoration: "underline" }}>Cancelar</button>
+            </div>
+          )}
+
+          <div className="cfo-kpigrid" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 20 }}>
+            {[
+              { field: "ingresoEsperadoQuincenal", label: "Ingreso esperado", current: ingresoEsperado },
+              { field: "fijosYDeuda", label: "Fijos + deuda", current: fijosYDeuda }
+            ].map(f => (
+              <div key={f.field} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 8 }}>{f.label}</div>
+                {editingFinance === f.field ? (
+                  <input type="number" step="0.01" min="0" autoFocus value={financeValue}
+                    onChange={e => setFinanceValue(e.target.value)}
+                    onBlur={() => saveEditFinance(f.field)}
+                    onKeyDown={e => { if (e.key === "Enter") saveEditFinance(f.field); if (e.key === "Escape") setEditingFinance(null); }}
+                    className="cfo-mono"
+                    style={{ fontSize: 30, fontWeight: 500, width: "100%", border: "1px solid var(--primary)", borderRadius: 6, padding: "2px 6px", background: "var(--bg)", color: "var(--text)" }} />
+                ) : (
+                  <div className="cfo-serif cfo-mono" onClick={() => startEditFinance(f.field, f.current)} title="Tocar para editar"
+                    style={{ fontSize: 30, fontWeight: 500, cursor: "pointer", borderBottom: "1px dashed var(--border)", width: "fit-content" }}>
+                    {fmtMoney(f.current)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap", marginBottom: 18 }}>
+            <div>
+              <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>Disponible a repartir</div>
+              <div className="cfo-serif" style={{ fontSize: 30, fontWeight: 500,
+                color: totalPlanner > disponibleARepartir ? "var(--danger)" : "var(--success)" }}>
+                {fmtMoney(disponibleARepartir)}
+              </div>
+            </div>
+            {disponibleARepartir - totalPlanner !== 0 && (
+              <div className="cfo-mono" style={{ fontSize: 13, color: totalPlanner > disponibleARepartir ? "var(--danger)" : "var(--muted)" }}>
+                {totalPlanner > disponibleARepartir
+                  ? "te pasas por " + fmtMoney(totalPlanner - disponibleARepartir)
+                  : fmtMoney(disponibleARepartir - totalPlanner) + " sin asignar"}
+              </div>
+            )}
+          </div>
+
+          {/* v4.5.1: tabla del planeador — estética y comportamiento IDÉNTICOS a la del
+              Presupuesto actual: mismo contenedor, mismas cabeceras, mismos paddings y
+              tipografías, y misma edición por clic (subrayado punteado → input). */}
+          <div className="cfo-tablewrap" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "6px 16px 10px" }}>
+            <table className="cfo-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: 620 }}>
+              <thead>
+                <tr>
+                  {["Categoría","% asignado","Monto","$ / quincena actual","Del disponible"].map((h, i) => (
+                    <th key={h} style={{ textAlign: i === 0 ? "left" : "right", padding: "12px 8px",
+                      fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase",
+                      color: "var(--muted)", borderBottom: "1px solid var(--border)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {plannerRows.map(r => {
+                  const pct = disponibleARepartir > 0 ? Math.round((r.amount / disponibleARepartir) * 1000) / 10 : 0;
+                  const actual = state.budgets.find(b => b.category === r.category);
+                  const editPct = editingPlan && editingPlan.cat === r.category && editingPlan.field === "pct";
+                  const editAmt = editingPlan && editingPlan.cat === r.category && editingPlan.field === "amount";
+                  const inputStylePlan = { width: 74, fontSize: 13, textAlign: "right", border: "1px solid var(--primary)",
+                    borderRadius: 6, padding: "2px 5px", background: "var(--bg)", color: "var(--text)" };
+                  return (
+                    <tr key={r.category}>
+                      <td style={{ padding: "11px 8px", fontSize: 13.5, fontWeight: 600, borderBottom: "1px solid var(--border-soft)", whiteSpace: "nowrap" }}>{r.category}</td>
+                      <td className="cfo-mono" style={{ padding: "11px 8px", fontSize: 13, textAlign: "right", borderBottom: "1px solid var(--border-soft)", whiteSpace: "nowrap" }}>
+                        {editPct ? (
+                          <input type="number" step="0.5" min="0" max="100" autoFocus value={planValue}
+                            onChange={e => setPlanValue(e.target.value)} onBlur={saveEditPlan}
+                            onKeyDown={e => { if (e.key === "Enter") saveEditPlan(); if (e.key === "Escape") setEditingPlan(null); }}
+                            className="cfo-mono" style={inputStylePlan} />
+                        ) : (
+                          <span onClick={() => startEditPlan(r.category, "pct", pct)} title="Tocar para editar"
+                            style={{ cursor: "pointer", borderBottom: "1px dashed var(--border)" }}>{pct}%</span>
+                        )}
+                      </td>
+                      <td className="cfo-mono" style={{ padding: "11px 8px", fontSize: 13, textAlign: "right", borderBottom: "1px solid var(--border-soft)", whiteSpace: "nowrap" }}>
+                        {editAmt ? (
+                          <input type="number" step="0.01" min="0" autoFocus value={planValue}
+                            onChange={e => setPlanValue(e.target.value)} onBlur={saveEditPlan}
+                            onKeyDown={e => { if (e.key === "Enter") saveEditPlan(); if (e.key === "Escape") setEditingPlan(null); }}
+                            className="cfo-mono" style={{ ...inputStylePlan, width: 84 }} />
+                        ) : (
+                          <span onClick={() => startEditPlan(r.category, "amount", r.amount)} title="Tocar para editar"
+                            style={{ cursor: "pointer", borderBottom: "1px dashed var(--border)" }}>{fmtMoney(r.amount)}</span>
+                        )}
+                      </td>
+                      <td className="cfo-mono" style={{ padding: "11px 8px", fontSize: 13, textAlign: "right", borderBottom: "1px solid var(--border-soft)", color: "var(--muted)", whiteSpace: "nowrap" }}>
+                        {actual ? fmtMoney(actual.amount) : "—"}
+                      </td>
+                      <td style={{ padding: "11px 8px", borderBottom: "1px solid var(--border-soft)", minWidth: 130 }}>
+                        <div style={{ height: 7, borderRadius: 99, background: "var(--surface-alt)", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: Math.min(100, pct) + "%", borderRadius: 99,
+                            background: totalPct > 100 ? "var(--danger)" : "linear-gradient(90deg,var(--success),var(--warn))" }}></div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {plannerRows.length === 0 && (
+                  <tr><td colSpan={5} style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", padding: "30px 0" }}>Agrega categorías en "Presupuesto actual" para repartir aquí.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", marginBottom: 18, borderTop: "1px solid var(--border-soft)", paddingTop: 14 }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>Total repartido</span>
+            <span className="cfo-mono" style={{ fontWeight: 600,
+              color: totalPct === 100 ? "var(--success)" : totalPct < 100 ? "var(--warn)" : "var(--danger)" }}>
+              {fmtMoney(totalPlanner)} de {fmtMoney(disponibleARepartir)} · {totalPct}%
+            </span>
+          </div>
+
+          <button className="cfo-btn" onClick={() => actions.schedulePlan(nextDateISO, plannerRows)}
+            style={{ width: "100%", background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: 13, fontSize: 13.5, fontWeight: 600 }}>
+            📅 Guardar para el {nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
+          </button>
+        </div>
+      )}
+
+      {showAdd && <AddBudgetSheet categories={state.categories} onClose={() => setShowAdd(false)}
+        onSave={(payload) => { actions.addBudget(payload); setShowAdd(false); }} />}
+    </div>
+  );
+}
+
+// ---------- Gasolina ----------
+
+// ---------- Gasolina ----------
+
+// Medidor en forma de media luna (semicírculo, lado plano hacia abajo) con 12
+// divisiones — las marcas se reparten de -90° (izquierda) a +90° (derecha),
+// pivotando desde el centro inferior del contenedor.
+const TANK_LITERS = 70;
+const GAUGE_BARS = 12;
+const LITERS_PER_BAR = TANK_LITERS / GAUGE_BARS; // ~5.83L por rayita
+const MI_TO_KM = 1.60934; // v4.4: el odómetro del Sonata está en MILLAS — todo km/L convierte primero
+
+// v3.25.2 (restaurado): litros realmente consumidos en un tramo, corregidos por
+// nivel de tanque (rayitas) en vez de asumir que "litros cargados" = "litros
+// consumidos" — necesario porque las cargas suelen ser parciales.
+// consumido = litros cargados + (nivel_anterior_después − nivel_actual_antes_de_cargar) × L/rayita.
+// Si faltan rayitas en cualquiera de los dos registros, cae al método clásico (solo litros cargados).
+function segmentLiters(prevBarsAfter, liters, barsBefore, barsAfter) {
+  const curBefore = barsBefore != null ? barsBefore : (barsAfter != null ? barsAfter - liters / LITERS_PER_BAR : null);
+  if (prevBarsAfter != null && curBefore != null) return Math.max(0, liters + (prevBarsAfter - curBefore) * LITERS_PER_BAR);
+  return liters || null;
+}
+
+// Medidor en forma de media luna (semicírculo, lado plano hacia abajo) con 12
+// divisiones — las marcas se reparten de -90° (izquierda) a +90° (derecha),
+// pivotando desde el centro inferior del contenedor.
+function FuelGauge({ pct, onTickClick }) {
+  const R = 100;
+  const ticks = [];
+  const filled = Math.round((pct / 100) * 12);
+  for (let i = 0; i < 12; i++) {
+    const deg = -90 + i * (180 / 11);
+    const active = i < filled;
+    const idx = i;
+    ticks.push(
+      <div key={i} onClick={onTickClick ? () => onTickClick(idx + 1) : undefined}
+        title={onTickClick ? "Ajustar a " + (idx + 1) + " rayitas" : undefined}
+        style={{ position: "absolute", left: "50%", bottom: 0, width: 3, height: 17, borderRadius: 2,
+        background: active ? "var(--accent)" : "var(--border)", cursor: onTickClick ? "pointer" : "default",
+        transform: "translateX(-50%) translateY(-" + R + "px) rotate(" + deg + "deg)",
+        transformOrigin: "50% " + R + "px" }}></div>
+    );
+  }
+  return (
+    <div style={{ position: "relative", width: 240, height: R + 30, flexShrink: 0 }}>
+      {ticks}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 6, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div className="cfo-serif" style={{ fontSize: 36, fontWeight: 500, color: "var(--accent)" }}>{pct}%</div>
+        <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>del tanque</div>
+      </div>
+    </div>
+  );
+}
+
+// Mini-gauge circular (conic-gradient) para las filas del historial.
+function MiniGauge({ kml }) {
+  const hasData = kml != null && kml > 0;
+  const deg = hasData ? Math.min(360, Math.round((kml / 20) * 360)) : 0;
+  const color = !hasData ? "var(--border)" : kml >= 10.5 ? "var(--success)" : kml >= 8 ? "var(--warn)" : "var(--danger)";
+  return (
+    <div style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
+      background: hasData ? ("conic-gradient(" + color + " " + deg + "deg, var(--surface-alt) 0)") : "var(--surface-alt)",
+      border: hasData ? "none" : "1px dashed var(--border)" }}></div>
+  );
+}
+
+function kmlColor(kml) {
+  if (kml == null || kml <= 0) return "var(--muted-light)";
+  if (kml >= 10.5) return "var(--success)";
+  if (kml >= 8) return "var(--warn)";
+  return "var(--danger)";
+}
+
+function tankStatus(pct) {
+  if (pct >= 70) return { text: "Tanque lleno", color: "var(--success)" };
+  if (pct >= 25) return { text: "Nivel medio", color: "var(--warn)" };
+  return { text: "En reserva", color: "var(--danger)" };
+}
+
+const emptyFuelForm = { date: todayISO(), liters: "", cost: "", odometer: "", barsBefore: "", barsAfter: "", station: "", notes: "" };
+
+function GasolinaScreen({ state, actions }) {
+  const [form, setForm] = useState(emptyFuelForm);
+  const [showMore, setShowMore] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [esCarga, setEsCarga] = useState(true); /* v4.4: checkpoint de odómetro vs carga real */
+  const [showForm, setShowForm] = useState(false); /* v4.5: registrar carga como desplegable */
+
+  const logs = state.fuelLogs;
+  const kmlValidos = logs.filter(f => f.kml && f.kml > 0);
+  const kmlPromedio = kmlValidos.length ? (kmlValidos.reduce((a,b) => a + b.kml, 0) / kmlValidos.length) : 0;
+  /* v4.3: km/L global REAL = km totales del período ÷ litros consumidos totales,
+     ajustado por el nivel del tanque al inicio y al final (rayitas) cuando existe.
+     Antes era un fake: promedio × 0.96. Igual el costo/km: gasto total ÷ km totales. */
+  const globalStats = (() => {
+    const withOdo = logs.filter(f => f.odometer != null && f.odometer > 0);
+    if (withOdo.length < 2) return { kml: 0, costKm: 0 };
+    const newest = withOdo[0], oldest = withOdo[withOdo.length - 1];
+    const km = (newest.odometer - oldest.odometer) * MI_TO_KM; /* v4.4: mi→km */
+    if (km <= 0) return { kml: 0, costKm: 0 };
+    const between = logs.slice(0, logs.indexOf(oldest)); // cargas después de la más vieja (incluye la más nueva)
+    const litersLoaded = between.reduce((a,f) => a + (Number(f.liters) || 0), 0);
+    const lvlAdj = (oldest.barsAfter != null && newest.barsAfter != null)
+      ? (oldest.barsAfter - newest.barsAfter) * LITERS_PER_BAR : 0;
+    const consumed = litersLoaded + lvlAdj;
+    const cost = between.reduce((a,f) => a + (Number(f.cost) || 0), 0);
+    return { kml: consumed > 0 ? km / consumed : 0, costKm: cost > 0 ? cost / km : 0 };
+  })();
+  const kmlGlobal = globalStats.kml;
+  const costoPorKm = globalStats.costKm;
+  const currentBars = Math.round((state.tankPct / 100) * GAUGE_BARS * 2) / 2;
+  const litersRemaining = currentBars * LITERS_PER_BAR;
+  const autonomia = (kmlGlobal || kmlPromedio) ? Math.round(litersRemaining * (kmlGlobal || kmlPromedio)) : 0;
+  const status = tankStatus(state.tankPct);
+
+  function adjustBars(delta) {
+    const next = Math.max(0, Math.min(GAUGE_BARS, Math.round((currentBars + delta) * 2) / 2));
+    actions.setCurrentBars(next);
+  }
+
+  function updateField(key, val) { setForm(f => ({ ...f, [key]: val })); }
+
+  /* v4.4: rayita estimada — millas desde el último registro → litros consumidos con el
+     rendimiento real → rayitas gastadas desde el nivel actual (patrón del CFO original) */
+  const lastOdo = logs.find(f => f.odometer != null && f.odometer > 0);
+  const estimatedBars = (() => {
+    const o = parseFloat(form.odometer);
+    if (!o || !lastOdo || o <= lastOdo.odometer) return null;
+    const kmDriven = (o - lastOdo.odometer) * MI_TO_KM;
+    const rate = kmlGlobal || kmlPromedio || 10.5;
+    const litersUsed = kmDriven / rate;
+    return Math.max(0, Math.min(GAUGE_BARS, Math.round((currentBars - litersUsed / LITERS_PER_BAR) * 2) / 2));
+  })();
+
+  function submit(e) {
+    e.preventDefault();
+    const o = parseFloat(form.odometer);
+    /* v4.4: un checkpoint (solo odómetro, sin carga) también es un registro válido */
+    const l = esCarga ? parseFloat(form.liters) : 0;
+    const c = esCarga ? parseFloat(form.cost) : 0;
+    if (!o || (esCarga && (!l || !c))) return;
+    const payload = {
+      date: form.date || todayISO(),
+      liters: l, cost: c, odometer: o,
+      barsBefore: form.barsBefore !== "" ? parseInt(form.barsBefore, 10) : null,
+      barsAfter: form.barsAfter !== "" ? parseInt(form.barsAfter, 10) : null,
+      station: form.station.trim(),
+      notes: form.notes.trim()
+    };
+    if (editingId) actions.updateFuel(editingId, payload);
+    else actions.addFuel(payload);
+    setForm(emptyFuelForm); setEditingId(null); setShowMore(false); setShowForm(false); /* v4.5 */
+  }
+
+  function startEdit(f) {
+    setShowForm(true); /* v4.5 */
+    setEditingId(f.id);
+    setForm({
+      date: f.date, liters: String(f.liters), cost: String(f.cost), odometer: f.odometer != null ? String(f.odometer) : "",
+      barsBefore: f.barsBefore != null ? String(f.barsBefore) : "", barsAfter: f.barsAfter != null ? String(f.barsAfter) : "",
+      station: f.station || "", notes: f.notes || ""
+    });
+    setShowMore(true);
+  }
+
+  function cancelEdit() { setEditingId(null); setForm(emptyFuelForm); setShowMore(false); setShowForm(false); }
+
+  function confirmDelete(id) {
+    if (confirm("¿Eliminar esta carga del historial? Esta acción no se puede deshacer.")) actions.deleteFuel(id);
+  }
+
+  const fieldStyle = { background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "var(--text)" };
+
+  return (
+    <div data-screen-label="Gasolina">
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 26, marginBottom: 18,
+        display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
+        <FuelGauge pct={state.tankPct} onTickClick={n => actions.setCurrentBars(n)} />
+        <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+          <div className="cfo-serif" style={{ fontSize: 24, fontWeight: 500, color: status.color, marginBottom: 6, letterSpacing: "-0.01em" }}>{status.text}</div>
+          <div className="cfo-mono" style={{ fontSize: 15, color: "var(--text)", marginBottom: 10 }}>
+            {currentBars} de {GAUGE_BARS} rayitas · ~{litersRemaining.toFixed(1)} L
+          </div>
+          {autonomia > 0 && (
+            <div style={{ display: "inline-block", fontSize: 12, fontWeight: 600, padding: "4px 12px", borderRadius: 99,
+              background: "var(--warn-soft)", color: "var(--accent)", marginBottom: 14 }}>
+              Autonomía ~{autonomia} km
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 6 }}>Ajustar nivel actual</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button type="button" className="cfo-btn" onClick={() => adjustBars(-0.5)}
+              style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)",
+                color: "var(--text)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>−</button>
+            <span className="cfo-mono" style={{ fontSize: 13, minWidth: 30, textAlign: "center" }}>{currentBars}</span>
+            <button type="button" className="cfo-btn" onClick={() => adjustBars(0.5)}
+              style={{ width: 30, height: 30, borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg)",
+                color: "var(--text)", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>+</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="cfo-kpigrid" style={{ marginBottom: 24 }}>
+        <KPICard label="km/L promedio" value={kmlPromedio ? kmlPromedio.toFixed(1) : "—"} valueSize={27} />
+        <KPICard label="km/L global" value={kmlGlobal ? kmlGlobal.toFixed(1) : "—"} valueSize={27} />
+        <KPICard label="Costo por km" value={costoPorKm ? "$" + costoPorKm.toFixed(2) : "—"} valueSize={27} />
+        <KPICard label="Autonomía est." value={autonomia ? autonomia + " km" : "—"} valueSize={27}
+          note="con el rendimiento global" noteColor="var(--muted)" />
+      </div>
+
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: showForm ? 20 : "14px 20px", marginBottom: 24 }}>
+        {/* v4.5: desplegable — cerrado por defecto, un tap para abrir */}
+        <div onClick={() => { if (!showForm) setShowForm(true); }}
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: showForm ? "default" : "pointer", marginBottom: showForm ? 14 : 0 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 600 }}>{editingId ? "Editar carga" : "Registrar carga"}</div>
+          <button type="button" className="cfo-btn" onClick={e => { e.stopPropagation(); if (showForm) cancelEdit(); else setShowForm(true); }}
+            style={{ background: showForm ? "var(--surface-alt)" : "var(--primary)", color: showForm ? "var(--text)" : "var(--on-primary)",
+              borderRadius: 8, padding: "7px 14px", fontSize: 12.5 }}>
+            {showForm ? "▾ Cerrar" : "＋ Nueva carga"}
+          </button>
+        </div>
+        {showForm && (
+        <form onSubmit={submit}>
+          {/* v4.4: flujo del CFO original — fecha + odómetro primero, checkbox de carga */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 12, alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 5 }}>Fecha</div>
+              <input value={form.date} onChange={e => updateField("date", e.target.value)} type="date" style={{ ...fieldStyle, width: "100%" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 5 }}>Odómetro (millas)</div>
+              <input value={form.odometer} onChange={e => updateField("odometer", e.target.value)} type="number" step="0.1" min="0"
+                placeholder={lastOdo ? "Último: " + lastOdo.odometer : "Ej: 663.5"} style={{ ...fieldStyle, width: "100%" }} />
+            </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", paddingTop: 16 }}>
+              <input type="checkbox" checked={esCarga} onChange={e => setEsCarga(e.target.checked)} style={{ width: 16, height: 16, accentColor: "var(--primary)" }} />
+              Fue una carga de gasolina
+            </label>
+          </div>
+
+          {estimatedBars != null && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "var(--surface-alt)", borderRadius: 10, padding: "10px 14px", marginBottom: 12 }}>
+              <span style={{ fontSize: 12, color: "var(--muted)" }}>Rayita estimada según lo recorrido:</span>
+              <span className="cfo-mono" style={{ fontSize: 15, fontWeight: 600, color: "var(--accent)" }}>{estimatedBars} / {GAUGE_BARS}</span>
+              <span style={{ fontSize: 11, color: "var(--muted-light)" }}>corrige abajo si no coincide con el tablero</span>
+            </div>
+          )}
+
+          {esCarga && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 12 }}>
+              <input value={form.liters} onChange={e => updateField("liters", e.target.value)} type="number" step="0.1" min="0" placeholder="Litros cargados" style={fieldStyle} />
+              <input value={form.cost} onChange={e => updateField("cost", e.target.value)} type="number" step="0.01" min="0" placeholder="Monto pagado ($)" style={fieldStyle} />
+              <div className="cfo-mono" style={{ ...fieldStyle, display: "flex", alignItems: "center", color: "var(--muted)", background: "var(--surface-alt)", border: "1px dashed var(--border)" }}>
+                {parseFloat(form.liters) > 0 && parseFloat(form.cost) > 0
+                  ? "$" + (parseFloat(form.cost) / parseFloat(form.liters)).toFixed(2) + "/L"
+                  : "$/L auto"}
+              </div>
+              <input value={form.station} onChange={e => updateField("station", e.target.value)} type="text" placeholder="Gasolinera (opcional)" style={fieldStyle} />
+            </div>
+          )}
+
+          {esCarga && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 7 }}>¿En qué rayita estabas antes de cargar?</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {Array.from({ length: GAUGE_BARS + 1 }).map((_, n) => (
+                  <button key={n} type="button" onClick={() => updateField("barsBefore", String(n))}
+                    style={{ width: 34, height: 30, borderRadius: 7, fontSize: 12.5, fontFamily: "IBM Plex Mono, monospace", cursor: "pointer",
+                      border: "1px solid " + (form.barsBefore === String(n) ? "var(--primary)" : "var(--border)"),
+                      background: form.barsBefore === String(n) ? "var(--primary)" : "var(--bg)",
+                      color: form.barsBefore === String(n) ? "var(--on-primary)" : "var(--text)" }}>{n}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 5 }}>
+                {esCarga ? "Rayita después de cargar" : "Rayita actual"}
+              </div>
+              <input value={form.barsAfter} onChange={e => updateField("barsAfter", e.target.value)} type="number" min="0" max={GAUGE_BARS} step="0.5"
+                placeholder={estimatedBars != null ? "Estimada: " + estimatedBars : "0–" + GAUGE_BARS} style={{ ...fieldStyle, width: "100%" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 5 }}>Notas</div>
+              <input value={form.notes} onChange={e => updateField("notes", e.target.value)} type="text" placeholder="Ej: tanque lleno…" style={{ ...fieldStyle, width: "100%" }} />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="submit" className="cfo-btn" style={{ background: "var(--primary)", color: "var(--on-primary)", borderRadius: 8, padding: "10px 18px", fontSize: 13 }}>
+              {editingId ? "Guardar cambios" : "Guardar"}
+            </button>
+            {editingId && (
+              <button type="button" onClick={cancelEdit} className="cfo-btn" style={{ background: "var(--surface-alt)", color: "var(--text)", borderRadius: 8, padding: "10px 18px", fontSize: 13 }}>
+                Cancelar
+              </button>
+            )}
+          </div>
+        </form>
+        )}
+      </div>
+
+      <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>Historial de cargas ({logs.length})</div>
+      {/* v4.4: tabla completa estilo CFO original */}
+      <div className="cfo-tablewrap" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "4px 14px 8px" }}>
+        <table className="cfo-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
+          <thead>
+            <tr>
+              {["Fecha","Odómetro (mi)","Litros","Monto","$/L","Km/L","Rayitas","Gasolinera",""].map((h, i) => (
+                <th key={i} style={{ textAlign: i === 0 || i === 7 ? "left" : "right", padding: "11px 8px",
+                  fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase",
+                  color: "var(--muted)", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {logs.map(f => {
+              const ppl = f.liters > 0 && f.cost > 0 ? f.cost / f.liters : null;
+              return (
+                <tr key={f.id}>
+                  <td style={{ padding: "10px 8px", fontSize: 12.5, borderBottom: "1px solid var(--border-soft)", whiteSpace: "nowrap" }}>{fmtShortDate(f.date)}</td>
+                  <td className="cfo-mono" style={{ padding: "10px 8px", fontSize: 12.5, textAlign: "right", borderBottom: "1px solid var(--border-soft)" }}>{f.odometer != null ? f.odometer + " mi" : "—"}</td>
+                  <td className="cfo-mono" style={{ padding: "10px 8px", fontSize: 12.5, textAlign: "right", borderBottom: "1px solid var(--border-soft)" }}>{f.liters > 0 ? f.liters + " L" : "—"}</td>
+                  <td className="cfo-mono" style={{ padding: "10px 8px", fontSize: 12.5, textAlign: "right", borderBottom: "1px solid var(--border-soft)", fontWeight: 600 }}>{f.cost > 0 ? fmtMoney(f.cost) : "—"}</td>
+                  <td className="cfo-mono" style={{ padding: "10px 8px", fontSize: 12, textAlign: "right", borderBottom: "1px solid var(--border-soft)", color: "var(--muted)" }}>{ppl ? "$" + ppl.toFixed(2) : "—"}</td>
+                  <td className="cfo-mono" style={{ padding: "10px 8px", fontSize: 12.5, textAlign: "right", borderBottom: "1px solid var(--border-soft)", fontWeight: 600, color: kmlColor(f.kml) }}>{f.kml ? f.kml : "—"}</td>
+                  <td style={{ padding: "10px 8px", textAlign: "right", borderBottom: "1px solid var(--border-soft)" }}>
+                    {f.barsAfter != null ? (
+                      <span style={{ display: "inline-flex", gap: 2, alignItems: "center" }} title={f.barsAfter + " de " + GAUGE_BARS}>
+                        {Array.from({ length: GAUGE_BARS }).map((_, i) => (
+                          <span key={i} style={{ width: 3, height: 11, borderRadius: 2,
+                            background: i < f.barsAfter ? "var(--accent)" : "var(--surface-alt)" }}></span>
+                        ))}
+                      </span>
+                    ) : <span style={{ color: "var(--muted-light)" }}>—</span>}
+                  </td>
+                  <td style={{ padding: "10px 8px", fontSize: 11.5, color: "var(--muted)", borderBottom: "1px solid var(--border-soft)", maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.station || "—"}</td>
+                  <td style={{ padding: "10px 4px", textAlign: "right", borderBottom: "1px solid var(--border-soft)", whiteSpace: "nowrap" }}>
+                    <button className="cfo-btn" onClick={() => startEdit(f)} title="Editar" style={{ background: "none", color: "var(--muted)", fontSize: 13, padding: "0 4px" }}>✎</button>
+                    <button className="cfo-btn" onClick={() => confirmDelete(f.id)} title="Eliminar" style={{ background: "none", color: "var(--muted-light)", fontSize: 15, padding: "0 4px" }}>×</button>
+                  </td>
+                </tr>
+              );
+            })}
+            {logs.length === 0 && <tr><td colSpan={9} style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", padding: "26px 0" }}>Sin registros todavía — guarda tu primera carga arriba.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Datos & Configuración ----------
+
+function DatosScreen({ state, actions, toast, syncStatus }) {
+  const [newCat, setNewCat] = useState("");
+  const fileInputRef = useRef(null);
+
+  function addCategory() {
+    const v = newCat.trim();
+    if (!v || state.categories.includes(v)) return;
+    actions.addCategory(v);
+    setNewCat("");
+  }
+
+  function exportData() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "cfo-personal-backup-" + todayISO() + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast("Respaldo exportado");
+  }
+
+  function importData(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (!parsed || typeof parsed !== "object") throw new Error("bad file");
+        actions.replaceState(parsed);
+        toast("Respaldo importado");
+      } catch (err) {
+        toast("Archivo inválido");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
+  function wipeAll() {
+    if (!confirm("¿Borrar permanentemente todos tus datos de este dispositivo y de la nube? Esta acción no se puede deshacer.")) return;
+    actions.wipeAll();
+    toast("Datos eliminados");
+  }
+
+  return (
+    <div data-screen-label="Datos y Configuracion">
+      <div className="cfo-panelgrid">
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 14 }}>Apariencia</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 13, color: "var(--muted)" }}>Tema {state.theme === "dark" ? "oscuro" : "claro"}</span>
+            <button className="cfo-btn" onClick={actions.toggleTheme}
+              style={{ width: 46, height: 26, borderRadius: 99, background: "var(--primary)", position: "relative", padding: 0 }}>
+              <span style={{ position: "absolute", top: 3, left: state.theme === "dark" ? 23 : 3, width: 20, height: 20, borderRadius: "50%", background: "var(--on-primary)", transition: "left .15s" }}></span>
+            </button>
+          </div>
+        </div>
+
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 14 }}>Categorías</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {state.categories.map(c => (
+              <div key={c} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 99, background: "var(--surface-alt)", color: "var(--text)", border: "1px solid var(--border)", whiteSpace: "nowrap" }}>
+                {c} <span onClick={() => actions.removeCategory(c)} style={{ cursor: "pointer", opacity: .5, marginLeft: 4 }}>×</span>
+              </div>
+            ))}
+            <input value={newCat} onChange={e => setNewCat(e.target.value)} onKeyDown={e => e.key === "Enter" && addCategory()}
+              placeholder="+ Nueva" style={{ border: "1px dashed var(--border)", borderRadius: 99, padding: "5px 14px", fontSize: 12, color: "var(--muted)", background: "none", width: 90 }} />
+          </div>
+        </div>
+
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 8 }}>Recuperar datos anteriores</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12, lineHeight: 1.5 }}>
+            Busca en Firestore los movimientos y cargas de gasolina guardados por la versión anterior del CFO y trae los que falten aquí (sin duplicar).
+          </div>
+          <button className="cfo-btn" onClick={actions.recoverLegacy}
+            style={{ background: "var(--surface-alt)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 9, padding: "9px 16px", fontSize: 12.5 }}>
+            ⟳ Buscar y recuperar
+          </button>
+        </div>
+
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 14 }}>Sincronización</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 9, height: 9, borderRadius: "50%", background: syncStatus.connected ? "var(--success)" : "var(--danger)" }}></div>
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>
+              {syncStatus.connected
+                ? "Conectado a Firestore · " + fmtRelativeTime(syncStatus.lastSyncedAt)
+                : (syncStatus.error || "Sin conexión a Firestore")}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 20 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 14 }}>Respaldo</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button className="cfo-btn" onClick={exportData} style={{ flex: 1, background: "var(--surface-alt)", color: "var(--text)", borderRadius: 8, padding: 10, fontSize: 12.5 }}>Exportar</button>
+            <button className="cfo-btn" onClick={() => fileInputRef.current && fileInputRef.current.click()} style={{ flex: 1, background: "var(--surface-alt)", color: "var(--text)", borderRadius: 8, padding: 10, fontSize: 12.5 }}>Importar</button>
+            <input ref={fileInputRef} type="file" accept="application/json" onChange={importData} style={{ display: "none" }} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ border: "1px solid var(--danger)", background: "var(--danger-soft)", borderRadius: 14, padding: 20, marginTop: 18 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--danger)", marginBottom: 8 }}>Zona de peligro</div>
+        <div style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 14 }}>Borra permanentemente todos tus datos financieros de este dispositivo y de Firestore. No hay forma de recuperarlos.</div>
+        <button className="cfo-btn" onClick={wipeAll} style={{ background: "var(--danger)", color: "#fff", borderRadius: 8, padding: "10px 16px", fontSize: 12.5 }}>Eliminar todos los datos</button>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Shell / Nav ----------
+
+const TABS = [
+  { key: "hoy", label: "Hoy", short: "Hoy", group: "Diario" },
+  { key: "movimientos", label: "Movimientos", short: "Mov.", group: "Diario" },
+  { key: "metas", label: "Metas & Wishlist", short: "Metas", group: "Planeación" },
+  { key: "presupuesto", label: "Presupuesto", short: "Presup.", group: "Planeación" },
+  { key: "gasolina", label: "Gasolina", short: "Gas", group: "Planeación" },
+  { key: "datos", label: "Datos & Configuración", short: "Datos", group: "Sistema" }
+];
+
+function App() {
+  const [state, setState] = useState(loadLocalState);
+  const [tab, setTab] = useState("hoy");
+  const [toastMsg, setToastMsg] = useState("");
+  const toastTimer = useRef(null);
+
+  useEffect(() => { saveLocalState(state); }, [state]);
+  const syncStatus = useFirebaseSync(state, setState);
+
+  const toast = useCallback((msg) => {
+    setToastMsg(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastMsg(""), 2200);
+  }, []);
+
+  /* v4.5: recuperación de datos del CFO original.
+     La versión anterior guardaba en Firestore documentos por clave en la colección
+     "cfo_data" (ids tipo "cfo_user__<clave>", con {key, value: JSON, ts}). Esta rutina
+     lee TODOS esos documentos, detecta por FORMA qué contienen (transacciones, cargas de
+     gasolina) y fusiona lo que falte en el estado actual, sin duplicar ni sobrescribir. */
+  const recoverLegacy = async () => {
+    const db = getDb();
+    if (!db) { alert("Sin conexión a Firestore."); return; }
+    try {
+      const snap = await db.collection("cfo_data").get();
+      let legacyTx = [], legacyFuel = [];
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (!d || !d.value) return;
+        let v; try { v = JSON.parse(d.value); } catch (e) { return; }
+        if (!Array.isArray(v) || !v.length) return;
+        const sample = v[0] || {};
+        if (sample.amount != null && sample.date && (sample.type || sample.category)) legacyTx = legacyTx.concat(v);
+        else if (sample.liters != null || sample.odometer != null) legacyFuel = legacyFuel.concat(v);
+      });
+      setState(s => {
+        // Transacciones: dedupe por id, y por (fecha+monto+descripción) contra las actuales
+        const txKey = t => (t.date || "") + "|" + Number(t.amount) + "|" + String(t.description || t.desc || "").trim().toLowerCase();
+        const haveTx = new Set(s.transactions.map(txKey));
+        const haveTxIds = new Set(s.transactions.map(t => t.id));
+        const newTx = legacyTx
+          .filter(t => t && t.date && t.amount != null && !haveTxIds.has(t.id) && !haveTx.has(txKey(t)))
+          .map(t => ({
+            id: t.id || uid(), date: t.date, type: t.type || "Gasto",
+            category: t.category || "Otros", description: t.description || t.desc || "",
+            method: t.method || t.metodo || "Débito", amount: Number(t.amount) || 0
+          }));
+        // Cargas: dedupe por (fecha+odómetro+litros)
+        const fKey = f => (f.date || "") + "|" + (f.odometer != null ? f.odometer : "") + "|" + (Number(f.liters) || 0);
+        const haveF = new Set(s.fuelLogs.map(fKey));
+        const newFuel = legacyFuel
+          .filter(f => f && f.date && !haveF.has(fKey(f)))
+          .map(f => ({
+            id: f.id || uid(), date: f.date,
+            liters: Number(f.liters) || 0, cost: Number(f.amount != null ? f.amount : f.cost) || 0,
+            odometer: f.odometer != null && f.odometer !== "" ? Number(f.odometer) : null,
+            barsBefore: f.barsBefore != null ? f.barsBefore : null,
+            barsAfter: f.barsAfter != null ? f.barsAfter : null,
+            station: f.station || "", notes: f.notes || "", kml: null
+          }));
+        // Fusionar y ordenar (recientes primero), recalculando la cadena de km/L
+        const mergedFuel = [...s.fuelLogs, ...newFuel]
+          .sort((a,b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.odometer||0) - (b.odometer||0)));
+        let prevOdo = null, prevBarsAfter = null;
+        const recomputed = mergedFuel.map(f => {
+          let kml = null;
+          if (f.odometer != null && prevOdo != null && f.odometer > prevOdo) {
+            const consumed = segmentLiters(prevBarsAfter, f.liters, f.barsBefore, f.barsAfter) || f.liters;
+            if (consumed > 0 && f.liters > 0) {
+              const v = ((f.odometer - prevOdo) * MI_TO_KM) / consumed;
+              kml = (v > 0 && v < 30) ? Number(v.toFixed(1)) : null;
+            }
+          }
+          if (f.odometer != null) prevOdo = f.odometer;
+          if (f.barsAfter != null) prevBarsAfter = f.barsAfter;
+          return { ...f, kml };
+        }).reverse();
+        const mergedTx = [...s.transactions, ...newTx]
+          .sort((a,b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+        alert("Recuperado de la versión anterior: " + newTx.length + " movimiento(s) y " + newFuel.length + " carga(s) de gasolina.");
+        return { ...s, transactions: mergedTx, fuelLogs: recomputed };
+      });
+    } catch (e) { alert("No se pudo leer la colección anterior: " + e.message); }
+  };
+
+  const actions = useMemo(() => ({
+    recoverLegacy,
+    toggleTheme: () => setState(s => ({ ...s, theme: s.theme === "dark" ? "light" : "dark" })),
+    addTransaction: (tx) => setState(s => {
+      const delta = tx.type === "gasto" ? -tx.amount : tx.amount;
+      return {
+        ...s,
+        transactions: [tx, ...s.transactions],
+        liquidez: s.liquidez + delta,
+        ahorroAcumulado: tx.type === "ahorro" ? s.ahorroAcumulado + tx.amount : s.ahorroAcumulado
+      };
+    }),
+    deleteTransaction: (id) => setState(s => {
+      const tx = s.transactions.find(t => t.id === id);
+      if (!tx) return s;
+      const delta = tx.type === "gasto" ? tx.amount : -tx.amount;
+      return {
+        ...s,
+        transactions: s.transactions.filter(t => t.id !== id),
+        liquidez: s.liquidez + delta,
+        ahorroAcumulado: tx.type === "ahorro" ? s.ahorroAcumulado - tx.amount : s.ahorroAcumulado
+      };
+    }),
+    togglePending: (id) => setState(s => {
+      const item = s.pending.find(p => p.id === id);
+      if (!item) return s;
+      const willBeDone = !item.done;
+      let liquidez = s.liquidez, deudaTotal = s.finance.deudaTotal, ahorroAcumulado = s.ahorroAcumulado;
+      if (item.amount != null) {
+        const applied = willBeDone ? 1 : -1;
+        liquidez += item.amount * applied;
+        if (item.affects === "deuda") deudaTotal -= Math.abs(item.amount) * applied;
+        if (item.affects === "ahorro") ahorroAcumulado += Math.abs(item.amount) * applied;
+      }
+      return {
+        ...s,
+        liquidez, ahorroAcumulado,
+        finance: { ...s.finance, deudaTotal },
+        pending: s.pending.map(p => p.id === id ? { ...p, done: willBeDone } : p)
+      };
+    }),
+    contributeGoal: (id, amount) => setState(s => ({
+      ...s,
+      liquidez: s.liquidez - amount,
+      ahorroAcumulado: s.ahorroAcumulado + amount,
+      goals: s.goals.map(g => g.id === id ? { ...g, saved: g.saved + amount } : g)
+    })),
+    addGoal: (payload) => setState(s => ({ ...s, goals: [...s.goals, { id: uid(), name: payload.name, target: payload.target, saved: 0, targetDate: payload.targetDate || null }] })),
+    deleteGoal: (id) => setState(s => ({ ...s, goals: s.goals.filter(g => g.id !== id) })),
+    addWish: (payload) => setState(s => ({ ...s, wishlist: [...s.wishlist, { id: uid(), name: payload.name, category: payload.category || "General", price: payload.target }] })),
+    deleteWish: (id) => setState(s => ({ ...s, wishlist: s.wishlist.filter(w => w.id !== id) })),
+    addFuel: (payload) => setState(s => {
+      const prev = s.fuelLogs[0];
+      const prevBarsAfter = prev && prev.barsAfter != null ? prev.barsAfter : null;
+      // v3.25.2 (restaurado): el consumo real de un tramo se corrige por rayitas
+      // cuando están disponibles, en vez de asumir que litros cargados = litros gastados.
+      const consumed = segmentLiters(prevBarsAfter, payload.liters, payload.barsBefore, payload.barsAfter) || payload.liters;
+      // v4.3: si no hay tramo válido, el km/L queda null (se muestra "—").
+      // Antes se generaba un número ALEATORIO (11 + Math.random()*3): dato inventado.
+      const kml = prev && prev.odometer != null && payload.odometer > prev.odometer && consumed > 0
+        ? Number((((payload.odometer - prev.odometer) * MI_TO_KM) / consumed).toFixed(1)) : null; /* v4.4: mi→km */
+      const date = payload.date || todayISO();
+      const entry = {
+        id: uid(), date, liters: payload.liters, cost: payload.cost, odometer: payload.odometer, kml,
+        barsBefore: payload.barsBefore != null ? payload.barsBefore : null,
+        barsAfter: payload.barsAfter != null ? payload.barsAfter : null,
+        station: payload.station || "", notes: payload.notes || ""
+      };
+      // v4.3: con rayitas después → nivel exacto; sin rayitas → nivel previo + litros
+      // cargados convertidos a % del tanque (antes se asumía 100% aunque la carga fuera parcial).
+      const tankPct = payload.barsAfter != null
+        ? Math.round((payload.barsAfter / GAUGE_BARS) * 100)
+        : Math.min(100, Math.round(s.tankPct + (payload.liters / TANK_LITERS) * 100));
+      return {
+        ...s,
+        fuelLogs: [entry, ...s.fuelLogs],
+        liquidez: s.liquidez - payload.cost,
+        tankPct,
+        transactions: [{ id: uid(), date, desc: "Carga de gasolina" + (entry.station ? " · " + entry.station : ""), category: "Transporte", type: "gasto", amount: payload.cost }, ...s.transactions]
+      };
+    }),
+    updateFuel: (id, payload) => setState(s => ({
+      ...s,
+      fuelLogs: s.fuelLogs.map(f => f.id === id ? { ...f, ...payload } : f),
+      // Si el registro editado es la carga más reciente y trae "rayitas después",
+      // el tanque actual se sincroniza con ese valor (misma regla que al crear).
+      tankPct: (s.fuelLogs[0] && s.fuelLogs[0].id === id && payload.barsAfter != null)
+        ? Math.round((payload.barsAfter / GAUGE_BARS) * 100) : s.tankPct
+    })),
+    deleteFuel: (id) => setState(s => ({ ...s, fuelLogs: s.fuelLogs.filter(f => f.id !== id) })),
+    setCurrentBars: (bars) => setState(s => ({ ...s, tankPct: Math.max(0, Math.min(100, Math.round((bars / GAUGE_BARS) * 100 * 10) / 10)) })),
+    addCategory: (name) => setState(s => ({ ...s, categories: [...s.categories, name] })),
+    removeCategory: (name) => setState(s => ({ ...s, categories: s.categories.filter(c => c !== name) })),
+    addBudget: (payload) => setState(s => ({ ...s, budgets: [...s.budgets, { id: uid(), category: payload.category, amount: payload.amount }] })),
+    deleteBudget: (id) => setState(s => ({ ...s, budgets: s.budgets.filter(b => b.id !== id) })),
+    updateBudgetAmount: (id, amount) => setState(s => ({ ...s, budgets: s.budgets.map(b => b.id === id ? { ...b, amount } : b) })),
+    // Monto del Planeador para una categoría (mirror dinámico del Presupuesto real).
+    setPlannerAmount: (category, amount) => setState(s => ({ ...s, planner: { ...s.planner, [category]: amount } })),
+    updateFinance: (field, value) => setState(s => ({ ...s, finance: { ...s.finance, [field]: value } })),
+    // v4.1: en vez de aplicar de inmediato, el plan queda guardado y se aplica solo
+    // cuando llega (o ya pasó) la fecha de la próxima quincena — ver useEffect en App.
+    // rows: [{category, amount}] — una entrada por cada categoría presupuestada.
+    schedulePlan: (applyDate, rows) => setState(s => ({ ...s, plannerScheduled: { applyDate, rows } })),
+    cancelScheduledPlan: () => setState(s => ({ ...s, plannerScheduled: null })),
+    replaceState: (newState) => setState(() => ({ ...seedData(), ...newState })),
+    wipeAll: () => setState(() => seedData())
+  }), []);
+
+  // v4.1: aplica un plan guardado en cuanto se alcanza su fecha (revisa al montar
+  // y una vez por minuto — cubre el caso de dejar la pestaña abierta hasta esa fecha).
+  useEffect(() => {
+    function checkScheduledPlan() {
+      setState(s => {
+        const sched = s.plannerScheduled;
+        if (!sched || sched.applyDate > todayISO()) return s;
+        return {
+          ...s,
+          plannerScheduled: null,
+          budgets: s.budgets.map(b => {
+            const row = sched.rows && sched.rows.find(r => r.category === b.category);
+            return row ? { ...b, amount: row.amount } : b;
+          })
+        };
+      });
+    }
+    checkScheduledPlan();
+    const id = setInterval(checkScheduledPlan, 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="cfo-root" data-theme={state.theme}>
+      <div className="cfo-topbar" style={{ alignItems: "center", justifyContent: "space-between", padding: "16px 18px", borderBottom: "1px solid var(--border)" }}>
+        <div className="cfo-serif" style={{ fontSize: 19, fontWeight: 500, color: "var(--primary)" }}>CFO Personal</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button className="cfo-btn" onClick={actions.toggleTheme}
+            style={{ width: 34, height: 34, borderRadius: 9, background: "var(--surface-alt)", border: "1px solid var(--border)", color: "var(--text)", fontSize: 14 }}>◐</button>
+        </div>
+      </div>
+
+      <div className="cfo-shell">
+        <aside className="cfo-sidebar" style={{ flexDirection: "column", width: 272, flex: "0 0 272px", padding: "28px 18px 20px 26px", borderRight: "1px solid var(--border)" }}>
+          <div className="cfo-serif" style={{ fontSize: 23, fontWeight: 500, letterSpacing: "-0.01em", color: "var(--primary)" }}>CFO Personal</div>
+          <div style={{ fontSize: 10.5, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--muted-light)", marginBottom: 30 }}>Finanzas de un solo usuario</div>
+          {["Diario","Planeación","Sistema"].map(group => (
+            <React.Fragment key={group}>
+              <div style={{ fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted-light)", margin: "0 0 8px 14px" }}>{group}</div>
+              {TABS.filter(t => t.group === group).map(t => (
+                <button key={t.key} className="cfo-btn" onClick={() => setTab(t.key)}
+                  style={{ display: "flex", alignItems: "center", padding: "11px 14px", borderRadius: 9, fontSize: 14.5,
+                    background: tab === t.key ? "var(--primary)" : "none", color: tab === t.key ? "var(--on-primary)" : "var(--muted)",
+                    marginBottom: 3, width: "100%", textAlign: "left" }}>
+                  {t.label}
+                </button>
+              ))}
+              {group !== "Sistema" && <div style={{ marginTop: 6 }}></div>}
+            </React.Fragment>
+          ))}
+          <div style={{ marginTop: "auto", paddingTop: 20, borderTop: "1px solid var(--border-soft)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>Quincena · día {state.quincena.day}/{state.quincena.total}</span>
+          </div>
+        </aside>
+
+        <main className="cfo-main">
+          {tab === "hoy" && <HoyScreen state={state} actions={actions} />}
+          {tab === "movimientos" && <MovimientosScreen state={state} actions={actions} />}
+          {tab === "metas" && <MetasWishlistScreen state={state} actions={actions} />}
+          {tab === "presupuesto" && <PresupuestoScreen state={state} actions={actions} />}
+          {tab === "gasolina" && <GasolinaScreen state={state} actions={actions} />}
+          {tab === "datos" && <DatosScreen state={state} actions={actions} toast={toast} syncStatus={syncStatus} />}
+        </main>
+      </div>
+
+      <div className="cfo-bottomnav" style={{ position: "sticky", bottom: 0, left: 0, right: 0, justifyContent: "space-around", alignItems: "center", background: "var(--surface)", borderTop: "1px solid var(--border)", borderRadius: "0 0 18px 18px", padding: "10px 6px" }}>
+        {TABS.map(t => (
+          <button key={t.key} className="cfo-btn" onClick={() => setTab(t.key)}
+            style={{ background: "none", color: tab === t.key ? "var(--primary)" : "var(--muted-light)", fontSize: 11.5, fontWeight: tab === t.key ? 700 : 500 }}>
+            {t.short}
+          </button>
+        ))}
+      </div>
+
+      <Toast message={toastMsg} />
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
+
 <head>
 <meta charset="UTF-8"><!DOCTYPE html>
 <html lang="es">
