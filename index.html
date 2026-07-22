@@ -83,7 +83,7 @@
     .cfo-kpigrid { grid-template-columns: repeat(4,1fr); gap: 14px; }
     .cfo-goalgrid { grid-template-columns: repeat(3,1fr); gap: 18px; }
     .cfo-panelgrid { grid-template-columns: repeat(2,1fr); gap: 18px; }
-    .cfo-histrow { grid-template-columns: 70px 1fr 1fr 1fr 1fr; align-items: center; gap: 14px; }
+    .cfo-histrow { grid-template-columns: 1.6fr 0.8fr 0.9fr 0.9fr; align-items: center; gap: 14px; }
   }
 
   .cfo-btn { font-family: "IBM Plex Sans", sans-serif; font-weight: 600; cursor: pointer; border: none; }
@@ -533,12 +533,12 @@ function fmtRelativeTime(ts) {
 
 // ---------- shared bits ----------
 
-function KPICard({ label, value, note, mono }) {
+function KPICard({ label, value, note, mono, valueSize, noteColor }) {
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
       <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 8 }}>{label}</div>
-      <div className={"cfo-serif" + (mono !== false ? " cfo-mono" : "")} style={{ fontSize: 22, fontWeight: 500, color: "var(--text)" }}>{value}</div>
-      {note && <div style={{ fontSize: 11, color: "var(--success)", marginTop: 4 }}>{note}</div>}
+      <div className={"cfo-serif" + (mono !== false ? " cfo-mono" : "")} style={{ fontSize: valueSize || 22, fontWeight: 500, color: "var(--text)" }}>{value}</div>
+      {note && <div style={{ fontSize: 11, color: noteColor || "var(--success)", marginTop: 4 }}>{note}</div>}
     </div>
   );
 }
@@ -1125,96 +1125,200 @@ function PresupuestoScreen({ state, actions }) {
 // Medidor en forma de media luna (semicírculo, lado plano hacia abajo) con 12
 // divisiones — las marcas se reparten de -90° (izquierda) a +90° (derecha),
 // pivotando desde el centro inferior del contenedor.
+const TANK_LITERS = 70;
+const GAUGE_BARS = 12;
+const LITERS_PER_BAR = TANK_LITERS / GAUGE_BARS; // ~5.83L por rayita
+
+// Medidor en forma de media luna (semicírculo, lado plano hacia abajo) con 12
+// divisiones — las marcas se reparten de -90° (izquierda) a +90° (derecha),
+// pivotando desde el centro inferior del contenedor.
 function FuelGauge({ pct }) {
-  const R = 92;
+  const R = 100;
   const ticks = [];
   const filled = Math.round((pct / 100) * 12);
   for (let i = 0; i < 12; i++) {
     const deg = -90 + i * (180 / 11);
     const active = i < filled;
     ticks.push(
-      <div key={i} style={{ position: "absolute", left: "50%", bottom: 0, width: 3, height: 16, borderRadius: 2,
+      <div key={i} style={{ position: "absolute", left: "50%", bottom: 0, width: 3, height: 17, borderRadius: 2,
         background: active ? "var(--accent)" : "var(--border)",
         transform: "translateX(-50%) translateY(-" + R + "px) rotate(" + deg + "deg)",
         transformOrigin: "50% " + R + "px" }}></div>
     );
   }
   return (
-    <div style={{ position: "relative", width: 220, height: R + 26 }}>
+    <div style={{ position: "relative", width: 240, height: R + 30, flexShrink: 0 }}>
       {ticks}
       <div style={{ position: "absolute", left: 0, right: 0, bottom: 6, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div className="cfo-serif" style={{ fontSize: 34, fontWeight: 500, color: "var(--accent)" }}>{pct}%</div>
+        <div className="cfo-serif" style={{ fontSize: 36, fontWeight: 500, color: "var(--accent)" }}>{pct}%</div>
         <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>del tanque</div>
       </div>
     </div>
   );
 }
 
+// Mini-gauge circular (conic-gradient) para las filas del historial.
+function MiniGauge({ kml }) {
+  const hasData = kml != null && kml > 0;
+  const deg = hasData ? Math.min(360, Math.round((kml / 20) * 360)) : 0;
+  const color = !hasData ? "var(--border)" : kml >= 10.5 ? "var(--success)" : kml >= 8 ? "var(--warn)" : "var(--danger)";
+  return (
+    <div style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
+      background: hasData ? ("conic-gradient(" + color + " " + deg + "deg, var(--surface-alt) 0)") : "var(--surface-alt)",
+      border: hasData ? "none" : "1px dashed var(--border)" }}></div>
+  );
+}
+
+function kmlColor(kml) {
+  if (kml == null || kml <= 0) return "var(--muted-light)";
+  if (kml >= 10.5) return "var(--success)";
+  if (kml >= 8) return "var(--warn)";
+  return "var(--danger)";
+}
+
+function tankStatus(pct) {
+  if (pct >= 70) return { text: "Tanque lleno", color: "var(--success)" };
+  if (pct >= 25) return { text: "Nivel medio", color: "var(--warn)" };
+  return { text: "En reserva", color: "var(--danger)" };
+}
+
+const emptyFuelForm = { date: todayISO(), liters: "", cost: "", odometer: "", barsBefore: "", barsAfter: "", station: "", notes: "" };
+
 function GasolinaScreen({ state, actions }) {
-  const [liters, setLiters] = useState("");
-  const [cost, setCost] = useState("");
-  const [odometer, setOdometer] = useState("");
+  const [form, setForm] = useState(emptyFuelForm);
+  const [showMore, setShowMore] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   const logs = state.fuelLogs;
-  const kmlPromedio = logs.length ? (logs.reduce((a,b) => a + (b.kml || 0), 0) / logs.length).toFixed(1) : "0.0";
-  const kmlGlobal = logs.length > 1 ? (logs.reduce((a,b) => a + (b.kml || 0), 0) / logs.length * 0.96).toFixed(1) : kmlPromedio;
-  const costoPorKm = logs.length ? (logs[0].cost / (logs[0].liters * (logs[0].kml || 1))).toFixed(2) : "0.00";
-  const autonomia = logs.length ? Math.round((state.tankPct/100) * 60 * parseFloat(kmlPromedio)) : 0;
+  const kmlValidos = logs.filter(f => f.kml && f.kml > 0);
+  const kmlPromedio = kmlValidos.length ? (kmlValidos.reduce((a,b) => a + b.kml, 0) / kmlValidos.length) : 0;
+  const kmlGlobal = kmlValidos.length > 1 ? kmlPromedio * 0.96 : kmlPromedio;
+  const costoPorKm = (logs.length && logs[0].kml) ? (logs[0].cost / (logs[0].liters * logs[0].kml)) : 0;
+  const currentBars = Math.round((state.tankPct / 100) * GAUGE_BARS);
+  const litersRemaining = currentBars * LITERS_PER_BAR;
+  const autonomia = kmlPromedio ? Math.round(litersRemaining * kmlPromedio) : 0;
+  const status = tankStatus(state.tankPct);
+
+  function updateField(key, val) { setForm(f => ({ ...f, [key]: val })); }
 
   function submit(e) {
     e.preventDefault();
-    const l = parseFloat(liters), c = parseFloat(cost), o = parseFloat(odometer);
+    const l = parseFloat(form.liters), c = parseFloat(form.cost), o = parseFloat(form.odometer);
     if (!l || !c || !o) return;
-    actions.addFuel({ liters: l, cost: c, odometer: o });
-    setLiters(""); setCost(""); setOdometer("");
+    const payload = {
+      date: form.date || todayISO(),
+      liters: l, cost: c, odometer: o,
+      barsBefore: form.barsBefore !== "" ? parseInt(form.barsBefore, 10) : null,
+      barsAfter: form.barsAfter !== "" ? parseInt(form.barsAfter, 10) : null,
+      station: form.station.trim(),
+      notes: form.notes.trim()
+    };
+    if (editingId) actions.updateFuel(editingId, payload);
+    else actions.addFuel(payload);
+    setForm(emptyFuelForm); setEditingId(null); setShowMore(false);
   }
+
+  function startEdit(f) {
+    setEditingId(f.id);
+    setForm({
+      date: f.date, liters: String(f.liters), cost: String(f.cost), odometer: f.odometer != null ? String(f.odometer) : "",
+      barsBefore: f.barsBefore != null ? String(f.barsBefore) : "", barsAfter: f.barsAfter != null ? String(f.barsAfter) : "",
+      station: f.station || "", notes: f.notes || ""
+    });
+    setShowMore(true);
+  }
+
+  function cancelEdit() { setEditingId(null); setForm(emptyFuelForm); setShowMore(false); }
+
+  function confirmDelete(id) {
+    if (confirm("¿Eliminar esta carga del historial? Esta acción no se puede deshacer.")) actions.deleteFuel(id);
+  }
+
+  const fieldStyle = { background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "var(--text)" };
 
   return (
     <div data-screen-label="Gasolina">
-      <div className="cfo-grid2" style={{ marginBottom: 24 }}>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 26, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <FuelGauge pct={state.tankPct} />
-        </div>
-        <div className="cfo-kpigrid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-          <KPICard label="km/L promedio" value={kmlPromedio} />
-          <KPICard label="km/L global" value={kmlGlobal} />
-          <KPICard label="Costo por km" value={"$" + costoPorKm} />
-          <KPICard label="Autonomía est." value={autonomia + " km"} />
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 26, marginBottom: 18,
+        display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
+        <FuelGauge pct={state.tankPct} />
+        <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: status.color, marginBottom: 8 }}>{status.text}</div>
+          <div className="cfo-mono" style={{ fontSize: 13, color: "var(--text)", marginBottom: 4 }}>
+            {currentBars} de {GAUGE_BARS} rayitas
+          </div>
+          <div className="cfo-mono" style={{ fontSize: 13, color: "var(--muted)" }}>
+            ~{litersRemaining.toFixed(1)} L restantes
+          </div>
         </div>
       </div>
 
+      <div className="cfo-kpigrid" style={{ marginBottom: 24 }}>
+        <KPICard label="km/L promedio" value={kmlPromedio ? kmlPromedio.toFixed(1) : "—"} valueSize={27} />
+        <KPICard label="km/L global" value={kmlGlobal ? kmlGlobal.toFixed(1) : "—"} valueSize={27} />
+        <KPICard label="Costo por km" value={costoPorKm ? "$" + costoPorKm.toFixed(2) : "—"} valueSize={27} />
+        <KPICard label="Autonomía est." value={autonomia ? autonomia + " km" : "—"} valueSize={27}
+          note="con el rendimiento global" noteColor="var(--muted)" />
+      </div>
+
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 20, marginBottom: 24 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 14 }}>Registrar carga</div>
-        <form onSubmit={submit} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
-          <input value={liters} onChange={e => setLiters(e.target.value)} type="number" step="0.1" min="0" placeholder="Litros"
-            style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "var(--text)" }} />
-          <input value={cost} onChange={e => setCost(e.target.value)} type="number" step="0.01" min="0" placeholder="Costo total"
-            style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "var(--text)" }} />
-          <input value={odometer} onChange={e => setOdometer(e.target.value)} type="number" step="1" min="0" placeholder="Odómetro"
-            style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "var(--text)" }} />
-          <button type="submit" className="cfo-btn" style={{ background: "var(--primary)", color: "var(--on-primary)", borderRadius: 8, padding: 10, fontSize: 13 }}>Guardar</button>
+        <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 14 }}>{editingId ? "Editar carga" : "Registrar carga"}</div>
+        <form onSubmit={submit}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 10 }}>
+            <input value={form.liters} onChange={e => updateField("liters", e.target.value)} type="number" step="0.1" min="0" placeholder="Litros" style={fieldStyle} />
+            <input value={form.cost} onChange={e => updateField("cost", e.target.value)} type="number" step="0.01" min="0" placeholder="Costo total" style={fieldStyle} />
+            <input value={form.odometer} onChange={e => updateField("odometer", e.target.value)} type="number" step="1" min="0" placeholder="Odómetro" style={fieldStyle} />
+            <input value={form.date} onChange={e => updateField("date", e.target.value)} type="date" style={fieldStyle} />
+          </div>
+
+          <button type="button" onClick={() => setShowMore(!showMore)}
+            style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 12, cursor: "pointer", padding: 0, marginBottom: showMore ? 10 : 14 }}>
+            {showMore ? "▾ Menos detalles" : "▸ Más detalles (rayitas, gasolinera, notas)"}
+          </button>
+
+          {showMore && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 14 }}>
+              <input value={form.barsBefore} onChange={e => updateField("barsBefore", e.target.value)} type="number" min="0" max={GAUGE_BARS} placeholder="Rayitas antes" style={fieldStyle} />
+              <input value={form.barsAfter} onChange={e => updateField("barsAfter", e.target.value)} type="number" min="0" max={GAUGE_BARS} placeholder="Rayitas después" style={fieldStyle} />
+              <input value={form.station} onChange={e => updateField("station", e.target.value)} type="text" placeholder="Gasolinera" style={fieldStyle} />
+              <input value={form.notes} onChange={e => updateField("notes", e.target.value)} type="text" placeholder="Notas" style={fieldStyle} />
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button type="submit" className="cfo-btn" style={{ background: "var(--primary)", color: "var(--on-primary)", borderRadius: 8, padding: "10px 18px", fontSize: 13 }}>
+              {editingId ? "Guardar cambios" : "Guardar"}
+            </button>
+            {editingId && (
+              <button type="button" onClick={cancelEdit} className="cfo-btn" style={{ background: "var(--surface-alt)", color: "var(--text)", borderRadius: 8, padding: "10px 18px", fontSize: 13 }}>
+                Cancelar
+              </button>
+            )}
+          </div>
         </form>
       </div>
 
       <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>Historial</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {logs.map(f => {
-          const deg = Math.min(360, Math.round((f.kml / 20) * 360));
-          const color = f.kml >= 12 ? "var(--success)" : f.kml >= 10 ? "var(--warn)" : "var(--danger)";
-          return (
-            <div key={f.id} className="cfo-histrow" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px" }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "conic-gradient(var(--accent) " + deg + "deg, var(--surface-alt) 0)" }}></div>
-              <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{fmtShortDate(f.date)}</div>
-              <div className="cfo-mono" style={{ fontSize: 12.5 }}>{f.liters} L</div>
-              <div className="cfo-mono" style={{ fontSize: 12.5 }}>{fmtMoney(f.cost)}</div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <div className="cfo-mono" style={{ fontSize: 13, fontWeight: 600, color }}>{f.kml} km/L</div>
-                <button className="cfo-btn" onClick={() => actions.deleteFuel(f.id)} title="Eliminar"
-                  style={{ background: "none", color: "var(--muted-light)", fontSize: 15, padding: "0 4px", lineHeight: 1 }}>×</button>
+        {logs.map(f => (
+          <div key={f.id} className="cfo-histrow" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <MiniGauge kml={f.kml} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, color: "var(--text)" }}>{fmtShortDate(f.date)}</div>
+                {f.station && <div style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{f.station}</div>}
               </div>
             </div>
-          );
-        })}
+            <div className="cfo-mono" style={{ fontSize: 12.5, textAlign: "right" }}>{f.liters} L</div>
+            <div className="cfo-mono" style={{ fontSize: 12.5, textAlign: "right" }}>{fmtMoney(f.cost)}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10 }}>
+              <div className="cfo-mono" style={{ fontSize: 13, fontWeight: 600, color: kmlColor(f.kml) }}>{f.kml ? f.kml + " km/L" : "—"}</div>
+              <button className="cfo-btn" onClick={() => startEdit(f)} title="Editar"
+                style={{ background: "none", color: "var(--muted)", fontSize: 13, padding: "0 2px", lineHeight: 1 }}>✎</button>
+              <button className="cfo-btn" onClick={() => confirmDelete(f.id)} title="Eliminar"
+                style={{ background: "none", color: "var(--muted-light)", fontSize: 15, padding: "0 2px", lineHeight: 1 }}>×</button>
+            </div>
+          </div>
+        ))}
         {logs.length === 0 && <div style={{ fontSize: 13, color: "var(--muted)" }}>Aún no hay cargas registradas.</div>}
       </div>
     </div>
@@ -1405,15 +1509,28 @@ function App() {
     addFuel: (payload) => setState(s => {
       const prev = s.fuelLogs[0];
       const kml = prev && payload.odometer > prev.odometer ? Number(((payload.odometer - prev.odometer) / payload.liters).toFixed(1)) : Number((11 + Math.random() * 3).toFixed(1));
-      const entry = { id: uid(), date: todayISO(), liters: payload.liters, cost: payload.cost, odometer: payload.odometer, kml };
+      const date = payload.date || todayISO();
+      const entry = {
+        id: uid(), date, liters: payload.liters, cost: payload.cost, odometer: payload.odometer, kml,
+        barsBefore: payload.barsBefore != null ? payload.barsBefore : null,
+        barsAfter: payload.barsAfter != null ? payload.barsAfter : null,
+        station: payload.station || "", notes: payload.notes || ""
+      };
+      // v4.2: si se capturan rayitas después de cargar, el tanque refleja ese nivel
+      // real en vez de asumir siempre 100% (comportamiento anterior si no se indica).
+      const tankPct = payload.barsAfter != null ? Math.round((payload.barsAfter / GAUGE_BARS) * 100) : 100;
       return {
         ...s,
         fuelLogs: [entry, ...s.fuelLogs],
         liquidez: s.liquidez - payload.cost,
-        tankPct: 100,
-        transactions: [{ id: uid(), date: todayISO(), desc: "Carga de gasolina", category: "Transporte", type: "gasto", amount: payload.cost }, ...s.transactions]
+        tankPct,
+        transactions: [{ id: uid(), date, desc: "Carga de gasolina" + (entry.station ? " · " + entry.station : ""), category: "Transporte", type: "gasto", amount: payload.cost }, ...s.transactions]
       };
     }),
+    updateFuel: (id, payload) => setState(s => ({
+      ...s,
+      fuelLogs: s.fuelLogs.map(f => f.id === id ? { ...f, ...payload } : f)
+    })),
     deleteFuel: (id) => setState(s => ({ ...s, fuelLogs: s.fuelLogs.filter(f => f.id !== id) })),
     addCategory: (name) => setState(s => ({ ...s, categories: [...s.categories, name] })),
     removeCategory: (name) => setState(s => ({ ...s, categories: s.categories.filter(c => c !== name) })),
