@@ -445,7 +445,9 @@ function seedData() {
       { id: "budget-seed-5", category: "Entretenimiento", amount: 115.0 },
       { id: "budget-seed-6", category: "Alimentación", amount: 10.0 }
     ],
-    planner: { pctMetas: 40, pctAhorro: 35, pctDeseos: 25 },
+    // Montos editados por categoría en el Planeador (clave = nombre de categoría);
+    // las categorías sin entrada aquí toman por default el monto presupuestado real.
+    planner: {},
     plannerScheduled: null,
     quincena: { day: 9, total: 15 }
   };
@@ -995,10 +997,13 @@ function PresupuestoScreen({ state, actions }) {
     return map;
   }, [state.transactions, qStartISO, qEndISO]);
 
+  // Redondeado a 1 decimal para no depender de comparaciones de punto flotante
+  // exactas (dos categorías al 100% real, ej. 20/20 y 100/100, deben caer en la
+  // misma rama aunque la suma de transacciones arrastre imprecisión de floats).
   const rows = state.budgets.map(b => ({
     ...b,
     real: realByCategory[b.category] || 0,
-    pct: b.amount > 0 ? (realByCategory[b.category] || 0) / b.amount * 100 : 0
+    pct: b.amount > 0 ? Math.round((realByCategory[b.category] || 0) / b.amount * 1000) / 10 : 0
   }));
   const totalBudget = rows.reduce((s,r) => s + r.amount, 0);
   const totalReal = rows.reduce((s,r) => s + r.real, 0);
@@ -1044,15 +1049,30 @@ function PresupuestoScreen({ state, actions }) {
     setEditingId(null);
   }
 
-  // Planeador
+  // Planeador — precarga las categorías y montos desde el Presupuesto real
+  // (state.budgets); el usuario puede ajustar cada una, y ese ajuste se guarda
+  // en state.planner por categoría hasta que se aplique o se borre la categoría.
   const ingresoEsperado = state.finance.ingresoEsperadoQuincenal || 0;
   const fijosYDeuda = state.finance.fijosYDeuda || 0;
   const disponibleARepartir = Math.max(0, ingresoEsperado - fijosYDeuda);
-  const planner = state.planner;
-  const totalPct = planner.pctMetas + planner.pctAhorro + planner.pctDeseos;
-  const montoMetas = Math.round(disponibleARepartir * planner.pctMetas / 100);
-  const montoAhorro = Math.round(disponibleARepartir * planner.pctAhorro / 100);
-  const montoDeseos = Math.round(disponibleARepartir * planner.pctDeseos / 100);
+  const plannerRows = state.budgets.map(b => ({
+    category: b.category,
+    amount: state.planner[b.category] != null ? state.planner[b.category] : b.amount
+  }));
+  const totalPlanner = plannerRows.reduce((s,r) => s + r.amount, 0);
+  const totalPct = disponibleARepartir > 0 ? Math.round((totalPlanner / disponibleARepartir) * 1000) / 10 : 0;
+
+  function setRowAmount(category, amount) { actions.setPlannerAmount(category, Math.max(0, amount)); }
+  function setRowPct(category, pct) { setRowAmount(category, Math.round(disponibleARepartir * pct / 100)); }
+
+  const [editingFinance, setEditingFinance] = useState(null); // 'ingreso' | 'fijos' | null
+  const [financeValue, setFinanceValue] = useState("");
+  function startEditFinance(field, current) { setEditingFinance(field); setFinanceValue(String(current)); }
+  function saveEditFinance(field) {
+    const n = parseFloat(financeValue);
+    if (!isNaN(n) && n >= 0) actions.updateFinance(field, n);
+    setEditingFinance(null);
+  }
 
   const nextDate = getNextQuincenaDate(today);
   const nextDateISO = nextDate.toISOString().slice(0,10);
@@ -1069,9 +1089,9 @@ function PresupuestoScreen({ state, actions }) {
       {sub === "actual" && (
         <div>
           <div className="cfo-kpigrid" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 18 }}>
-            <KPICard label="Proyectado a gastar esta quincena" value={fmtMoney(proyeccionGasto)}
+            <KPICard label="Proyectado a gastar esta quincena" value={fmtMoney(proyeccionGasto)} valueSize={32}
               note={"Llevas " + fmtMoney(totalReal) + " en " + diasTranscurridos + " de " + diasTotalesQ + " días"} />
-            <KPICard label="Te quedaría proyectado" value={fmtMoney(proyeccionRestante)}
+            <KPICard label="Te quedaría proyectado" value={fmtMoney(proyeccionRestante)} valueSize={32}
               valueColor={proyeccionRestante >= 0 ? "var(--success)" : "var(--danger)"}
               note={"para " + diasRestantes + " día" + (diasRestantes === 1 ? "" : "s") + " restantes"} />
           </div>
@@ -1085,27 +1105,27 @@ function PresupuestoScreen({ state, actions }) {
               const rs = budgetRowStyle(r);
               const isEditing = editingId === r.id;
               return (
-                <div key={r.id} style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 8,
-                  background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px", minHeight: 64 }}>
+                <div key={r.id} style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 10,
+                  background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "17px 18px", minHeight: 74 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 8, minWidth: 0 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>{r.category}</span>
-                      <span style={{ fontSize: 11, color: rs.color, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{rs.text}</span>
+                      <span style={{ fontSize: 15, fontWeight: 600, whiteSpace: "nowrap" }}>{r.category}</span>
+                      <span style={{ fontSize: 11.5, color: rs.color, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{rs.text}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                       {isEditing ? (
                         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span className="cfo-mono" style={{ fontSize: 12, color: "var(--muted)" }}>{fmtMoney(r.real)} /</span>
+                          <span className="cfo-mono" style={{ fontSize: 13, color: "var(--muted)" }}>{fmtMoney(r.real)} /</span>
                           <input type="number" step="0.01" min="0" autoFocus value={editValue}
                             onChange={e => setEditValue(e.target.value)}
                             onBlur={saveEdit}
                             onKeyDown={e => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditingId(null); }}
                             className="cfo-mono"
-                            style={{ width: 74, fontSize: 12, border: "1px solid var(--primary)", borderRadius: 6, padding: "2px 6px", background: "var(--bg)", color: "var(--text)" }} />
+                            style={{ width: 80, fontSize: 13, border: "1px solid var(--primary)", borderRadius: 6, padding: "3px 6px", background: "var(--bg)", color: "var(--text)" }} />
                         </span>
                       ) : (
                         <div className="cfo-mono" onClick={() => startEdit(r)} title="Tocar para editar el presupuesto"
-                          style={{ fontSize: 12, whiteSpace: "nowrap", cursor: "pointer", borderBottom: "1px dashed var(--border)" }}>
+                          style={{ fontSize: 16.5, whiteSpace: "nowrap", cursor: "pointer", borderBottom: "1px dashed var(--border)" }}>
                           <span style={{ color: rs.color }}>{fmtMoney(r.real)}</span>
                           <span style={{ color: "var(--muted)" }}> / {fmtMoney(r.amount)}</span>
                         </div>
@@ -1114,7 +1134,7 @@ function PresupuestoScreen({ state, actions }) {
                         style={{ background: "none", color: "var(--muted-light)", fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>
                     </div>
                   </div>
-                  <div style={{ height: 8, borderRadius: 99, background: "var(--surface-alt)", overflow: "hidden" }}>
+                  <div style={{ height: 10, borderRadius: 99, background: "var(--surface-alt)", overflow: "hidden" }}>
                     <div style={{ height: "100%", width: Math.min(100, r.pct) + "%", borderRadius: 99, background: rs.bar }}></div>
                   </div>
                 </div>
@@ -1122,9 +1142,9 @@ function PresupuestoScreen({ state, actions }) {
             })}
             {rows.length === 0 && <div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", padding: "30px 0", gridColumn: "1 / -1" }}>Sin categorías presupuestadas todavía.</div>}
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 16px", background: "var(--surface-alt)", borderRadius: 12, fontWeight: 600, marginTop: 10 }}>
-            <div className="cfo-serif">Total</div>
-            <div className="cfo-mono">{fmtMoney(totalReal)} / {fmtMoney(totalBudget)}</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", background: "var(--surface-alt)", borderRadius: 12, fontWeight: 600, marginTop: 10 }}>
+            <div className="cfo-serif" style={{ fontSize: 16 }}>Total</div>
+            <div className="cfo-mono" style={{ fontSize: 20 }}>{fmtMoney(totalReal)} / {fmtMoney(totalBudget)}</div>
           </div>
         </div>
       )}
@@ -1144,36 +1164,70 @@ function PresupuestoScreen({ state, actions }) {
           )}
 
           <div className="cfo-kpigrid" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 20 }}>
-            <KPICard label="Ingreso esperado" value={fmtMoney(ingresoEsperado)} />
-            <KPICard label="Fijos + deuda" value={fmtMoney(fijosYDeuda)} />
-          </div>
-
-          <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 18 }}>
-            Disponible a repartir: <span className="cfo-mono" style={{ fontWeight: 600, color: "var(--text)" }}>{fmtMoney(disponibleARepartir)}</span>
-          </div>
-
-          {[
-            { key: "pctMetas", label: "Metas", monto: montoMetas },
-            { key: "pctAhorro", label: "Ahorro", monto: montoAhorro },
-            { key: "pctDeseos", label: "Deseos", monto: montoDeseos }
-          ].map(s => (
-            <div key={s.key} style={{ marginBottom: 18 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
-                <span>{s.label}</span>
-                <span className="cfo-mono">{planner[s.key]}% · {fmtMoney(s.monto)}</span>
+            {[
+              { field: "ingresoEsperadoQuincenal", label: "Ingreso esperado", current: ingresoEsperado },
+              { field: "fijosYDeuda", label: "Fijos + deuda", current: fijosYDeuda }
+            ].map(f => (
+              <div key={f.field} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 8 }}>{f.label}</div>
+                {editingFinance === f.field ? (
+                  <input type="number" step="0.01" min="0" autoFocus value={financeValue}
+                    onChange={e => setFinanceValue(e.target.value)}
+                    onBlur={() => saveEditFinance(f.field)}
+                    onKeyDown={e => { if (e.key === "Enter") saveEditFinance(f.field); if (e.key === "Escape") setEditingFinance(null); }}
+                    className="cfo-mono"
+                    style={{ fontSize: 30, fontWeight: 500, width: "100%", border: "1px solid var(--primary)", borderRadius: 6, padding: "2px 6px", background: "var(--bg)", color: "var(--text)" }} />
+                ) : (
+                  <div className="cfo-serif cfo-mono" onClick={() => startEditFinance(f.field, f.current)} title="Tocar para editar"
+                    style={{ fontSize: 30, fontWeight: 500, cursor: "pointer", borderBottom: "1px dashed var(--border)", width: "fit-content" }}>
+                    {fmtMoney(f.current)}
+                  </div>
+                )}
               </div>
-              <input type="range" min="0" max="100" value={planner[s.key]}
-                onChange={e => actions.setPlannerPct(s.key, parseInt(e.target.value, 10))}
-                style={{ width: "100%", accentColor: "var(--primary)" }} />
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>Disponible a repartir</div>
+          <div className="cfo-serif" style={{ fontSize: 24, fontWeight: 500, marginBottom: 18,
+            color: totalPlanner > disponibleARepartir ? "var(--danger)" : "var(--success)" }}>
+            {fmtMoney(disponibleARepartir)}
+          </div>
+
+          {plannerRows.map(r => {
+            const pct = disponibleARepartir > 0 ? Math.round((r.amount / disponibleARepartir) * 1000) / 10 : 0;
+            return (
+              <div key={r.category} style={{ marginBottom: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, marginBottom: 6, gap: 10 }}>
+                  <span style={{ fontWeight: 600 }}>{r.category}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input type="number" min="0" max="100" value={pct}
+                      onChange={e => setRowPct(r.category, parseFloat(e.target.value) || 0)}
+                      className="cfo-mono"
+                      style={{ width: 62, fontSize: 12.5, textAlign: "right", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 5px", background: "var(--bg)", color: "var(--text)" }} />
+                    <span style={{ fontSize: 12, color: "var(--muted)" }}>%</span>
+                    <input type="number" min="0" step="1" value={r.amount}
+                      onChange={e => setRowAmount(r.category, parseFloat(e.target.value) || 0)}
+                      className="cfo-mono"
+                      style={{ width: 90, fontSize: 20, fontWeight: 500, textAlign: "right", border: "1px solid var(--border)", borderRadius: 6, padding: "3px 6px", background: "var(--bg)", color: "var(--text)" }} />
+                  </div>
+                </div>
+                <input type="range" min="0" max="100" step="0.5" value={pct}
+                  onChange={e => setRowPct(r.category, parseFloat(e.target.value))}
+                  style={{ width: "100%", height: 3, accentColor: "var(--primary)" }} />
+              </div>
+            );
+          })}
+          {plannerRows.length === 0 && <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 18 }}>Agrega categorías en "Presupuesto actual" para repartir aquí.</div>}
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", marginBottom: 18, borderTop: "1px solid var(--border-soft)", paddingTop: 14 }}>
             <span style={{ fontSize: 13, color: "var(--muted)" }}>Total repartido</span>
-            <span className="cfo-mono" style={{ fontWeight: 600, color: totalPct === 100 ? "var(--success)" : "var(--danger)" }}>{totalPct}%</span>
+            <span className="cfo-mono" style={{ fontWeight: 600,
+              color: totalPct === 100 ? "var(--success)" : totalPct < 100 ? "var(--warn)" : "var(--danger)" }}>
+              {fmtMoney(totalPlanner)} de {fmtMoney(disponibleARepartir)} · {totalPct}%
+            </span>
           </div>
 
-          <button className="cfo-btn" onClick={() => actions.schedulePlan(nextDateISO, { pctMetas: planner.pctMetas, pctAhorro: planner.pctAhorro, pctDeseos: planner.pctDeseos, montoMetas, montoAhorro, montoDeseos })}
+          <button className="cfo-btn" onClick={() => actions.schedulePlan(nextDateISO, plannerRows)}
             style={{ width: "100%", background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: 13, fontSize: 13.5, fontWeight: 600 }}>
             📅 Guardar para el {nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
           </button>
@@ -1643,18 +1697,14 @@ function App() {
     addBudget: (payload) => setState(s => ({ ...s, budgets: [...s.budgets, { id: uid(), category: payload.category, amount: payload.amount }] })),
     deleteBudget: (id) => setState(s => ({ ...s, budgets: s.budgets.filter(b => b.id !== id) })),
     updateBudgetAmount: (id, amount) => setState(s => ({ ...s, budgets: s.budgets.map(b => b.id === id ? { ...b, amount } : b) })),
-    setPlannerPct: (key, value) => setState(s => ({ ...s, planner: { ...s.planner, [key]: value } })),
+    // Monto del Planeador para una categoría (mirror dinámico del Presupuesto real).
+    setPlannerAmount: (category, amount) => setState(s => ({ ...s, planner: { ...s.planner, [category]: amount } })),
+    updateFinance: (field, value) => setState(s => ({ ...s, finance: { ...s.finance, [field]: value } })),
     // v4.1: en vez de aplicar de inmediato, el plan queda guardado y se aplica solo
     // cuando llega (o ya pasó) la fecha de la próxima quincena — ver useEffect en App.
-    schedulePlan: (applyDate, payload) => setState(s => ({ ...s, plannerScheduled: { applyDate, ...payload } })),
+    // rows: [{category, amount}] — una entrada por cada categoría presupuestada.
+    schedulePlan: (applyDate, rows) => setState(s => ({ ...s, plannerScheduled: { applyDate, rows } })),
     cancelScheduledPlan: () => setState(s => ({ ...s, plannerScheduled: null })),
-    applyPlanToBudget: (montoMetas, montoAhorro, montoDeseos) => setState(s => ({
-      ...s,
-      budgets: s.budgets.map(b => {
-        if (b.category === "Ahorro") return { ...b, amount: montoAhorro };
-        return b;
-      })
-    })),
     replaceState: (newState) => setState(() => ({ ...seedData(), ...newState })),
     wipeAll: () => setState(() => seedData())
   }), []);
@@ -1669,7 +1719,10 @@ function App() {
         return {
           ...s,
           plannerScheduled: null,
-          budgets: s.budgets.map(b => b.category === "Ahorro" ? { ...b, amount: sched.montoAhorro } : b)
+          budgets: s.budgets.map(b => {
+            const row = sched.rows && sched.rows.find(r => r.category === b.category);
+            return row ? { ...b, amount: row.amount } : b;
+          })
         };
       });
     }
