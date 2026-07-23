@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CFO Personal · Rediseño Premium (v4.5.3)</title>
+<title>CFO Personal · Rediseño Premium (v4.5.4)</title>
 <meta name="description" content="Centro financiero personal — Hoy, Movimientos, Metas & Wishlist, Presupuesto, Gasolina y Datos & Configuración. Sincronizado con Firebase.">
 <meta name="theme-color" content="#16382B">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -64,7 +64,7 @@
   }
 
   .cfo-shell { position: relative; z-index: 1; display: flex; }
-  /* v4.5.3: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
+  /* v4.5.4: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
      DENTRO de la fila no sumaba altura extra, pero al sacarlo afuera como header (fix
      anterior) la altura total pasó a ser topbar + shell(100vh) + bottomnav, más alta
      que la pantalla. El bottom-nav es sticky (no fixed), así que quedaba pegado al final
@@ -1445,7 +1445,7 @@ function tankStatus(pct) {
   return { text: "En reserva", color: "var(--danger)" };
 }
 
-const emptyFuelForm = { date: todayISO(), liters: "", cost: "", odometer: "", barsBefore: "", barsAfter: "", station: "", notes: "" };
+const emptyFuelForm = { date: todayISO(), pricePerLiter: "", cost: "", odometer: "", barsBefore: "", barsAfter: "", station: "", notes: "" };
 
 function GasolinaScreen({ state, actions }) {
   const [form, setForm] = useState(emptyFuelForm);
@@ -1503,10 +1503,14 @@ function GasolinaScreen({ state, actions }) {
   function submit(e) {
     e.preventDefault();
     const o = parseFloat(form.odometer);
-    /* v4.4: un checkpoint (solo odómetro, sin carga) también es un registro válido */
-    const l = esCarga ? parseFloat(form.liters) : 0;
+    /* v4.5.4: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
+       pagado (litros = costo ÷ precio). Antes el input de litros usaba step="0.1", que
+       HTML5 rechaza como "Invalid number" para valores con 2 decimales (ej. 55.71 L),
+       que es justamente la precisión típica de un recibo de gasolinera. */
+    const p = esCarga ? parseFloat(form.pricePerLiter) : 0;
     const c = esCarga ? parseFloat(form.cost) : 0;
-    if (!o || (esCarga && (!l || !c))) return;
+    const l = esCarga && p > 0 ? c / p : 0;
+    if (!o || (esCarga && (!p || !c))) return;
     const payload = {
       date: form.date || todayISO(),
       liters: l, cost: c, odometer: o,
@@ -1523,8 +1527,10 @@ function GasolinaScreen({ state, actions }) {
   function startEdit(f) {
     setShowForm(true); /* v4.5 */
     setEditingId(f.id);
+    // v4.5.4: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
+    const derivedPrice = (f.liters && f.cost && f.liters > 0) ? (f.cost / f.liters) : "";
     setForm({
-      date: f.date, liters: String(f.liters), cost: String(f.cost), odometer: f.odometer != null ? String(f.odometer) : "",
+      date: f.date, pricePerLiter: derivedPrice !== "" ? String(derivedPrice.toFixed(3)) : "", cost: String(f.cost), odometer: f.odometer != null ? String(f.odometer) : "",
       barsBefore: f.barsBefore != null ? String(f.barsBefore) : "", barsAfter: f.barsAfter != null ? String(f.barsAfter) : "",
       station: f.station || "", notes: f.notes || ""
     });
@@ -1597,7 +1603,7 @@ function GasolinaScreen({ state, actions }) {
             </div>
             <div>
               <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 5 }}>Odómetro (millas)</div>
-              <input value={form.odometer} onChange={e => updateField("odometer", e.target.value)} type="number" step="0.1" min="0"
+              <input value={form.odometer} onChange={e => updateField("odometer", e.target.value)} type="number" step="any" min="0"
                 placeholder={lastOdo ? "Último: " + lastOdo.odometer : "Ej: 663.5"} style={{ ...fieldStyle, width: "100%" }} />
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", paddingTop: 16 }}>
@@ -1616,12 +1622,12 @@ function GasolinaScreen({ state, actions }) {
 
           {esCarga && (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, marginBottom: 12 }}>
-              <input value={form.liters} onChange={e => updateField("liters", e.target.value)} type="number" step="0.1" min="0" placeholder="Litros cargados" style={fieldStyle} />
-              <input value={form.cost} onChange={e => updateField("cost", e.target.value)} type="number" step="0.01" min="0" placeholder="Monto pagado ($)" style={fieldStyle} />
+              <input value={form.pricePerLiter} onChange={e => updateField("pricePerLiter", e.target.value)} type="number" step="any" min="0" placeholder="Precio por litro ($/L)" style={fieldStyle} />
+              <input value={form.cost} onChange={e => updateField("cost", e.target.value)} type="number" step="any" min="0" placeholder="Monto pagado ($)" style={fieldStyle} />
               <div className="cfo-mono" style={{ ...fieldStyle, display: "flex", alignItems: "center", color: "var(--muted)", background: "var(--surface-alt)", border: "1px dashed var(--border)" }}>
-                {parseFloat(form.liters) > 0 && parseFloat(form.cost) > 0
-                  ? "$" + (parseFloat(form.cost) / parseFloat(form.liters)).toFixed(2) + "/L"
-                  : "$/L auto"}
+                {parseFloat(form.pricePerLiter) > 0 && parseFloat(form.cost) > 0
+                  ? (parseFloat(form.cost) / parseFloat(form.pricePerLiter)).toFixed(2) + " L calculados"
+                  : "Litros: auto"}
               </div>
               <input value={form.station} onChange={e => updateField("station", e.target.value)} type="text" placeholder="Gasolinera (opcional)" style={fieldStyle} />
             </div>
@@ -1854,7 +1860,7 @@ function App() {
   const toastTimer = useRef(null);
 
   useEffect(() => { saveLocalState(state); }, [state]);
-  // v4.5.3: sincroniza el fondo real de <body> con el color de fondo del tema activo.
+  // v4.5.4: sincroniza el fondo real de <body> con el color de fondo del tema activo.
   // Sin esto, el rebote elástico de Safari en iOS (o el toolbar dinámico colapsando)
   // puede exponer el fondo fijo de <body> por debajo de .cfo-root — si ese fondo no
   // coincide con el tema, se ve un parche negro/gris feo en vez de continuar el color.
@@ -2112,7 +2118,7 @@ function App() {
         </main>
       </div>
 
-      <div className="cfo-bottomnav" style={{ position: "sticky", bottom: 0, left: 0, right: 0, justifyContent: "space-around", alignItems: "center", background: "var(--surface)", borderTop: "1px solid var(--border)", borderRadius: "0 0 18px 18px", padding: "10px 6px" }}>
+      <div className="cfo-bottomnav" style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, justifyContent: "space-around", alignItems: "center", background: "var(--surface)", borderTop: "1px solid var(--border)", borderRadius: "18px 18px 0 0", padding: "10px 6px calc(10px + env(safe-area-inset-bottom, 0px))" }}>
         {TABS.map(t => (
           <button key={t.key} className="cfo-btn" onClick={() => setTab(t.key)}
             style={{ background: "none", color: tab === t.key ? "var(--primary)" : "var(--muted-light)", fontSize: 11.5, fontWeight: tab === t.key ? 700 : 500 }}>
