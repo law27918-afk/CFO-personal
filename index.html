@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CFO Personal · Rediseño Premium (v4.5.7)</title>
+<title>CFO Personal · Rediseño Premium (v4.5.9)</title>
 <meta name="description" content="Centro financiero personal — Hoy, Movimientos, Metas & Wishlist, Presupuesto, Gasolina y Datos & Configuración. Sincronizado con Firebase.">
 <meta name="theme-color" content="#16382B">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -65,7 +65,7 @@
   }
 
   .cfo-shell { position: relative; z-index: 1; display: flex; }
-  /* v4.5.7: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
+  /* v4.5.9: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
      DENTRO de la fila no sumaba altura extra, pero al sacarlo afuera como header (fix
      anterior) la altura total pasó a ser topbar + shell(100vh) + bottomnav, más alta
      que la pantalla. El bottom-nav es sticky (no fixed), así que quedaba pegado al final
@@ -123,7 +123,7 @@
     position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.45);
     display: flex; align-items: flex-end; justify-content: center;
     padding: 0 16px calc(96px + env(safe-area-inset-bottom, 0px));
-    /* v4.5.7: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
+    /* v4.5.9: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
        ganaba el que aparece después en el HTML (el nav), tapando el modal. Ahora el
        modal siempre queda por encima, y el padding-bottom deja un espacio visible
        entre la ventana y la zona donde flota el menú, en vez de quedar pegados. */
@@ -258,19 +258,27 @@ function categoryColor(cat) {
 
 // Rango [inicio, fin) de la quincena que contiene "today", y de la próxima quincena.
 const PAY_DAYS = [10, 25];
+// v4.5.9: si el día de pago (10 o 25) cae sábado o domingo, se corre al viernes
+// hábil anterior — bancos y planillas no procesan en fin de semana.
+function toBusinessDay(d) {
+  const day = d.getDay(); // 0 = domingo, 6 = sábado
+  if (day === 6) { const r = new Date(d); r.setDate(r.getDate() - 1); return r; }
+  if (day === 0) { const r = new Date(d); r.setDate(r.getDate() - 2); return r; }
+  return d;
+}
 function getQuincenaRange(today) {
   const y = today.getFullYear(), m = today.getMonth(), dom = today.getDate();
   let start, end;
   if (dom < PAY_DAYS[0]) { start = new Date(y, m - 1, PAY_DAYS[1]); end = new Date(y, m, PAY_DAYS[0]); }
   else if (dom < PAY_DAYS[1]) { start = new Date(y, m, PAY_DAYS[0]); end = new Date(y, m, PAY_DAYS[1]); }
   else { start = new Date(y, m, PAY_DAYS[1]); end = new Date(y, m + 1, PAY_DAYS[0]); }
-  return { start, end };
+  return { start: toBusinessDay(start), end: toBusinessDay(end) };
 }
 function getNextQuincenaDate(today) {
   const y = today.getFullYear(), m = today.getMonth(), dom = today.getDate();
-  if (dom < PAY_DAYS[0]) return new Date(y, m, PAY_DAYS[0]);
-  if (dom < PAY_DAYS[1]) return new Date(y, m, PAY_DAYS[1]);
-  return new Date(y, m + 1, PAY_DAYS[0]);
+  if (dom < PAY_DAYS[0]) return toBusinessDay(new Date(y, m, PAY_DAYS[0]));
+  if (dom < PAY_DAYS[1]) return toBusinessDay(new Date(y, m, PAY_DAYS[1]));
+  return toBusinessDay(new Date(y, m + 1, PAY_DAYS[0]));
 }
 
 function seedData() {
@@ -733,7 +741,7 @@ function MovimientosScreen({ state, actions }) {
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(25); // v4.5.7: paginación "ver más"
+  const [visibleCount, setVisibleCount] = useState(25); // v4.5.9: paginación "ver más"
 
   const filtered = useMemo(() => {
     return state.transactions.filter(t => {
@@ -743,7 +751,7 @@ function MovimientosScreen({ state, actions }) {
     });
   }, [state.transactions, query, activeCat]);
 
-  // v4.5.7: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
+  // v4.5.9: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
   useEffect(() => { setVisibleCount(25); }, [query, activeCat]);
 
   const sortedFiltered = useMemo(() =>
@@ -898,10 +906,11 @@ function MetasWishlistScreen({ state, actions }) {
 
   const [gwSub, setGwSub] = useState("metas"); /* v4.4 */
 
-  // v4.5.7: resumen general — total ahorrado, total necesario y detalle por fecha
-  // (solo Metas, que son las que tienen fecha objetivo; Wishlist no tiene fecha).
+  // v4.5.9: resumen general en dos cards separadas — Ahorrado (oscura) y Falta por
+  // ahorrar (clara), esta última con el detalle por meta (solo las que tienen fecha).
   const totalSaved = state.goals.reduce((a, g) => a + (Number(g.saved) || 0), 0);
   const totalTarget = state.goals.reduce((a, g) => a + (Number(g.target) || 0), 0);
+  const totalRemaining = Math.max(0, totalTarget - totalSaved);
   const dueDetail = state.goals
     .filter(g => g.targetDate && (Number(g.target) || 0) - (Number(g.saved) || 0) > 0)
     .map(g => ({
@@ -913,28 +922,27 @@ function MetasWishlistScreen({ state, actions }) {
 
   return (
     <div data-screen-label="Metas y Wishlist">
-      <div style={{ background: "var(--primary)", backgroundImage: "radial-gradient(circle at 85% 20%, rgba(180,131,42,0.18), transparent 55%), linear-gradient(180deg, var(--primary) 0%, var(--primary-soft) 130%)",
-        borderRadius: 16, padding: "22px 24px", marginBottom: 20, color: "var(--on-primary)" }}>
-        <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: dueDetail.length ? 16 : 0 }}>
-          <div>
-            <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.7, marginBottom: 6 }}>Ahorrado</div>
-            <div className="cfo-serif" style={{ fontSize: 28, fontWeight: 500 }}>{fmtMoney(totalSaved)}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.7, marginBottom: 6 }}>Necesito en total</div>
-            <div className="cfo-serif" style={{ fontSize: 28, fontWeight: 500 }}>{fmtMoney(totalTarget)}</div>
-          </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 20 }}>
+        <div style={{ background: "var(--primary)", backgroundImage: "radial-gradient(circle at 85% 20%, rgba(180,131,42,0.18), transparent 55%), linear-gradient(180deg, var(--primary) 0%, var(--primary-soft) 130%)",
+          borderRadius: 16, padding: "18px 20px", color: "var(--on-primary)" }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.7, marginBottom: 6 }}>Ahorrado</div>
+          <div className="cfo-serif" style={{ fontSize: 26, fontWeight: 500 }}>{fmtMoney(totalSaved)}</div>
         </div>
-        {dueDetail.length > 0 && (
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.18)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-            {dueDetail.map((d, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, opacity: 0.92 }}>
-                <span>{d.name}</span>
-                <span className="cfo-mono">{fmtMoney(d.remaining)} al {d.date.toLocaleDateString("es-MX", { day: "numeric", month: "long" })}</span>
-              </div>
-            ))}
-          </div>
-        )}
+
+        <div style={{ background: "var(--warn-soft)", borderRadius: 16, padding: "18px 20px" }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--warn)", opacity: 0.85, marginBottom: 6 }}>Falta por ahorrar</div>
+          <div className="cfo-serif" style={{ fontSize: 26, fontWeight: 500, color: "var(--warn)", marginBottom: dueDetail.length ? 12 : 0 }}>{fmtMoney(totalRemaining)}</div>
+          {dueDetail.length > 0 && (
+            <div style={{ borderTop: "1px solid rgba(138,100,32,0.2)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 7 }}>
+              {dueDetail.map((d, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 11.5, color: "var(--warn)" }}>
+                  <span style={{ opacity: 0.85 }}>{d.name}</span>
+                  <span className="cfo-mono" style={{ whiteSpace: "nowrap" }}>{fmtMoney(d.remaining)} · {d.date.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* v4.4: Metas y Wishlist separadas en pestañas, mismo patrón que Presupuesto/Planeador */}
@@ -1184,7 +1192,6 @@ function PresupuestoScreen({ state, actions }) {
   const nextDateISO = nextDate.toISOString().slice(0,10);
   const nextLabel = "Próxima quincena · " + nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
   const scheduled = state.plannerScheduled;
-  const [confirmOverwrite, setConfirmOverwrite] = useState(false); // v4.5.7
 
   return (
     <div data-screen-label="Presupuesto">
@@ -1300,15 +1307,6 @@ function PresupuestoScreen({ state, actions }) {
             </button>
           </div>
 
-          {scheduled && (
-            <div style={{ background: "var(--warn-soft)", borderRadius: 10, padding: "10px 14px", marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <div style={{ fontSize: 12.5, color: "var(--warn)" }}>
-                Hay un plan guardado para aplicarse el {new Date(scheduled.applyDate + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "long" })}
-              </div>
-              <button className="cfo-btn" onClick={() => actions.cancelScheduledPlan()} style={{ background: "none", color: "var(--warn)", fontSize: 12, textDecoration: "underline" }}>Cancelar</button>
-            </div>
-          )}
-
           <div className="cfo-kpigrid" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 20 }}>
             {[
               { field: "ingresoEsperadoQuincenal", label: "Ingreso esperado", current: ingresoEsperado },
@@ -1423,22 +1421,22 @@ function PresupuestoScreen({ state, actions }) {
             </span>
           </div>
 
-          {confirmOverwrite ? (
+          {scheduled ? (
             <div style={{ background: "var(--warn-soft)", borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <div style={{ flex: "1 1 180px", fontSize: 12.5, color: "var(--warn)" }}>
-                Ya hay un plan guardado para el {new Date(scheduled.applyDate + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "long" })}. ¿Sobrescribirlo con este?
+                Hay un plan guardado para el {new Date(scheduled.applyDate + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "long" })}. ¿Sobrescribirlo con el actual?
               </div>
-              <button className="cfo-btn" onClick={() => setConfirmOverwrite(false)}
+              <button className="cfo-btn" onClick={() => actions.cancelScheduledPlan()}
                 style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 9, padding: "10px 16px", fontSize: 13, fontWeight: 600 }}>
                 Cancelar
               </button>
-              <button className="cfo-btn" onClick={() => { actions.schedulePlan(nextDateISO, plannerRows); setConfirmOverwrite(false); }}
+              <button className="cfo-btn" onClick={() => actions.schedulePlan(nextDateISO, plannerRows)}
                 style={{ background: "var(--danger)", color: "var(--on-primary)", borderRadius: 9, padding: "10px 16px", fontSize: 13, fontWeight: 600 }}>
                 Sobrescribir
               </button>
             </div>
           ) : (
-            <button className="cfo-btn" onClick={() => { if (scheduled) setConfirmOverwrite(true); else actions.schedulePlan(nextDateISO, plannerRows); }}
+            <button className="cfo-btn" onClick={() => actions.schedulePlan(nextDateISO, plannerRows)}
               style={{ width: "100%", background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: 13, fontSize: 13.5, fontWeight: 600 }}>
               📅 Guardar para el {nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
             </button>
@@ -1589,7 +1587,7 @@ function GasolinaScreen({ state, actions }) {
   function submit(e) {
     e.preventDefault();
     const o = parseFloat(form.odometer);
-    /* v4.5.7: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
+    /* v4.5.9: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
        pagado (litros = costo ÷ precio). Antes el input de litros usaba step="0.1", que
        HTML5 rechaza como "Invalid number" para valores con 2 decimales (ej. 55.71 L),
        que es justamente la precisión típica de un recibo de gasolinera. */
@@ -1613,7 +1611,7 @@ function GasolinaScreen({ state, actions }) {
   function startEdit(f) {
     setShowForm(true); /* v4.5 */
     setEditingId(f.id);
-    // v4.5.7: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
+    // v4.5.9: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
     const derivedPrice = (f.liters && f.cost && f.liters > 0) ? (f.cost / f.liters) : "";
     setForm({
       date: f.date, pricePerLiter: derivedPrice !== "" ? String(derivedPrice.toFixed(3)) : "", cost: String(f.cost), odometer: f.odometer != null ? String(f.odometer) : "",
@@ -1930,7 +1928,7 @@ function DatosScreen({ state, actions, toast, syncStatus }) {
 
 // ---------- Shell / Nav ----------
 
-// v4.5.7: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
+// v4.5.9: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
 // Un solo componente TabIcon que switchea por nombre — sin dependencias externas,
 // coherente con el resto del archivo (sin build ni paquetes de íconos).
 function TabIcon({ name, size = 22, active }) {
@@ -1970,14 +1968,14 @@ function App() {
   const toastTimer = useRef(null);
 
   useEffect(() => { saveLocalState(state); }, [state]);
-  // v4.5.7: sincroniza el fondo real de <body> con el color de fondo del tema activo.
+  // v4.5.9: sincroniza el fondo real de <body> con el color de fondo del tema activo.
   // Sin esto, el rebote elástico de Safari en iOS (o el toolbar dinámico colapsando)
   // puede exponer el fondo fijo de <body> por debajo de .cfo-root — si ese fondo no
   // coincide con el tema, se ve un parche negro/gris feo en vez de continuar el color.
   useEffect(() => {
     const bg = state.theme === "dark" ? "#14180F" : "#F4F1E9";
     document.body.style.background = bg;
-    document.documentElement.style.background = bg; // v4.5.7: antes solo <body>, <html> quedaba sin fondo propio
+    document.documentElement.style.background = bg; // v4.5.9: antes solo <body>, <html> quedaba sin fondo propio
   }, [state.theme]);
   const syncStatus = useFirebaseSync(state, setState);
 
