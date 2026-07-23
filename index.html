@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CFO Personal · Rediseño Premium (v4.5.11)</title>
+<title>CFO Personal · Rediseño Premium (v4.5.12)</title>
 <meta name="description" content="Centro financiero personal — Hoy, Movimientos, Metas & Wishlist, Presupuesto, Gasolina y Datos & Configuración. Sincronizado con Firebase.">
 <meta name="theme-color" content="#16382B">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -65,7 +65,7 @@
   }
 
   .cfo-shell { position: relative; z-index: 1; display: flex; }
-  /* v4.5.11: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
+  /* v4.5.12: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
      DENTRO de la fila no sumaba altura extra, pero al sacarlo afuera como header (fix
      anterior) la altura total pasó a ser topbar + shell(100vh) + bottomnav, más alta
      que la pantalla. El bottom-nav es sticky (no fixed), así que quedaba pegado al final
@@ -123,7 +123,7 @@
     position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.45);
     display: flex; align-items: flex-end; justify-content: center;
     padding: 0 16px calc(96px + env(safe-area-inset-bottom, 0px));
-    /* v4.5.11: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
+    /* v4.5.12: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
        ganaba el que aparece después en el HTML (el nav), tapando el modal. Ahora el
        modal siempre queda por encima, y el padding-bottom deja un espacio visible
        entre la ventana y la zona donde flota el menú, en vez de quedar pegados. */
@@ -258,7 +258,7 @@ function categoryColor(cat) {
 
 // Rango [inicio, fin) de la quincena que contiene "today", y de la próxima quincena.
 const PAY_DAYS = [10, 25];
-// v4.5.11: si el día de pago (10 o 25) cae sábado o domingo, se corre al viernes
+// v4.5.12: si el día de pago (10 o 25) cae sábado o domingo, se corre al viernes
 // hábil anterior — bancos y planillas no procesan en fin de semana.
 function toBusinessDay(d) {
   const day = d.getDay(); // 0 = domingo, 6 = sábado
@@ -741,7 +741,7 @@ function MovimientosScreen({ state, actions }) {
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(25); // v4.5.11: paginación "ver más"
+  const [visibleCount, setVisibleCount] = useState(25); // v4.5.12: paginación "ver más"
 
   const filtered = useMemo(() => {
     return state.transactions.filter(t => {
@@ -751,7 +751,7 @@ function MovimientosScreen({ state, actions }) {
     });
   }, [state.transactions, query, activeCat]);
 
-  // v4.5.11: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
+  // v4.5.12: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
   useEffect(() => { setVisibleCount(25); }, [query, activeCat]);
 
   const sortedFiltered = useMemo(() =>
@@ -906,7 +906,7 @@ function MetasWishlistScreen({ state, actions }) {
 
   const [gwSub, setGwSub] = useState("metas"); /* v4.4 */
 
-  // v4.5.11: resumen general en dos cards separadas — Ahorrado (oscura) y Falta por
+  // v4.5.12: resumen general en dos cards separadas — Ahorrado (oscura) y Falta por
   // ahorrar (clara), esta última con el detalle por meta (solo las que tienen fecha).
   const totalSaved = state.goals.reduce((a, g) => a + (Number(g.saved) || 0), 0);
   const totalTarget = state.goals.reduce((a, g) => a + (Number(g.target) || 0), 0);
@@ -1166,7 +1166,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   // Planeador — precarga las categorías y montos desde el Presupuesto real
   // (state.budgets); el usuario puede ajustar cada una, y ese ajuste se guarda
   // en state.planner por categoría hasta que se aplique o se borre la categoría.
-  // v4.5.11: se quita "Fijos + deuda" como campo aparte (la deuda ya es una
+  // v4.5.12: se quita "Fijos + deuda" como campo aparte (la deuda ya es una
   // categoría más en la tabla). "Disponible proyectado" ahora es en vivo:
   // ingreso esperado − total ya planeado en la tabla de abajo.
   const ingresoEsperado = state.finance.ingresoEsperadoQuincenal || 0;
@@ -1194,6 +1194,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   const nextDateISO = nextDate.toISOString().slice(0,10);
   const nextLabel = "Próxima quincena · " + nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
   const scheduled = state.plannerScheduled;
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false); // v4.5.12
 
   return (
     <div data-screen-label="Presupuesto">
@@ -1413,24 +1414,27 @@ function PresupuestoScreen({ state, actions, toast }) {
             </span>
           </div>
 
-          {scheduled ? (
+          {confirmOverwrite ? (
             <div style={{ background: "var(--warn-soft)", borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <div style={{ flex: "1 1 180px", fontSize: 12.5, color: "var(--warn)" }}>
                 Hay un plan guardado para el {new Date(scheduled.applyDate + "T00:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "long" })}. ¿Sobrescribirlo con el actual?
               </div>
-              <button className="cfo-btn" onClick={() => { actions.cancelScheduledPlan(); toast("Plan cancelado"); }}
+              <button className="cfo-btn" onClick={() => { setConfirmOverwrite(false); toast("No se guardó, se mantiene el plan anterior"); }}
                 style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 9, padding: "10px 16px", fontSize: 13, fontWeight: 600 }}>
                 Cancelar
               </button>
-              <button className="cfo-btn" onClick={() => { actions.schedulePlan(nextDateISO, plannerRows); toast("Plan sobrescrito"); }}
+              <button className="cfo-btn" onClick={() => { actions.schedulePlan(nextDateISO, plannerRows); setConfirmOverwrite(false); toast("Plan sobrescrito"); }}
                 style={{ background: "var(--danger)", color: "var(--on-primary)", borderRadius: 9, padding: "10px 16px", fontSize: 13, fontWeight: 600 }}>
                 Sobrescribir
               </button>
             </div>
           ) : (
-            <button className="cfo-btn" onClick={() => { actions.schedulePlan(nextDateISO, plannerRows); toast("Plan guardado"); }}
+            <button className="cfo-btn" onClick={() => {
+                if (scheduled) { setConfirmOverwrite(true); }
+                else { actions.schedulePlan(nextDateISO, plannerRows); toast("Plan guardado"); }
+              }}
               style={{ width: "100%", background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: 13, fontSize: 13.5, fontWeight: 600 }}>
-              📅 Guardar para el {nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
+              📅 Guardar plan para el {nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "long" })}
             </button>
           )}
         </div>
@@ -1579,7 +1583,7 @@ function GasolinaScreen({ state, actions }) {
   function submit(e) {
     e.preventDefault();
     const o = parseFloat(form.odometer);
-    /* v4.5.11: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
+    /* v4.5.12: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
        pagado (litros = costo ÷ precio). Antes el input de litros usaba step="0.1", que
        HTML5 rechaza como "Invalid number" para valores con 2 decimales (ej. 55.71 L),
        que es justamente la precisión típica de un recibo de gasolinera. */
@@ -1603,7 +1607,7 @@ function GasolinaScreen({ state, actions }) {
   function startEdit(f) {
     setShowForm(true); /* v4.5 */
     setEditingId(f.id);
-    // v4.5.11: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
+    // v4.5.12: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
     const derivedPrice = (f.liters && f.cost && f.liters > 0) ? (f.cost / f.liters) : "";
     setForm({
       date: f.date, pricePerLiter: derivedPrice !== "" ? String(derivedPrice.toFixed(3)) : "", cost: String(f.cost), odometer: f.odometer != null ? String(f.odometer) : "",
@@ -1920,7 +1924,7 @@ function DatosScreen({ state, actions, toast, syncStatus }) {
 
 // ---------- Shell / Nav ----------
 
-// v4.5.11: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
+// v4.5.12: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
 // Un solo componente TabIcon que switchea por nombre — sin dependencias externas,
 // coherente con el resto del archivo (sin build ni paquetes de íconos).
 function TabIcon({ name, size = 22, active }) {
@@ -1960,14 +1964,14 @@ function App() {
   const toastTimer = useRef(null);
 
   useEffect(() => { saveLocalState(state); }, [state]);
-  // v4.5.11: sincroniza el fondo real de <body> con el color de fondo del tema activo.
+  // v4.5.12: sincroniza el fondo real de <body> con el color de fondo del tema activo.
   // Sin esto, el rebote elástico de Safari en iOS (o el toolbar dinámico colapsando)
   // puede exponer el fondo fijo de <body> por debajo de .cfo-root — si ese fondo no
   // coincide con el tema, se ve un parche negro/gris feo en vez de continuar el color.
   useEffect(() => {
     const bg = state.theme === "dark" ? "#14180F" : "#F4F1E9";
     document.body.style.background = bg;
-    document.documentElement.style.background = bg; // v4.5.11: antes solo <body>, <html> quedaba sin fondo propio
+    document.documentElement.style.background = bg; // v4.5.12: antes solo <body>, <html> quedaba sin fondo propio
   }, [state.theme]);
   const syncStatus = useFirebaseSync(state, setState);
 
