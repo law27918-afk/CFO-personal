@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CFO Personal · Rediseño Premium (v4.5.16)</title>
+<title>CFO Personal · Rediseño Premium (v4.5.17)</title>
 <meta name="description" content="Centro financiero personal — Hoy, Movimientos, Metas & Wishlist, Presupuesto, Gasolina y Datos & Configuración. Sincronizado con Firebase.">
 <meta name="theme-color" content="#16382B">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -65,7 +65,7 @@
   }
 
   .cfo-shell { position: relative; z-index: 1; display: flex; }
-  /* v4.5.16: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
+  /* v4.5.17: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
      DENTRO de la fila no sumaba altura extra, pero al sacarlo afuera como header (fix
      anterior) la altura total pasó a ser topbar + shell(100vh) + bottomnav, más alta
      que la pantalla. El bottom-nav es sticky (no fixed), así que quedaba pegado al final
@@ -123,7 +123,7 @@
     position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.45);
     display: flex; align-items: flex-end; justify-content: center;
     padding: 0 16px calc(96px + env(safe-area-inset-bottom, 0px));
-    /* v4.5.16: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
+    /* v4.5.17: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
        ganaba el que aparece después en el HTML (el nav), tapando el modal. Ahora el
        modal siempre queda por encima, y el padding-bottom deja un espacio visible
        entre la ventana y la zona donde flota el menú, en vez de quedar pegados. */
@@ -258,7 +258,7 @@ function categoryColor(cat) {
 
 // Rango [inicio, fin) de la quincena que contiene "today", y de la próxima quincena.
 const PAY_DAYS = [10, 25];
-// v4.5.16: si el día de pago (10 o 25) cae sábado o domingo, se corre al viernes
+// v4.5.17: si el día de pago (10 o 25) cae sábado o domingo, se corre al viernes
 // hábil anterior — bancos y planillas no procesan en fin de semana.
 function toBusinessDay(d) {
   const day = d.getDay(); // 0 = domingo, 6 = sábado
@@ -267,7 +267,7 @@ function toBusinessDay(d) {
   return d;
 }
 function getQuincenaRange(today) {
-  // v4.5.16-fix: antes se decidía la quincena comparando el día crudo (dom < 25) y
+  // v4.5.17-fix: antes se decidía la quincena comparando el día crudo (dom < 25) y
   // RECIÉN DESPUÉS se ajustaba el corte al viernes si caía en fin de semana. Eso hacía
   // que, cuando el corte se adelantaba (25 sáb → 24 vie), el día 24 todavía se
   // clasificara en la quincena VIEJA (porque 24 < 25 seguía siendo cierto), aunque ese
@@ -284,7 +284,7 @@ function getQuincenaRange(today) {
   return { start: cut2, end: cutNext };
 }
 function getNextQuincenaDate(today) {
-  // v4.5.16-fix: antes comparaba dom contra el número crudo (25), el mismo error que
+  // v4.5.17-fix: antes comparaba dom contra el número crudo (25), el mismo error que
   // ya se corrigió en getQuincenaRange — cuando "hoy" coincide exactamente con el corte
   // ya ajustado (ej. hoy es viernes 24, corte real de este ciclo), seguía devolviendo
   // ese mismo día en vez de saltar al siguiente. Ahora reutiliza getQuincenaRange(today),
@@ -510,6 +510,15 @@ function loadLocalState() {
 function saveLocalState(state) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
 }
+// v4.5.17: timestamp real de "última vez que tuvimos datos locales confirmados"
+// (edición propia O snapshot remoto ya aplicado) — persiste en localStorage para
+// sobrevivir un reload, y es la base real de la protección anti-sobrescritura.
+function loadLocalTs() {
+  try { return parseInt(localStorage.getItem(STORAGE_KEY + ":ts"), 10) || 0; } catch (e) { return 0; }
+}
+function saveLocalTs(ts) {
+  try { localStorage.setItem(STORAGE_KEY + ":ts", String(ts)); } catch (e) {}
+}
 
 // ---------- Firebase (Firestore) sync ----------
 // Un solo documento con todo el estado — simple y suficiente para un solo usuario.
@@ -526,7 +535,15 @@ function getDb() {
 
 function useFirebaseSync(state, setState) {
   const [syncStatus, setSyncStatus] = useState({ connected: false, syncing: false, lastSyncedAt: null, error: null });
-  const lastWriteTs = useRef(0);
+  // v4.5.17-fix: antes solo se comparaba contra lastWriteTs (que solo se actualiza
+  // cuando NUESTRO propio debounce de 400ms termina de escribir). Si la página se
+  // recargaba ANTES de que ese envío completara, lastWriteTs volvía a 0 al montar
+  // de nuevo, y el primer snapshot remoto (con datos VIEJOS, de antes del cambio
+  // local reciente) pasaba la validación y sobrescribía el estado recién cargado
+  // correctamente desde localStorage — perdiendo los cambios de esa sesión.
+  // Ahora knownTs arranca desde localStorage (sobrevive el reload) y se actualiza
+  // en cada cambio de estado, no solo cuando termina nuestra escritura remota.
+  const knownTs = useRef(loadLocalTs());
   const writeTimer = useRef(null);
   const firstSnapshot = useRef(true);
 
@@ -541,8 +558,11 @@ function useFirebaseSync(state, setState) {
         if (!doc.exists) { firstSnapshot.current = false; return; }
         const data = doc.data();
         if (!data || !data.value) { firstSnapshot.current = false; return; }
-        // Ignora el eco de nuestra propia escritura reciente.
-        if (data.ts && data.ts <= lastWriteTs.current) { firstSnapshot.current = false; return; }
+        // Si lo que ya tenemos localmente es igual o más nuevo, ignoramos este
+        // snapshot — es viejo (llegó antes de que termináramos de subir un cambio
+        // reciente). El efecto de escritura de abajo se encargará de auto-corregir
+        // la nube con el estado local correcto.
+        if (data.ts && data.ts <= knownTs.current) { firstSnapshot.current = false; return; }
         try {
           const remote = JSON.parse(data.value);
           setState(remote);
@@ -558,6 +578,19 @@ function useFirebaseSync(state, setState) {
     // eslint-disable-next-line
   }, []);
 
+  // v4.5.17: registra CUALQUIER cambio de estado (edición local o snapshot remoto ya
+  // aplicado) como "dato local confirmado", persistiendo el timestamp para que
+  // sobreviva un reload. Se salta el montaje inicial a propósito: si no lo hiciera,
+  // un dispositivo nuevo (sin datos locales, knownTs=0) marcaría "ahora" como su
+  // timestamp apenas monta, y rechazaría la primera carga legítima desde la nube.
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    const ts = Date.now();
+    knownTs.current = ts;
+    saveLocalTs(ts);
+  }, [state]);
+
   // Escritura con debounce cada vez que cambia el estado local.
   useEffect(() => {
     const db = getDb();
@@ -565,7 +598,8 @@ function useFirebaseSync(state, setState) {
     if (writeTimer.current) clearTimeout(writeTimer.current);
     writeTimer.current = setTimeout(() => {
       const ts = Date.now();
-      lastWriteTs.current = ts;
+      knownTs.current = ts;
+      saveLocalTs(ts);
       setSyncStatus(s => ({ ...s, syncing: true }));
       db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC_ID)
         .set({ value: JSON.stringify(state), ts })
@@ -712,7 +746,7 @@ function AddTransactionSheet({ categories, goals, onClose, onSave }) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(todayISO());
 
-  // v4.5.16: la lista de categorías depende del tipo de movimiento.
+  // v4.5.17: la lista de categorías depende del tipo de movimiento.
   const gastoCats = categories.filter(c => c !== "Ahorro" && c !== "Salario" && c !== "Ingreso");
   const ingresoCats = ["Salario", "Otros"];
   const ahorroCats = goals.map(g => g.name);
@@ -774,7 +808,7 @@ function MovimientosScreen({ state, actions }) {
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(25); // v4.5.16: paginación "ver más"
+  const [visibleCount, setVisibleCount] = useState(25); // v4.5.17: paginación "ver más"
 
   const filtered = useMemo(() => {
     return state.transactions.filter(t => {
@@ -784,7 +818,7 @@ function MovimientosScreen({ state, actions }) {
     });
   }, [state.transactions, query, activeCat]);
 
-  // v4.5.16: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
+  // v4.5.17: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
   useEffect(() => { setVisibleCount(25); }, [query, activeCat]);
 
   const sortedFiltered = useMemo(() =>
@@ -956,7 +990,7 @@ function EditGoalSheet({ goal, onClose, onSave }) {
 
 function MetasWishlistScreen({ state, actions }) {
   const [contribGoal, setContribGoal] = useState(null);
-  const [editGoal, setEditGoal] = useState(null); // v4.5.16
+  const [editGoal, setEditGoal] = useState(null); // v4.5.17
   const [addSheet, setAddSheet] = useState(null); // 'goal' | 'wish' | null
 
   function confirmDeleteGoal(id, name) {
@@ -971,7 +1005,7 @@ function MetasWishlistScreen({ state, actions }) {
 
   const [gwSub, setGwSub] = useState("metas"); /* v4.4 */
 
-  // v4.5.16: resumen general en dos cards separadas — Ahorrado (oscura) y Falta por
+  // v4.5.17: resumen general en dos cards separadas — Ahorrado (oscura) y Falta por
   // ahorrar (clara), esta última con el detalle por meta (solo las que tienen fecha).
   const totalSaved = state.goals.reduce((a, g) => a + (Number(g.saved) || 0), 0);
   const totalTarget = state.goals.reduce((a, g) => a + (Number(g.target) || 0), 0);
@@ -1162,7 +1196,7 @@ function PresupuestoScreen({ state, actions, toast }) {
 
   const realByCategory = useMemo(() => {
     const map = {};
-    // v4.5.16: las transacciones tipo "ahorro" tienen category = nombre de la meta
+    // v4.5.17: las transacciones tipo "ahorro" tienen category = nombre de la meta
     // (no "Ahorro" literal), pero deben sumar igual al renglón "Ahorro" del presupuesto.
     state.transactions
       .filter(t => (t.type === "gasto" || t.type === "ahorro") && t.date >= qStartISO && t.date < qEndISO)
@@ -1185,7 +1219,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   const totalReal = rows.reduce((s,r) => s + r.real, 0);
 
   // Proyección de la quincena en curso.
-  // v4.5.16-fix: antes se extrapolaba linealmente el ritmo de gasto de los días ya
+  // v4.5.17-fix: antes se extrapolaba linealmente el ritmo de gasto de los días ya
   // transcurridos (gasto ÷ días transcurridos × días totales) — con pocos días
   // transcurridos (ej. día 1) un solo gasto grande disparaba la proyección a valores
   // absurdos (ej. $226 en 1 día × 17 días = $3,844). Ahora:
@@ -1248,7 +1282,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   // Planeador — precarga las categorías y montos desde el Presupuesto real
   // (state.budgets); el usuario puede ajustar cada una, y ese ajuste se guarda
   // en state.planner por categoría hasta que se aplique o se borre la categoría.
-  // v4.5.16: se quita "Fijos + deuda" como campo aparte (la deuda ya es una
+  // v4.5.17: se quita "Fijos + deuda" como campo aparte (la deuda ya es una
   // categoría más en la tabla). "Disponible proyectado" ahora es en vivo:
   // ingreso esperado − total ya planeado en la tabla de abajo.
   const ingresoEsperado = state.finance.ingresoEsperadoQuincenal || 0;
@@ -1276,7 +1310,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   const nextDateISO = nextDate.toISOString().slice(0,10);
   const nextLabel = "Próxima quincena · " + nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
   const scheduled = state.plannerScheduled;
-  const [confirmOverwrite, setConfirmOverwrite] = useState(false); // v4.5.16
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false); // v4.5.17
 
   return (
     <div data-screen-label="Presupuesto">
@@ -1665,7 +1699,7 @@ function GasolinaScreen({ state, actions }) {
   function submit(e) {
     e.preventDefault();
     const o = parseFloat(form.odometer);
-    /* v4.5.16: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
+    /* v4.5.17: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
        pagado (litros = costo ÷ precio). Antes el input de litros usaba step="0.1", que
        HTML5 rechaza como "Invalid number" para valores con 2 decimales (ej. 55.71 L),
        que es justamente la precisión típica de un recibo de gasolinera. */
@@ -1689,7 +1723,7 @@ function GasolinaScreen({ state, actions }) {
   function startEdit(f) {
     setShowForm(true); /* v4.5 */
     setEditingId(f.id);
-    // v4.5.16: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
+    // v4.5.17: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
     const derivedPrice = (f.liters && f.cost && f.liters > 0) ? (f.cost / f.liters) : "";
     setForm({
       date: f.date, pricePerLiter: derivedPrice !== "" ? String(derivedPrice.toFixed(3)) : "", cost: String(f.cost), odometer: f.odometer != null ? String(f.odometer) : "",
@@ -2004,7 +2038,7 @@ function DatosScreen({ state, actions, toast, syncStatus }) {
 
 // ---------- Shell / Nav ----------
 
-// v4.5.16: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
+// v4.5.17: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
 // Un solo componente TabIcon que switchea por nombre — sin dependencias externas,
 // coherente con el resto del archivo (sin build ni paquetes de íconos).
 function TabIcon({ name, size = 22, active }) {
@@ -2044,14 +2078,14 @@ function App() {
   const toastTimer = useRef(null);
 
   useEffect(() => { saveLocalState(state); }, [state]);
-  // v4.5.16: sincroniza el fondo real de <body> con el color de fondo del tema activo.
+  // v4.5.17: sincroniza el fondo real de <body> con el color de fondo del tema activo.
   // Sin esto, el rebote elástico de Safari en iOS (o el toolbar dinámico colapsando)
   // puede exponer el fondo fijo de <body> por debajo de .cfo-root — si ese fondo no
   // coincide con el tema, se ve un parche negro/gris feo en vez de continuar el color.
   useEffect(() => {
     const bg = state.theme === "dark" ? "#14180F" : "#F4F1E9";
     document.body.style.background = bg;
-    document.documentElement.style.background = bg; // v4.5.16: antes solo <body>, <html> quedaba sin fondo propio
+    document.documentElement.style.background = bg; // v4.5.17: antes solo <body>, <html> quedaba sin fondo propio
   }, [state.theme]);
   const syncStatus = useFirebaseSync(state, setState);
 
@@ -2135,7 +2169,7 @@ function App() {
     recoverLegacy,
     toggleTheme: () => setState(s => ({ ...s, theme: s.theme === "dark" ? "light" : "dark" })),
     addTransaction: (tx) => setState(s => {
-      // v4.5.16: "ahorro" resta de liquidez igual que un gasto (antes sumaba, como si
+      // v4.5.17: "ahorro" resta de liquidez igual que un gasto (antes sumaba, como si
       // fuera ingreso — bug). Si es tipo ahorro, category = nombre de la meta elegida;
       // se busca esa meta y se le suma el monto a "saved".
       const delta = tx.type === "ingreso" ? tx.amount : -tx.amount;
@@ -2186,7 +2220,7 @@ function App() {
       goals: s.goals.map(g => g.id === id ? { ...g, saved: g.saved + amount } : g)
     })),
     addGoal: (payload) => setState(s => ({ ...s, goals: [...s.goals, { id: uid(), name: payload.name, target: payload.target, saved: 0, targetDate: payload.targetDate || null }] })),
-    updateGoal: (id, changes) => setState(s => ({ ...s, goals: s.goals.map(g => g.id === id ? { ...g, ...changes } : g) })), // v4.5.16
+    updateGoal: (id, changes) => setState(s => ({ ...s, goals: s.goals.map(g => g.id === id ? { ...g, ...changes } : g) })), // v4.5.17
     deleteGoal: (id) => setState(s => ({ ...s, goals: s.goals.filter(g => g.id !== id) })),
     addWish: (payload) => setState(s => ({ ...s, wishlist: [...s.wishlist, { id: uid(), name: payload.name, category: payload.category || "General", price: payload.target }] })),
     deleteWish: (id) => setState(s => ({ ...s, wishlist: s.wishlist.filter(w => w.id !== id) })),
