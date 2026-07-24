@@ -1,12 +1,12 @@
 // ══════════════════════════════════════════════════════
-// CFO Personal — Service Worker (v4.5.17)
+// CFO Personal — Service Worker (v4.5.18)
 // Cache-first para librerías/fuentes de CDN, network-first para el HTML
 // (para detectar versión nueva), y nunca intercepta Firestore ni otras APIs.
-// v4.5.17: reescritura de la app a JSX + Babel standalone (antes React.createElement
+// v4.5.18: reescritura de la app a JSX + Babel standalone (antes React.createElement
 // puro) — el bundle de CDNs cambió: sale recharts/prop-types, entra @babel/standalone
 // y se agrega Firebase al precache para que la app cargue 100% offline.
 // ══════════════════════════════════════════════════════
-var CACHE_NAME = "cfo-personal-v4.5.17";
+var CACHE_NAME = "cfo-personal-v4.5.18";
 var APP_SHELL = "./index.html";
 
 var PRECACHE_URLS = [
