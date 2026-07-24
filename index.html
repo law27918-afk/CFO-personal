@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CFO Personal · Rediseño Premium (v4.5.20)</title>
+<title>CFO Personal · Rediseño Premium (v4.6.0)</title>
 <meta name="description" content="Centro financiero personal — Hoy, Movimientos, Metas & Wishlist, Presupuesto, Gasolina y Datos & Configuración. Sincronizado con Firebase.">
 <meta name="theme-color" content="#16382B">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -65,7 +65,7 @@
   }
 
   .cfo-shell { position: relative; z-index: 1; display: flex; }
-  /* v4.5.20: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
+  /* v4.6.0: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
      DENTRO de la fila no sumaba altura extra, pero al sacarlo afuera como header (fix
      anterior) la altura total pasó a ser topbar + shell(100vh) + bottomnav, más alta
      que la pantalla. El bottom-nav es sticky (no fixed), así que quedaba pegado al final
@@ -123,7 +123,7 @@
     position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.45);
     display: flex; align-items: flex-end; justify-content: center;
     padding: 0 16px calc(96px + env(safe-area-inset-bottom, 0px));
-    /* v4.5.20: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
+    /* v4.6.0: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
        ganaba el que aparece después en el HTML (el nav), tapando el modal. Ahora el
        modal siempre queda por encima, y el padding-bottom deja un espacio visible
        entre la ventana y la zona donde flota el menú, en vez de quedar pegados. */
@@ -258,7 +258,7 @@ function categoryColor(cat) {
 
 // Rango [inicio, fin) de la quincena que contiene "today", y de la próxima quincena.
 const PAY_DAYS = [10, 25];
-// v4.5.20: si el día de pago (10 o 25) cae sábado o domingo, se corre al viernes
+// v4.6.0: si el día de pago (10 o 25) cae sábado o domingo, se corre al viernes
 // hábil anterior — bancos y planillas no procesan en fin de semana.
 function toBusinessDay(d) {
   const day = d.getDay(); // 0 = domingo, 6 = sábado
@@ -267,7 +267,7 @@ function toBusinessDay(d) {
   return d;
 }
 function getQuincenaRange(today) {
-  // v4.5.20-fix: antes se decidía la quincena comparando el día crudo (dom < 25) y
+  // v4.6.0-fix: antes se decidía la quincena comparando el día crudo (dom < 25) y
   // RECIÉN DESPUÉS se ajustaba el corte al viernes si caía en fin de semana. Eso hacía
   // que, cuando el corte se adelantaba (25 sáb → 24 vie), el día 24 todavía se
   // clasificara en la quincena VIEJA (porque 24 < 25 seguía siendo cierto), aunque ese
@@ -284,7 +284,7 @@ function getQuincenaRange(today) {
   return { start: cut2, end: cutNext };
 }
 function getNextQuincenaDate(today) {
-  // v4.5.20-fix: antes comparaba dom contra el número crudo (25), el mismo error que
+  // v4.6.0-fix: antes comparaba dom contra el número crudo (25), el mismo error que
   // ya se corrigió en getQuincenaRange — cuando "hoy" coincide exactamente con el corte
   // ya ajustado (ej. hoy es viernes 24, corte real de este ciclo), seguía devolviendo
   // ese mismo día en vez de saltar al siguiente. Ahora reutiliza getQuincenaRange(today),
@@ -497,31 +497,51 @@ function seedData() {
   };
 }
 
+// ---------- Persistencia por clave (v4.6 — réplica de la arquitectura de la app vieja) ----------
+// v4.6: antes todo el estado vivía en UN solo documento de Firestore y una sola clave
+// de localStorage — cualquier escritura pisaba TODO. Ahora, como en la app vieja,
+// cada campo de nivel superior del estado tiene su propio documento de Firestore y su
+// propia clave de localStorage, con su propio debounce/retry/ventana anti-eco — así
+// una escritura vieja de "gasolina" no puede pisar "transacciones" ni nada más.
+const SYNC_KEYS = ["theme","categories","finance","liquidez","ahorroAcumulado","ahorroMesAnterior",
+  "transactions","goals","wishlist","fuelLogs","tankPct","pending","budgets","planner","plannerScheduled","quincena"];
+const LS_PREFIX = "cfo-personal-v2:";
+const SYNC_UID = "cfo_user";
+function _docId(key) { return SYNC_UID + "__" + key.replace(/[^a-zA-Z0-9]/g, "_"); }
+
 function loadLocalState() {
+  const seed = seedData();
+  // v4.6: migración — si localStorage no tiene todavía nada bajo las claves nuevas
+  // (primera vez que se abre esta versión), se cae de vuelta al blob único viejo
+  // (STORAGE_KEY) antes de usar la semilla de ejemplo, para no perder datos reales.
+  let legacyLocal = null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return seedData();
-    const parsed = JSON.parse(raw);
-    if (!parsed || !parsed.transactions) return seedData();
-    return Object.assign(seedData(), parsed);
-  } catch (e) { return seedData(); }
+    if (raw) legacyLocal = JSON.parse(raw);
+  } catch (e) {}
+  const out = {};
+  SYNC_KEYS.forEach(key => {
+    try {
+      const raw = localStorage.getItem(LS_PREFIX + key);
+      if (raw != null) { out[key] = JSON.parse(raw); return; }
+    } catch (e) {}
+    out[key] = (legacyLocal && legacyLocal[key] !== undefined) ? legacyLocal[key] : seed[key];
+  });
+  return { ...seed, ...out };
 }
-
 function saveLocalState(state) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  SYNC_KEYS.forEach(key => {
+    try { localStorage.setItem(LS_PREFIX + key, JSON.stringify(state[key])); } catch (e) {}
+  });
 }
-// v4.5.20: timestamp real de "última vez que tuvimos datos locales confirmados"
-// (edición propia O snapshot remoto ya aplicado) — persiste en localStorage para
-// sobrevivir un reload, y es la base real de la protección anti-sobrescritura.
-function loadLocalTs() {
-  try { return parseInt(localStorage.getItem(STORAGE_KEY + ":ts"), 10) || 0; } catch (e) { return 0; }
+function loadKeyTs(key) {
+  try { return parseInt(localStorage.getItem(LS_PREFIX + key + ":ts"), 10) || 0; } catch (e) { return 0; }
 }
-function saveLocalTs(ts) {
-  try { localStorage.setItem(STORAGE_KEY + ":ts", String(ts)); } catch (e) {}
+function saveKeyTs(key, ts) {
+  try { localStorage.setItem(LS_PREFIX + key + ":ts", String(ts)); } catch (e) {}
 }
 
 // ---------- Firebase (Firestore) sync ----------
-// Un solo documento con todo el estado — simple y suficiente para un solo usuario.
 let _fbApp = null;
 function getDb() {
   if (typeof firebase === "undefined") return null;
@@ -533,13 +553,9 @@ function getDb() {
   } catch (e) { console.error("Firebase init:", e.message); return null; }
 }
 
-// v4.5.20 — merge por id en vez de reemplazo completo (diagnóstico externo, punto 3):
-// antes, aceptar un snapshot remoto reemplazaba TODO el estado local, así que un
-// dispositivo con una copia desactualizada podía borrarle a otro cualquier cosa
-// (no solo transacciones — metas, wishlist, presupuesto, gasolina). Ahora, para las
-// listas con id, se fusiona por id: se conserva la unión de ambos lados, así ningún
-// lado puede hacer desaparecer un ítem que el otro ya tenía. Los campos escalares
-// (liquidez, finance, etc.) siguen tomando el valor remoto directo — ver nota abajo.
+// Listas con id — se fusionan por id además del last-write-wins por clave, como capa
+// extra de seguridad (no existía en la app vieja, se conserva de la v4.6.0).
+const ID_LIST_KEYS = { transactions:1, goals:1, wishlist:1, fuelLogs:1, budgets:1, pending:1 };
 function mergeById(localArr, remoteArr) {
   if (!Array.isArray(remoteArr)) return localArr || [];
   if (!Array.isArray(localArr)) return remoteArr;
@@ -548,140 +564,180 @@ function mergeById(localArr, remoteArr) {
   localArr.forEach(item => { if (item && item.id != null && !(item.id in map)) map[item.id] = item; });
   return Object.values(map);
 }
-function mergeRemoteState(local, remote) {
-  return {
-    ...remote, // campos escalares/objetos simples (finance, liquidez, theme, planner, etc.) — valor remoto directo
-    categories: Array.from(new Set([...(remote.categories || []), ...(local.categories || [])])),
-    transactions: mergeById(local.transactions, remote.transactions),
-    goals: mergeById(local.goals, remote.goals),
-    wishlist: mergeById(local.wishlist, remote.wishlist),
-    fuelLogs: mergeById(local.fuelLogs, remote.fuelLogs),
-    budgets: mergeById(local.budgets, remote.budgets),
-    pending: mergeById(local.pending, remote.pending)
-  };
-}
 
 function useFirebaseSync(state, setState) {
   const [syncStatus, setSyncStatus] = useState({ connected: false, syncing: false, lastSyncedAt: null, error: null });
-  // v4.5.20: knownTs sobrevive un reload (protege contra snapshots viejos que llegan
-  // justo después de recargar, antes de que termine de subir un cambio reciente).
-  const knownTs = useRef(loadLocalTs());
-  // v4.5.20: réplica exacta del mecanismo de la app vieja — ventana anti-eco de 2.5s.
-  // Se marca en el momento en que arranca el debounce de escritura (no cuando termina),
-  // igual que _queueFirestoreWrite en la app vieja. Cualquier snapshot remoto que
-  // llegue dentro de esos 2.5s se descarta directo, sin ni siquiera mirar su timestamp
-  // — es la primera línea de defensa, más barata que la comparación de knownTs.
-  const lastLocalWriteTs = useRef(0);
-  const writeTimer = useRef(null);
-  const firstSnapshot = useRef(true);
-  // v4.5.20: ref con el estado local siempre actualizado — el efecto de onSnapshot
-  // solo se monta una vez ([] deps), así que sin esto usaría el "state" del primer
-  // render (viejo) para el merge, en vez del más reciente.
+  const knownTs = useRef({});          // key -> último ts confirmado (sobrevive reload vía localStorage)
+  const lastLocalWriteTs = useRef({}); // key -> cuándo arrancó nuestra última escritura local (ventana anti-eco)
+  const writeTimers = useRef({});      // key -> setTimeout pendiente
   const stateRef = useRef(state);
   stateRef.current = state;
+  const prevStateRef = useRef(state);
+  SYNC_KEYS.forEach(k => { if (knownTs.current[k] === undefined) knownTs.current[k] = loadKeyTs(k); });
 
-  // Suscripción en tiempo real: al montar, y cada vez que cambie el doc remoto.
-  useEffect(() => {
-    const db = getDb();
-    if (!db) { setSyncStatus(s => ({ ...s, connected: false, error: "Sin conexión a Firestore" })); return; }
-    const ref = db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC_ID);
-    const unsub = ref.onSnapshot(
-      (doc) => {
-        setSyncStatus(s => ({ ...s, connected: true, error: null }));
-        if (!doc.exists) { firstSnapshot.current = false; return; }
-        const data = doc.data();
-        if (!data || !data.value) { firstSnapshot.current = false; return; }
-        // 1) Ventana anti-eco de 2.5s (igual que la app vieja).
-        if (lastLocalWriteTs.current && (Date.now() - lastLocalWriteTs.current) < 2500) { firstSnapshot.current = false; return; }
-        // 2) Si lo que ya tenemos localmente es igual o más nuevo, ignoramos este
-        // snapshot — es viejo. El efecto de escritura de abajo auto-corrige la nube.
-        if (data.ts && data.ts <= knownTs.current) { firstSnapshot.current = false; return; }
-        try {
-          const remote = JSON.parse(data.value);
-          setState(s => mergeRemoteState(s, remote));
-          setSyncStatus(s => ({ ...s, lastSyncedAt: Date.now() }));
-        } catch (e) {}
-        firstSnapshot.current = false;
-      },
-      (err) => {
-        setSyncStatus(s => ({ ...s, connected: false, error: err.message }));
-      }
-    );
-    return () => unsub();
-    // eslint-disable-next-line
-  }, []);
-
-  // v4.5.20: registra CUALQUIER cambio de estado (edición local o snapshot remoto ya
-  // aplicado) como "dato local confirmado", persistiendo el timestamp para que
-  // sobreviva un reload. Se salta el montaje inicial a propósito.
-  const isFirstRender = useRef(true);
-  useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
+  function writeKeyWithRetry(db, key, val, attempt) {
     const ts = Date.now();
-    knownTs.current = ts;
-    saveLocalTs(ts);
-  }, [state]);
-
-  // Escritura con debounce cada vez que cambia el estado local, con reintento con
-  // backoff exponencial si falla (1s / 3s / 8s), igual que la app vieja.
-  useEffect(() => {
-    const db = getDb();
-    if (!db) return;
-    lastLocalWriteTs.current = Date.now(); // arranca la ventana anti-eco YA, no al terminar de escribir
-    if (writeTimer.current) clearTimeout(writeTimer.current);
-    writeTimer.current = setTimeout(() => {
-      writeWithRetry(db, state, 0);
-    }, 400);
-    return () => clearTimeout(writeTimer.current);
-    // eslint-disable-next-line
-  }, [state]);
-
-  // v4.5.20: en una PWA instalada, un pull-to-refresh o cambio de app puede recargar
-  // la página en cualquier momento, sin avisar — si eso pasa DENTRO de los 400ms del
-  // debounce, el envío a Firestore se corta a medias y la nube se queda con datos
-  // viejos. visibilitychange/pagehide son los eventos confiables para esto en iOS
-  // (beforeunload no lo es en Safari/PWA) — al ocultarse la página, se cancela el
-  // debounce pendiente y se manda de inmediato lo que haya en ese momento.
-  useEffect(() => {
-    function flushNow() {
-      const db = getDb();
-      if (!db) return;
-      if (writeTimer.current) { clearTimeout(writeTimer.current); writeTimer.current = null; }
-      writeWithRetry(db, stateRef.current, 0);
-    }
-    function onVisibility() { if (document.visibilityState === "hidden") flushNow(); }
-    document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("pagehide", flushNow);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("pagehide", flushNow);
-    };
-    // eslint-disable-next-line
-  }, []);
-
-  function writeWithRetry(db, stateToWrite, attempt) {
-    const ts = Date.now();
-    knownTs.current = ts;
-    saveLocalTs(ts);
+    knownTs.current[key] = ts;
+    saveKeyTs(key, ts);
     setSyncStatus(s => ({ ...s, syncing: true }));
-    db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC_ID)
-      .set({ value: JSON.stringify(stateToWrite), ts })
+    db.collection(FIRESTORE_COLLECTION).doc(_docId(key))
+      .set({ key, value: JSON.stringify(val), ts })
       .then(() => setSyncStatus(s => ({ ...s, syncing: false, connected: true, lastSyncedAt: Date.now(), error: null })))
       .catch((err) => {
         const backoffMs = [1000, 3000, 8000];
         if (attempt < backoffMs.length) {
-          setTimeout(() => writeWithRetry(db, stateToWrite, attempt + 1), backoffMs[attempt]);
+          setTimeout(() => writeKeyWithRetry(db, key, val, attempt + 1), backoffMs[attempt]);
           return;
         }
         setSyncStatus(s => ({ ...s, syncing: false, error: err.message }));
       });
   }
 
+  function flushKeyNow(db, key) {
+    if (writeTimers.current[key]) { clearTimeout(writeTimers.current[key]); writeTimers.current[key] = null; }
+    writeKeyWithRetry(db, key, stateRef.current[key], 0);
+  }
+
+  // Carga inicial: por cada clave, comparar Firestore vs localStorage y quedarse con
+  // el más nuevo (igual que _loadFromFirestore de la app vieja). v4.6: primero se lee
+  // el documento único VIEJO una sola vez — si una clave nueva no existe todavía ni
+  // local ni remotamente, se migra desde ahí en vez de sembrar con la demo de ejemplo
+  // (así migra correctamente incluso un dispositivo que nunca tuvo el blob local, ej.
+  // un celular que solo había sincronizado contra el documento único viejo).
+  useEffect(() => {
+    const db = getDb();
+    if (!db) { setSyncStatus(s => ({ ...s, connected: false, error: "Sin conexión a Firestore" })); return; }
+    let legacyBlob = null;
+    const legacyPromise = db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC_ID).get()
+      .then(doc => {
+        if (doc.exists && doc.data() && doc.data().value) {
+          try { legacyBlob = JSON.parse(doc.data().value); } catch (e) {}
+        }
+      }).catch(() => {});
+
+    let done = 0;
+    const patch = {};
+    legacyPromise.then(() => { SYNC_KEYS.forEach(key => {
+      db.collection(FIRESTORE_COLLECTION).doc(_docId(key)).get()
+        .then(doc => {
+          const lsTs = loadKeyTs(key);
+          if (doc.exists && doc.data() && doc.data().value) {
+            const fsTs = doc.data().ts || 0;
+            if (lsTs > fsTs) {
+              // localStorage más nuevo — se re-sincroniza a Firestore, no se toca el patch
+              db.collection(FIRESTORE_COLLECTION).doc(_docId(key))
+                .set({ key, value: JSON.stringify(stateRef.current[key]), ts: lsTs }).catch(() => {});
+              knownTs.current[key] = lsTs;
+            } else {
+              try { patch[key] = JSON.parse(doc.data().value); knownTs.current[key] = fsTs; saveKeyTs(key, fsTs); } catch (e) {}
+            }
+          } else {
+            // La clave nueva no existe en Firestore todavía — sembrarla. Prioridad de fuente:
+            // 1) algo local ya guardado bajo la clave nueva, 2) el documento único viejo
+            // (migración), 3) el valor actual en memoria (que loadLocalState ya migró si pudo).
+            const seedTs = Date.now();
+            const seedVal = (lsTs > 0) ? stateRef.current[key]
+              : (legacyBlob && legacyBlob[key] !== undefined) ? legacyBlob[key]
+              : stateRef.current[key];
+            if (legacyBlob && legacyBlob[key] !== undefined && lsTs === 0) patch[key] = legacyBlob[key];
+            db.collection(FIRESTORE_COLLECTION).doc(_docId(key))
+              .set({ key, value: JSON.stringify(seedVal), ts: seedTs }).catch(() => {});
+            knownTs.current[key] = seedTs; saveKeyTs(key, seedTs);
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          done++;
+          if (done === SYNC_KEYS.length) {
+            if (Object.keys(patch).length) setState(s => ({ ...s, ...patch }));
+            setSyncStatus(s => ({ ...s, connected: true, error: null }));
+          }
+        });
+    }); });
+
+    // Suscripción en tiempo real por clave.
+    const unsubs = SYNC_KEYS.map(key => {
+      const ref = db.collection(FIRESTORE_COLLECTION).doc(_docId(key));
+      return ref.onSnapshot((doc) => {
+        if (!doc.exists) return;
+        const data = doc.data();
+        if (!data || !data.value) return;
+        // 1) Ventana anti-eco de 2.5s (igual que la app vieja).
+        const lw = lastLocalWriteTs.current[key];
+        if (lw && (Date.now() - lw) < 2500) return;
+        // 2) Si lo que ya tenemos localmente para ESTA clave es igual o más nuevo, se ignora.
+        const remoteTs = data.ts || 0;
+        if (remoteTs <= (knownTs.current[key] || 0)) return;
+        try {
+          const remoteVal = JSON.parse(data.value);
+          knownTs.current[key] = remoteTs;
+          saveKeyTs(key, remoteTs);
+          setState(s => ({ ...s, [key]: ID_LIST_KEYS[key] ? mergeById(s[key], remoteVal) : remoteVal }));
+          setSyncStatus(s => ({ ...s, lastSyncedAt: Date.now() }));
+        } catch (e) {}
+      }, (err) => {
+        setSyncStatus(s => ({ ...s, connected: false, error: err.message }));
+      });
+    });
+
+    return () => unsubs.forEach(u => u && u());
+    // eslint-disable-next-line
+  }, []);
+
+  // Escritura con debounce de 150ms POR CLAVE (solo las que realmente cambiaron desde
+  // el último render), con reintento con backoff exponencial si falla — igual que
+  // _queueFirestoreWrite/_flushWrite de la app vieja.
+  useEffect(() => {
+    const db = getDb();
+    if (!db) { prevStateRef.current = state; return; }
+    const prev = prevStateRef.current;
+    SYNC_KEYS.forEach(key => {
+      if (state[key] === prev[key]) return; // no cambió, no hay nada que escribir
+      lastLocalWriteTs.current[key] = Date.now(); // arranca la ventana anti-eco YA
+      if (writeTimers.current[key]) clearTimeout(writeTimers.current[key]);
+      writeTimers.current[key] = setTimeout(() => {
+        writeKeyWithRetry(db, key, state[key], 0);
+      }, 150);
+    });
+    prevStateRef.current = state;
+    // v4.6-fix: NO se limpia aquí (correría en CADA cambio de estado y cancelaría el
+    // timer pendiente de una clave distinta a la que acaba de cambiar — cada timer ya
+    // se reinicia individualmente arriba cuando SU clave vuelve a cambiar). La limpieza
+    // real al desmontar el componente vive en el efecto de abajo.
+    // eslint-disable-next-line
+  }, [state]);
+
+  // Limpieza de todos los timers pendientes solo al desmontar el componente (no en
+  // cada cambio de estado — ver nota arriba).
+  useEffect(() => {
+    return () => { Object.values(writeTimers.current).forEach(t => t && clearTimeout(t)); };
+  }, []);
+
+  // En una PWA instalada, un pull-to-refresh o cambio de app puede recargar la página
+  // sin avisar — visibilitychange/pagehide son los eventos confiables para esto en iOS
+  // (beforeunload no lo es). Al ocultarse la página, se manda de inmediato cualquier
+  // escritura pendiente, saltándose el debounce de 150ms.
+  useEffect(() => {
+    function flushAllNow() {
+      const db = getDb();
+      if (!db) return;
+      SYNC_KEYS.forEach(key => { if (writeTimers.current[key]) flushKeyNow(db, key); });
+    }
+    function onVisibility() { if (document.visibilityState === "hidden") flushAllNow(); }
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", flushAllNow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", flushAllNow);
+    };
+    // eslint-disable-next-line
+  }, []);
+
   return syncStatus;
 }
 
 function fmtRelativeTime(ts) {
-  // v4.5.20: formato exacto de la app vieja (SyncIndicator) — antes decía "hace 3 min",
+  // v4.6.0: formato exacto de la app vieja (SyncIndicator) — antes decía "hace 3 min",
   // ahora "3min" / "3s" / "3h" / "justo ahora", igual que el original.
   if (!ts) return "nunca";
   const secs = Math.floor((Date.now() - ts) / 1000);
@@ -691,7 +747,7 @@ function fmtRelativeTime(ts) {
   return Math.floor(secs / 3600) + "h";
 }
 
-// v4.5.20: réplica del SyncIndicator de la app vieja — punto de color + "Sincronizado
+// v4.6.0: réplica del SyncIndicator de la app vieja — punto de color + "Sincronizado
 // hace X", visible siempre (no solo dentro de Datos), se refresca cada 15s.
 function SyncIndicator({ syncStatus, compact }) {
   const [, setTick] = useState(0);
@@ -835,7 +891,7 @@ function AddTransactionSheet({ categories, goals, onClose, onSave }) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(todayISO());
 
-  // v4.5.20: la lista de categorías depende del tipo de movimiento.
+  // v4.6.0: la lista de categorías depende del tipo de movimiento.
   const gastoCats = categories.filter(c => c !== "Ahorro" && c !== "Salario" && c !== "Ingreso");
   const ingresoCats = ["Salario", "Otros"];
   const ahorroCats = goals.map(g => g.name);
@@ -897,7 +953,7 @@ function MovimientosScreen({ state, actions }) {
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(25); // v4.5.20: paginación "ver más"
+  const [visibleCount, setVisibleCount] = useState(25); // v4.6.0: paginación "ver más"
 
   const filtered = useMemo(() => {
     return state.transactions.filter(t => {
@@ -907,7 +963,7 @@ function MovimientosScreen({ state, actions }) {
     });
   }, [state.transactions, query, activeCat]);
 
-  // v4.5.20: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
+  // v4.6.0: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
   useEffect(() => { setVisibleCount(25); }, [query, activeCat]);
 
   const sortedFiltered = useMemo(() =>
@@ -1079,7 +1135,7 @@ function EditGoalSheet({ goal, onClose, onSave }) {
 
 function MetasWishlistScreen({ state, actions }) {
   const [contribGoal, setContribGoal] = useState(null);
-  const [editGoal, setEditGoal] = useState(null); // v4.5.20
+  const [editGoal, setEditGoal] = useState(null); // v4.6.0
   const [addSheet, setAddSheet] = useState(null); // 'goal' | 'wish' | null
 
   function confirmDeleteGoal(id, name) {
@@ -1094,7 +1150,7 @@ function MetasWishlistScreen({ state, actions }) {
 
   const [gwSub, setGwSub] = useState("metas"); /* v4.4 */
 
-  // v4.5.20: resumen general en dos cards separadas — Ahorrado (oscura) y Falta por
+  // v4.6.0: resumen general en dos cards separadas — Ahorrado (oscura) y Falta por
   // ahorrar (clara), esta última con el detalle por meta (solo las que tienen fecha).
   const totalSaved = state.goals.reduce((a, g) => a + (Number(g.saved) || 0), 0);
   const totalTarget = state.goals.reduce((a, g) => a + (Number(g.target) || 0), 0);
@@ -1285,7 +1341,7 @@ function PresupuestoScreen({ state, actions, toast }) {
 
   const realByCategory = useMemo(() => {
     const map = {};
-    // v4.5.20: las transacciones tipo "ahorro" tienen category = nombre de la meta
+    // v4.6.0: las transacciones tipo "ahorro" tienen category = nombre de la meta
     // (no "Ahorro" literal), pero deben sumar igual al renglón "Ahorro" del presupuesto.
     state.transactions
       .filter(t => (t.type === "gasto" || t.type === "ahorro") && t.date >= qStartISO && t.date < qEndISO)
@@ -1308,7 +1364,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   const totalReal = rows.reduce((s,r) => s + r.real, 0);
 
   // Proyección de la quincena en curso.
-  // v4.5.20-fix: antes se extrapolaba linealmente el ritmo de gasto de los días ya
+  // v4.6.0-fix: antes se extrapolaba linealmente el ritmo de gasto de los días ya
   // transcurridos (gasto ÷ días transcurridos × días totales) — con pocos días
   // transcurridos (ej. día 1) un solo gasto grande disparaba la proyección a valores
   // absurdos (ej. $226 en 1 día × 17 días = $3,844). Ahora:
@@ -1371,7 +1427,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   // Planeador — precarga las categorías y montos desde el Presupuesto real
   // (state.budgets); el usuario puede ajustar cada una, y ese ajuste se guarda
   // en state.planner por categoría hasta que se aplique o se borre la categoría.
-  // v4.5.20: se quita "Fijos + deuda" como campo aparte (la deuda ya es una
+  // v4.6.0: se quita "Fijos + deuda" como campo aparte (la deuda ya es una
   // categoría más en la tabla). "Disponible proyectado" ahora es en vivo:
   // ingreso esperado − total ya planeado en la tabla de abajo.
   const ingresoEsperado = state.finance.ingresoEsperadoQuincenal || 0;
@@ -1399,7 +1455,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   const nextDateISO = nextDate.toISOString().slice(0,10);
   const nextLabel = "Próxima quincena · " + nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
   const scheduled = state.plannerScheduled;
-  const [confirmOverwrite, setConfirmOverwrite] = useState(false); // v4.5.20
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false); // v4.6.0
 
   return (
     <div data-screen-label="Presupuesto">
@@ -1788,7 +1844,7 @@ function GasolinaScreen({ state, actions }) {
   function submit(e) {
     e.preventDefault();
     const o = parseFloat(form.odometer);
-    /* v4.5.20: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
+    /* v4.6.0: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
        pagado (litros = costo ÷ precio). Antes el input de litros usaba step="0.1", que
        HTML5 rechaza como "Invalid number" para valores con 2 decimales (ej. 55.71 L),
        que es justamente la precisión típica de un recibo de gasolinera. */
@@ -1812,7 +1868,7 @@ function GasolinaScreen({ state, actions }) {
   function startEdit(f) {
     setShowForm(true); /* v4.5 */
     setEditingId(f.id);
-    // v4.5.20: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
+    // v4.6.0: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
     const derivedPrice = (f.liters && f.cost && f.liters > 0) ? (f.cost / f.liters) : "";
     setForm({
       date: f.date, pricePerLiter: derivedPrice !== "" ? String(derivedPrice.toFixed(3)) : "", cost: String(f.cost), odometer: f.odometer != null ? String(f.odometer) : "",
@@ -2127,7 +2183,7 @@ function DatosScreen({ state, actions, toast, syncStatus }) {
 
 // ---------- Shell / Nav ----------
 
-// v4.5.20: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
+// v4.6.0: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
 // Un solo componente TabIcon que switchea por nombre — sin dependencias externas,
 // coherente con el resto del archivo (sin build ni paquetes de íconos).
 function TabIcon({ name, size = 22, active }) {
@@ -2167,14 +2223,14 @@ function App() {
   const toastTimer = useRef(null);
 
   useEffect(() => { saveLocalState(state); }, [state]);
-  // v4.5.20: sincroniza el fondo real de <body> con el color de fondo del tema activo.
+  // v4.6.0: sincroniza el fondo real de <body> con el color de fondo del tema activo.
   // Sin esto, el rebote elástico de Safari en iOS (o el toolbar dinámico colapsando)
   // puede exponer el fondo fijo de <body> por debajo de .cfo-root — si ese fondo no
   // coincide con el tema, se ve un parche negro/gris feo en vez de continuar el color.
   useEffect(() => {
     const bg = state.theme === "dark" ? "#14180F" : "#F4F1E9";
     document.body.style.background = bg;
-    document.documentElement.style.background = bg; // v4.5.20: antes solo <body>, <html> quedaba sin fondo propio
+    document.documentElement.style.background = bg; // v4.6.0: antes solo <body>, <html> quedaba sin fondo propio
   }, [state.theme]);
   const syncStatus = useFirebaseSync(state, setState);
 
@@ -2258,7 +2314,7 @@ function App() {
     recoverLegacy,
     toggleTheme: () => setState(s => ({ ...s, theme: s.theme === "dark" ? "light" : "dark" })),
     addTransaction: (tx) => setState(s => {
-      // v4.5.20: "ahorro" resta de liquidez igual que un gasto (antes sumaba, como si
+      // v4.6.0: "ahorro" resta de liquidez igual que un gasto (antes sumaba, como si
       // fuera ingreso — bug). Si es tipo ahorro, category = nombre de la meta elegida;
       // se busca esa meta y se le suma el monto a "saved".
       const delta = tx.type === "ingreso" ? tx.amount : -tx.amount;
@@ -2309,7 +2365,7 @@ function App() {
       goals: s.goals.map(g => g.id === id ? { ...g, saved: g.saved + amount } : g)
     })),
     addGoal: (payload) => setState(s => ({ ...s, goals: [...s.goals, { id: uid(), name: payload.name, target: payload.target, saved: 0, targetDate: payload.targetDate || null }] })),
-    updateGoal: (id, changes) => setState(s => ({ ...s, goals: s.goals.map(g => g.id === id ? { ...g, ...changes } : g) })), // v4.5.20
+    updateGoal: (id, changes) => setState(s => ({ ...s, goals: s.goals.map(g => g.id === id ? { ...g, ...changes } : g) })), // v4.6.0
     deleteGoal: (id) => setState(s => ({ ...s, goals: s.goals.filter(g => g.id !== id) })),
     addWish: (payload) => setState(s => ({ ...s, wishlist: [...s.wishlist, { id: uid(), name: payload.name, category: payload.category || "General", price: payload.target }] })),
     deleteWish: (id) => setState(s => ({ ...s, wishlist: s.wishlist.filter(w => w.id !== id) })),
