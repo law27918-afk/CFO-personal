@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CFO Personal · Rediseño Premium (v4.5.18)</title>
+<title>CFO Personal · Rediseño Premium (v4.5.19)</title>
 <meta name="description" content="Centro financiero personal — Hoy, Movimientos, Metas & Wishlist, Presupuesto, Gasolina y Datos & Configuración. Sincronizado con Firebase.">
 <meta name="theme-color" content="#16382B">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -65,7 +65,7 @@
   }
 
   .cfo-shell { position: relative; z-index: 1; display: flex; }
-  /* v4.5.18: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
+  /* v4.5.19: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
      DENTRO de la fila no sumaba altura extra, pero al sacarlo afuera como header (fix
      anterior) la altura total pasó a ser topbar + shell(100vh) + bottomnav, más alta
      que la pantalla. El bottom-nav es sticky (no fixed), así que quedaba pegado al final
@@ -123,7 +123,7 @@
     position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.45);
     display: flex; align-items: flex-end; justify-content: center;
     padding: 0 16px calc(96px + env(safe-area-inset-bottom, 0px));
-    /* v4.5.18: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
+    /* v4.5.19: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
        ganaba el que aparece después en el HTML (el nav), tapando el modal. Ahora el
        modal siempre queda por encima, y el padding-bottom deja un espacio visible
        entre la ventana y la zona donde flota el menú, en vez de quedar pegados. */
@@ -258,7 +258,7 @@ function categoryColor(cat) {
 
 // Rango [inicio, fin) de la quincena que contiene "today", y de la próxima quincena.
 const PAY_DAYS = [10, 25];
-// v4.5.18: si el día de pago (10 o 25) cae sábado o domingo, se corre al viernes
+// v4.5.19: si el día de pago (10 o 25) cae sábado o domingo, se corre al viernes
 // hábil anterior — bancos y planillas no procesan en fin de semana.
 function toBusinessDay(d) {
   const day = d.getDay(); // 0 = domingo, 6 = sábado
@@ -267,7 +267,7 @@ function toBusinessDay(d) {
   return d;
 }
 function getQuincenaRange(today) {
-  // v4.5.18-fix: antes se decidía la quincena comparando el día crudo (dom < 25) y
+  // v4.5.19-fix: antes se decidía la quincena comparando el día crudo (dom < 25) y
   // RECIÉN DESPUÉS se ajustaba el corte al viernes si caía en fin de semana. Eso hacía
   // que, cuando el corte se adelantaba (25 sáb → 24 vie), el día 24 todavía se
   // clasificara en la quincena VIEJA (porque 24 < 25 seguía siendo cierto), aunque ese
@@ -284,7 +284,7 @@ function getQuincenaRange(today) {
   return { start: cut2, end: cutNext };
 }
 function getNextQuincenaDate(today) {
-  // v4.5.18-fix: antes comparaba dom contra el número crudo (25), el mismo error que
+  // v4.5.19-fix: antes comparaba dom contra el número crudo (25), el mismo error que
   // ya se corrigió en getQuincenaRange — cuando "hoy" coincide exactamente con el corte
   // ya ajustado (ej. hoy es viernes 24, corte real de este ciclo), seguía devolviendo
   // ese mismo día en vez de saltar al siguiente. Ahora reutiliza getQuincenaRange(today),
@@ -510,7 +510,7 @@ function loadLocalState() {
 function saveLocalState(state) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
 }
-// v4.5.18: timestamp real de "última vez que tuvimos datos locales confirmados"
+// v4.5.19: timestamp real de "última vez que tuvimos datos locales confirmados"
 // (edición propia O snapshot remoto ya aplicado) — persiste en localStorage para
 // sobrevivir un reload, y es la base real de la protección anti-sobrescritura.
 function loadLocalTs() {
@@ -535,10 +535,10 @@ function getDb() {
 
 function useFirebaseSync(state, setState) {
   const [syncStatus, setSyncStatus] = useState({ connected: false, syncing: false, lastSyncedAt: null, error: null });
-  // v4.5.18: knownTs sobrevive un reload (protege contra snapshots viejos que llegan
+  // v4.5.19: knownTs sobrevive un reload (protege contra snapshots viejos que llegan
   // justo después de recargar, antes de que termine de subir un cambio reciente).
   const knownTs = useRef(loadLocalTs());
-  // v4.5.18: réplica exacta del mecanismo de la app vieja — ventana anti-eco de 2.5s.
+  // v4.5.19: réplica exacta del mecanismo de la app vieja — ventana anti-eco de 2.5s.
   // Se marca en el momento en que arranca el debounce de escritura (no cuando termina),
   // igual que _queueFirestoreWrite en la app vieja. Cualquier snapshot remoto que
   // llegue dentro de esos 2.5s se descarta directo, sin ni siquiera mirar su timestamp
@@ -578,7 +578,7 @@ function useFirebaseSync(state, setState) {
     // eslint-disable-next-line
   }, []);
 
-  // v4.5.18: registra CUALQUIER cambio de estado (edición local o snapshot remoto ya
+  // v4.5.19: registra CUALQUIER cambio de estado (edición local o snapshot remoto ya
   // aplicado) como "dato local confirmado", persistiendo el timestamp para que
   // sobreviva un reload. Se salta el montaje inicial a propósito.
   const isFirstRender = useRef(true);
@@ -603,6 +603,31 @@ function useFirebaseSync(state, setState) {
     // eslint-disable-next-line
   }, [state]);
 
+  // v4.5.19: en una PWA instalada, un pull-to-refresh o cambio de app puede recargar
+  // la página en cualquier momento, sin avisar — si eso pasa DENTRO de los 400ms del
+  // debounce, el envío a Firestore se corta a medias y la nube se queda con datos
+  // viejos. visibilitychange/pagehide son los eventos confiables para esto en iOS
+  // (beforeunload no lo es en Safari/PWA) — al ocultarse la página, se cancela el
+  // debounce pendiente y se manda de inmediato lo que haya en ese momento.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  useEffect(() => {
+    function flushNow() {
+      const db = getDb();
+      if (!db) return;
+      if (writeTimer.current) { clearTimeout(writeTimer.current); writeTimer.current = null; }
+      writeWithRetry(db, stateRef.current, 0);
+    }
+    function onVisibility() { if (document.visibilityState === "hidden") flushNow(); }
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", flushNow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", flushNow);
+    };
+    // eslint-disable-next-line
+  }, []);
+
   function writeWithRetry(db, stateToWrite, attempt) {
     const ts = Date.now();
     knownTs.current = ts;
@@ -625,7 +650,7 @@ function useFirebaseSync(state, setState) {
 }
 
 function fmtRelativeTime(ts) {
-  // v4.5.18: formato exacto de la app vieja (SyncIndicator) — antes decía "hace 3 min",
+  // v4.5.19: formato exacto de la app vieja (SyncIndicator) — antes decía "hace 3 min",
   // ahora "3min" / "3s" / "3h" / "justo ahora", igual que el original.
   if (!ts) return "nunca";
   const secs = Math.floor((Date.now() - ts) / 1000);
@@ -635,7 +660,7 @@ function fmtRelativeTime(ts) {
   return Math.floor(secs / 3600) + "h";
 }
 
-// v4.5.18: réplica del SyncIndicator de la app vieja — punto de color + "Sincronizado
+// v4.5.19: réplica del SyncIndicator de la app vieja — punto de color + "Sincronizado
 // hace X", visible siempre (no solo dentro de Datos), se refresca cada 15s.
 function SyncIndicator({ syncStatus, compact }) {
   const [, setTick] = useState(0);
@@ -779,7 +804,7 @@ function AddTransactionSheet({ categories, goals, onClose, onSave }) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(todayISO());
 
-  // v4.5.18: la lista de categorías depende del tipo de movimiento.
+  // v4.5.19: la lista de categorías depende del tipo de movimiento.
   const gastoCats = categories.filter(c => c !== "Ahorro" && c !== "Salario" && c !== "Ingreso");
   const ingresoCats = ["Salario", "Otros"];
   const ahorroCats = goals.map(g => g.name);
@@ -841,7 +866,7 @@ function MovimientosScreen({ state, actions }) {
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(25); // v4.5.18: paginación "ver más"
+  const [visibleCount, setVisibleCount] = useState(25); // v4.5.19: paginación "ver más"
 
   const filtered = useMemo(() => {
     return state.transactions.filter(t => {
@@ -851,7 +876,7 @@ function MovimientosScreen({ state, actions }) {
     });
   }, [state.transactions, query, activeCat]);
 
-  // v4.5.18: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
+  // v4.5.19: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
   useEffect(() => { setVisibleCount(25); }, [query, activeCat]);
 
   const sortedFiltered = useMemo(() =>
@@ -1023,7 +1048,7 @@ function EditGoalSheet({ goal, onClose, onSave }) {
 
 function MetasWishlistScreen({ state, actions }) {
   const [contribGoal, setContribGoal] = useState(null);
-  const [editGoal, setEditGoal] = useState(null); // v4.5.18
+  const [editGoal, setEditGoal] = useState(null); // v4.5.19
   const [addSheet, setAddSheet] = useState(null); // 'goal' | 'wish' | null
 
   function confirmDeleteGoal(id, name) {
@@ -1038,7 +1063,7 @@ function MetasWishlistScreen({ state, actions }) {
 
   const [gwSub, setGwSub] = useState("metas"); /* v4.4 */
 
-  // v4.5.18: resumen general en dos cards separadas — Ahorrado (oscura) y Falta por
+  // v4.5.19: resumen general en dos cards separadas — Ahorrado (oscura) y Falta por
   // ahorrar (clara), esta última con el detalle por meta (solo las que tienen fecha).
   const totalSaved = state.goals.reduce((a, g) => a + (Number(g.saved) || 0), 0);
   const totalTarget = state.goals.reduce((a, g) => a + (Number(g.target) || 0), 0);
@@ -1229,7 +1254,7 @@ function PresupuestoScreen({ state, actions, toast }) {
 
   const realByCategory = useMemo(() => {
     const map = {};
-    // v4.5.18: las transacciones tipo "ahorro" tienen category = nombre de la meta
+    // v4.5.19: las transacciones tipo "ahorro" tienen category = nombre de la meta
     // (no "Ahorro" literal), pero deben sumar igual al renglón "Ahorro" del presupuesto.
     state.transactions
       .filter(t => (t.type === "gasto" || t.type === "ahorro") && t.date >= qStartISO && t.date < qEndISO)
@@ -1252,7 +1277,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   const totalReal = rows.reduce((s,r) => s + r.real, 0);
 
   // Proyección de la quincena en curso.
-  // v4.5.18-fix: antes se extrapolaba linealmente el ritmo de gasto de los días ya
+  // v4.5.19-fix: antes se extrapolaba linealmente el ritmo de gasto de los días ya
   // transcurridos (gasto ÷ días transcurridos × días totales) — con pocos días
   // transcurridos (ej. día 1) un solo gasto grande disparaba la proyección a valores
   // absurdos (ej. $226 en 1 día × 17 días = $3,844). Ahora:
@@ -1315,7 +1340,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   // Planeador — precarga las categorías y montos desde el Presupuesto real
   // (state.budgets); el usuario puede ajustar cada una, y ese ajuste se guarda
   // en state.planner por categoría hasta que se aplique o se borre la categoría.
-  // v4.5.18: se quita "Fijos + deuda" como campo aparte (la deuda ya es una
+  // v4.5.19: se quita "Fijos + deuda" como campo aparte (la deuda ya es una
   // categoría más en la tabla). "Disponible proyectado" ahora es en vivo:
   // ingreso esperado − total ya planeado en la tabla de abajo.
   const ingresoEsperado = state.finance.ingresoEsperadoQuincenal || 0;
@@ -1343,7 +1368,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   const nextDateISO = nextDate.toISOString().slice(0,10);
   const nextLabel = "Próxima quincena · " + nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
   const scheduled = state.plannerScheduled;
-  const [confirmOverwrite, setConfirmOverwrite] = useState(false); // v4.5.18
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false); // v4.5.19
 
   return (
     <div data-screen-label="Presupuesto">
@@ -1732,7 +1757,7 @@ function GasolinaScreen({ state, actions }) {
   function submit(e) {
     e.preventDefault();
     const o = parseFloat(form.odometer);
-    /* v4.5.18: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
+    /* v4.5.19: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
        pagado (litros = costo ÷ precio). Antes el input de litros usaba step="0.1", que
        HTML5 rechaza como "Invalid number" para valores con 2 decimales (ej. 55.71 L),
        que es justamente la precisión típica de un recibo de gasolinera. */
@@ -1756,7 +1781,7 @@ function GasolinaScreen({ state, actions }) {
   function startEdit(f) {
     setShowForm(true); /* v4.5 */
     setEditingId(f.id);
-    // v4.5.18: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
+    // v4.5.19: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
     const derivedPrice = (f.liters && f.cost && f.liters > 0) ? (f.cost / f.liters) : "";
     setForm({
       date: f.date, pricePerLiter: derivedPrice !== "" ? String(derivedPrice.toFixed(3)) : "", cost: String(f.cost), odometer: f.odometer != null ? String(f.odometer) : "",
@@ -2071,7 +2096,7 @@ function DatosScreen({ state, actions, toast, syncStatus }) {
 
 // ---------- Shell / Nav ----------
 
-// v4.5.18: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
+// v4.5.19: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
 // Un solo componente TabIcon que switchea por nombre — sin dependencias externas,
 // coherente con el resto del archivo (sin build ni paquetes de íconos).
 function TabIcon({ name, size = 22, active }) {
@@ -2111,14 +2136,14 @@ function App() {
   const toastTimer = useRef(null);
 
   useEffect(() => { saveLocalState(state); }, [state]);
-  // v4.5.18: sincroniza el fondo real de <body> con el color de fondo del tema activo.
+  // v4.5.19: sincroniza el fondo real de <body> con el color de fondo del tema activo.
   // Sin esto, el rebote elástico de Safari en iOS (o el toolbar dinámico colapsando)
   // puede exponer el fondo fijo de <body> por debajo de .cfo-root — si ese fondo no
   // coincide con el tema, se ve un parche negro/gris feo en vez de continuar el color.
   useEffect(() => {
     const bg = state.theme === "dark" ? "#14180F" : "#F4F1E9";
     document.body.style.background = bg;
-    document.documentElement.style.background = bg; // v4.5.18: antes solo <body>, <html> quedaba sin fondo propio
+    document.documentElement.style.background = bg; // v4.5.19: antes solo <body>, <html> quedaba sin fondo propio
   }, [state.theme]);
   const syncStatus = useFirebaseSync(state, setState);
 
@@ -2202,7 +2227,7 @@ function App() {
     recoverLegacy,
     toggleTheme: () => setState(s => ({ ...s, theme: s.theme === "dark" ? "light" : "dark" })),
     addTransaction: (tx) => setState(s => {
-      // v4.5.18: "ahorro" resta de liquidez igual que un gasto (antes sumaba, como si
+      // v4.5.19: "ahorro" resta de liquidez igual que un gasto (antes sumaba, como si
       // fuera ingreso — bug). Si es tipo ahorro, category = nombre de la meta elegida;
       // se busca esa meta y se le suma el monto a "saved".
       const delta = tx.type === "ingreso" ? tx.amount : -tx.amount;
@@ -2253,7 +2278,7 @@ function App() {
       goals: s.goals.map(g => g.id === id ? { ...g, saved: g.saved + amount } : g)
     })),
     addGoal: (payload) => setState(s => ({ ...s, goals: [...s.goals, { id: uid(), name: payload.name, target: payload.target, saved: 0, targetDate: payload.targetDate || null }] })),
-    updateGoal: (id, changes) => setState(s => ({ ...s, goals: s.goals.map(g => g.id === id ? { ...g, ...changes } : g) })), // v4.5.18
+    updateGoal: (id, changes) => setState(s => ({ ...s, goals: s.goals.map(g => g.id === id ? { ...g, ...changes } : g) })), // v4.5.19
     deleteGoal: (id) => setState(s => ({ ...s, goals: s.goals.filter(g => g.id !== id) })),
     addWish: (payload) => setState(s => ({ ...s, wishlist: [...s.wishlist, { id: uid(), name: payload.name, category: payload.category || "General", price: payload.target }] })),
     deleteWish: (id) => setState(s => ({ ...s, wishlist: s.wishlist.filter(w => w.id !== id) })),
