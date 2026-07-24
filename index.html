@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CFO Personal · Rediseño Premium (v4.6.1)</title>
+<title>CFO Personal · Rediseño Premium (v4.6.2)</title>
 <meta name="description" content="Centro financiero personal — Hoy, Movimientos, Metas & Wishlist, Presupuesto, Gasolina y Datos & Configuración. Sincronizado con Firebase.">
 <meta name="theme-color" content="#16382B">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -65,7 +65,7 @@
   }
 
   .cfo-shell { position: relative; z-index: 1; display: flex; }
-  /* v4.6.1: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
+  /* v4.6.2: antes cfo-shell tenía su propio min-height:100vh — cuando el topbar vivía
      DENTRO de la fila no sumaba altura extra, pero al sacarlo afuera como header (fix
      anterior) la altura total pasó a ser topbar + shell(100vh) + bottomnav, más alta
      que la pantalla. El bottom-nav es sticky (no fixed), así que quedaba pegado al final
@@ -123,7 +123,7 @@
     position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.45);
     display: flex; align-items: flex-end; justify-content: center;
     padding: 0 16px calc(96px + env(safe-area-inset-bottom, 0px));
-    /* v4.6.1: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
+    /* v4.6.2: antes z-index:50, igual que .cfo-bottomnav (z-index:50) — al empatar,
        ganaba el que aparece después en el HTML (el nav), tapando el modal. Ahora el
        modal siempre queda por encima, y el padding-bottom deja un espacio visible
        entre la ventana y la zona donde flota el menú, en vez de quedar pegados. */
@@ -258,7 +258,7 @@ function categoryColor(cat) {
 
 // Rango [inicio, fin) de la quincena que contiene "today", y de la próxima quincena.
 const PAY_DAYS = [10, 25];
-// v4.6.1: si el día de pago (10 o 25) cae sábado o domingo, se corre al viernes
+// v4.6.2: si el día de pago (10 o 25) cae sábado o domingo, se corre al viernes
 // hábil anterior — bancos y planillas no procesan en fin de semana.
 function toBusinessDay(d) {
   const day = d.getDay(); // 0 = domingo, 6 = sábado
@@ -267,7 +267,7 @@ function toBusinessDay(d) {
   return d;
 }
 function getQuincenaRange(today) {
-  // v4.6.1-fix: antes se decidía la quincena comparando el día crudo (dom < 25) y
+  // v4.6.2-fix: antes se decidía la quincena comparando el día crudo (dom < 25) y
   // RECIÉN DESPUÉS se ajustaba el corte al viernes si caía en fin de semana. Eso hacía
   // que, cuando el corte se adelantaba (25 sáb → 24 vie), el día 24 todavía se
   // clasificara en la quincena VIEJA (porque 24 < 25 seguía siendo cierto), aunque ese
@@ -284,7 +284,7 @@ function getQuincenaRange(today) {
   return { start: cut2, end: cutNext };
 }
 function getNextQuincenaDate(today) {
-  // v4.6.1-fix: antes comparaba dom contra el número crudo (25), el mismo error que
+  // v4.6.2-fix: antes comparaba dom contra el número crudo (25), el mismo error que
   // ya se corrigió en getQuincenaRange — cuando "hoy" coincide exactamente con el corte
   // ya ajustado (ej. hoy es viernes 24, corte real de este ciclo), seguía devolviendo
   // ese mismo día en vez de saltar al siguiente. Ahora reutiliza getQuincenaRange(today),
@@ -554,7 +554,7 @@ function getDb() {
 }
 
 // Listas con id — se fusionan por id además del last-write-wins por clave, como capa
-// extra de seguridad (no existía en la app vieja, se conserva de la v4.6.1).
+// extra de seguridad (no existía en la app vieja, se conserva de la v4.6.2).
 const ID_LIST_KEYS = { transactions:1, goals:1, wishlist:1, fuelLogs:1, budgets:1, pending:1 };
 function mergeById(localArr, remoteArr) {
   if (!Array.isArray(remoteArr)) return localArr || [];
@@ -737,7 +737,7 @@ function useFirebaseSync(state, setState) {
 }
 
 function fmtRelativeTime(ts) {
-  // v4.6.1: formato exacto de la app vieja (SyncIndicator) — antes decía "hace 3 min",
+  // v4.6.2: formato exacto de la app vieja (SyncIndicator) — antes decía "hace 3 min",
   // ahora "3min" / "3s" / "3h" / "justo ahora", igual que el original.
   if (!ts) return "nunca";
   const secs = Math.floor((Date.now() - ts) / 1000);
@@ -747,7 +747,7 @@ function fmtRelativeTime(ts) {
   return Math.floor(secs / 3600) + "h";
 }
 
-// v4.6.1: réplica del SyncIndicator de la app vieja — punto de color + "Sincronizado
+// v4.6.2: réplica del SyncIndicator de la app vieja — punto de color + "Sincronizado
 // hace X", visible siempre (no solo dentro de Datos), se refresca cada 15s.
 function SyncIndicator({ syncStatus, compact }) {
   const [, setTick] = useState(0);
@@ -789,7 +789,13 @@ function Toast({ message }) {
 // ---------- Hoy ----------
 
 function HoyScreen({ state, actions }) {
-  const liquidezPct = Math.min(100, Math.round((state.quincena.day / state.quincena.total) * 100));
+  // v4.6.2-fix: state.quincena era un valor FIJO hardcodeado en la semilla (día 9 de
+  // 15), nunca se recalculaba según la fecha real. Ahora se deriva en vivo con la
+  // misma getQuincenaRange() ya corregida que usa Presupuesto.
+  const { start: qStartHoy, end: qEndHoy } = getQuincenaRange(new Date());
+  const quincenaTotal = Math.max(1, Math.round((qEndHoy - qStartHoy) / 86400000));
+  const quincenaDia = Math.min(quincenaTotal, Math.max(1, Math.round((new Date() - qStartHoy) / 86400000) + 1));
+  const liquidezPct = Math.min(100, Math.round((quincenaDia / quincenaTotal) * 100));
   const totalIngresoMes = useMemo(() => state.transactions.filter(t => t.type === "ingreso").reduce((a,b)=>a+b.amount,0), [state.transactions]);
   const totalAhorroMes = useMemo(() => state.transactions.filter(t => t.type === "ahorro").reduce((a,b)=>a+b.amount,0), [state.transactions]);
   const tasaAhorro = totalIngresoMes > 0 ? Math.round(((totalAhorroMes) / totalIngresoMes) * 100) : state.finance.tasaAhorroMeta;
@@ -807,7 +813,7 @@ function HoyScreen({ state, actions }) {
             <div className="cfo-serif cfo-mono" style={{ fontSize: 56, fontWeight: 500, lineHeight: 1, letterSpacing: "-0.01em" }}>{fmtMoney(state.liquidez)}</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 22, marginBottom: 8 }}>
               <span style={{ fontSize: 12, opacity: .75 }}>Quincena en curso</span>
-              <span className="cfo-mono" style={{ fontSize: 12, opacity: .9 }}>Día {state.quincena.day} de {state.quincena.total}</span>
+              <span className="cfo-mono" style={{ fontSize: 12, opacity: .9 }}>Día {quincenaDia} de {quincenaTotal}</span>
             </div>
             <div style={{ height: 8, borderRadius: 99, background: "rgba(255,255,255,0.16)", overflow: "hidden" }}>
               <div style={{ height: "100%", width: liquidezPct + "%", borderRadius: 99, background: "var(--accent)", boxShadow: "rgba(180,131,42,0.55) 0 0 14px" }}></div>
@@ -891,7 +897,7 @@ function AddTransactionSheet({ categories, goals, onClose, onSave }) {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(todayISO());
 
-  // v4.6.1: la lista de categorías depende del tipo de movimiento.
+  // v4.6.2: la lista de categorías depende del tipo de movimiento.
   const gastoCats = categories.filter(c => c !== "Ahorro" && c !== "Salario" && c !== "Ingreso");
   const ingresoCats = ["Salario", "Otros"];
   const ahorroCats = goals.map(g => g.name);
@@ -953,7 +959,7 @@ function MovimientosScreen({ state, actions }) {
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(25); // v4.6.1: paginación "ver más"
+  const [visibleCount, setVisibleCount] = useState(25); // v4.6.2: paginación "ver más"
 
   const filtered = useMemo(() => {
     return state.transactions.filter(t => {
@@ -963,7 +969,7 @@ function MovimientosScreen({ state, actions }) {
     });
   }, [state.transactions, query, activeCat]);
 
-  // v4.6.1: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
+  // v4.6.2: al cambiar el filtro/búsqueda, reiniciar la cantidad visible
   useEffect(() => { setVisibleCount(25); }, [query, activeCat]);
 
   const sortedFiltered = useMemo(() =>
@@ -1000,7 +1006,7 @@ function MovimientosScreen({ state, actions }) {
       {groups.length === 0 && <div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center", padding: "40px 0" }}>Sin movimientos que coincidan.</div>}
 
       {groups.map(g => {
-        const subtotal = g.items.reduce((a,b) => a + (b.type === "gasto" ? -b.amount : b.amount), 0);
+        const subtotal = g.items.reduce((a,b) => a + (b.type === "ingreso" ? b.amount : -b.amount), 0);
         return (
           <div key={g.date} style={{ marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
@@ -1015,8 +1021,8 @@ function MovimientosScreen({ state, actions }) {
                     <div style={{ fontSize: 13, fontWeight: 500 }}>{t.desc}</div>
                     <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{t.category}</div>
                   </div>
-                  <div className="cfo-mono" style={{ fontSize: 13.5, color: t.type === "gasto" ? "var(--danger)" : "var(--success)", whiteSpace: "nowrap" }}>
-                    {t.type === "gasto" ? "-" : "+"}{fmtMoney(t.amount)}
+                  <div className="cfo-mono" style={{ fontSize: 13.5, color: t.type === "ingreso" ? "var(--success)" : "var(--danger)", whiteSpace: "nowrap" }}>
+                    {t.type === "ingreso" ? "+" : "-"}{fmtMoney(t.amount)}
                   </div>
                   <button className="cfo-btn" onClick={() => actions.deleteTransaction(t.id)} title="Eliminar"
                     style={{ background: "none", color: "var(--muted-light)", fontSize: 16, padding: "0 4px", lineHeight: 1 }}>×</button>
@@ -1133,7 +1139,7 @@ function EditGoalSheet({ goal, onClose, onSave }) {
   );
 }
 
-// ============ BABE AHORRO — Meta compartida en tiempo real (v4.6.1) ============
+// ============ BABE AHORRO — Meta compartida en tiempo real (v4.6.2) ============
 // Mismo esquema exacto que la app vieja: colección "cfo_data", documento fijo
 // "shared__babe_ahorro", campos { lawrence, babe, history[], updated_at }. Al ser el
 // mismo proyecto de Firebase que la app de tu pareja, cualquier depósito que ella
@@ -1261,7 +1267,7 @@ function SharedSavingsCard({ selfKey, partnerKey, selfLabel, partnerLabel, onDep
 
 function MetasWishlistScreen({ state, actions }) {
   const [contribGoal, setContribGoal] = useState(null);
-  const [editGoal, setEditGoal] = useState(null); // v4.6.1
+  const [editGoal, setEditGoal] = useState(null); // v4.6.2
   const [addSheet, setAddSheet] = useState(null); // 'goal' | 'wish' | null
 
   function confirmDeleteGoal(id, name) {
@@ -1276,7 +1282,7 @@ function MetasWishlistScreen({ state, actions }) {
 
   const [gwSub, setGwSub] = useState("metas"); /* v4.4 */
 
-  // v4.6.1: resumen general en dos cards separadas — Ahorrado (oscura) y Falta por
+  // v4.6.2: resumen general en dos cards separadas — Ahorrado (oscura) y Falta por
   // ahorrar (clara), esta última con el detalle por meta (solo las que tienen fecha).
   const totalSaved = state.goals.reduce((a, g) => a + (Number(g.saved) || 0), 0);
   const totalTarget = state.goals.reduce((a, g) => a + (Number(g.target) || 0), 0);
@@ -1470,7 +1476,7 @@ function PresupuestoScreen({ state, actions, toast }) {
 
   const realByCategory = useMemo(() => {
     const map = {};
-    // v4.6.1: las transacciones tipo "ahorro" tienen category = nombre de la meta
+    // v4.6.2: las transacciones tipo "ahorro" tienen category = nombre de la meta
     // (no "Ahorro" literal), pero deben sumar igual al renglón "Ahorro" del presupuesto.
     state.transactions
       .filter(t => (t.type === "gasto" || t.type === "ahorro") && t.date >= qStartISO && t.date < qEndISO)
@@ -1493,7 +1499,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   const totalReal = rows.reduce((s,r) => s + r.real, 0);
 
   // Proyección de la quincena en curso.
-  // v4.6.1-fix: antes se extrapolaba linealmente el ritmo de gasto de los días ya
+  // v4.6.2-fix: antes se extrapolaba linealmente el ritmo de gasto de los días ya
   // transcurridos (gasto ÷ días transcurridos × días totales) — con pocos días
   // transcurridos (ej. día 1) un solo gasto grande disparaba la proyección a valores
   // absurdos (ej. $226 en 1 día × 17 días = $3,844). Ahora:
@@ -1556,7 +1562,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   // Planeador — precarga las categorías y montos desde el Presupuesto real
   // (state.budgets); el usuario puede ajustar cada una, y ese ajuste se guarda
   // en state.planner por categoría hasta que se aplique o se borre la categoría.
-  // v4.6.1: se quita "Fijos + deuda" como campo aparte (la deuda ya es una
+  // v4.6.2: se quita "Fijos + deuda" como campo aparte (la deuda ya es una
   // categoría más en la tabla). "Disponible proyectado" ahora es en vivo:
   // ingreso esperado − total ya planeado en la tabla de abajo.
   const ingresoEsperado = state.finance.ingresoEsperadoQuincenal || 0;
@@ -1584,7 +1590,7 @@ function PresupuestoScreen({ state, actions, toast }) {
   const nextDateISO = nextDate.toISOString().slice(0,10);
   const nextLabel = "Próxima quincena · " + nextDate.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
   const scheduled = state.plannerScheduled;
-  const [confirmOverwrite, setConfirmOverwrite] = useState(false); // v4.6.1
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false); // v4.6.2
 
   return (
     <div data-screen-label="Presupuesto">
@@ -1973,7 +1979,7 @@ function GasolinaScreen({ state, actions }) {
   function submit(e) {
     e.preventDefault();
     const o = parseFloat(form.odometer);
-    /* v4.6.1: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
+    /* v4.6.2: ya no se pide "litros" directo — se calcula a partir de precio/L y monto
        pagado (litros = costo ÷ precio). Antes el input de litros usaba step="0.1", que
        HTML5 rechaza como "Invalid number" para valores con 2 decimales (ej. 55.71 L),
        que es justamente la precisión típica de un recibo de gasolinera. */
@@ -1997,7 +2003,7 @@ function GasolinaScreen({ state, actions }) {
   function startEdit(f) {
     setShowForm(true); /* v4.5 */
     setEditingId(f.id);
-    // v4.6.1: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
+    // v4.6.2: al editar una carga vieja, el precio/L se deriva de costo÷litros ya guardados
     const derivedPrice = (f.liters && f.cost && f.liters > 0) ? (f.cost / f.liters) : "";
     setForm({
       date: f.date, pricePerLiter: derivedPrice !== "" ? String(derivedPrice.toFixed(3)) : "", cost: String(f.cost), odometer: f.odometer != null ? String(f.odometer) : "",
@@ -2312,7 +2318,7 @@ function DatosScreen({ state, actions, toast, syncStatus }) {
 
 // ---------- Shell / Nav ----------
 
-// v4.6.1: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
+// v4.6.2: set de íconos SVG en línea para el bottom-nav flotante (antes solo texto).
 // Un solo componente TabIcon que switchea por nombre — sin dependencias externas,
 // coherente con el resto del archivo (sin build ni paquetes de íconos).
 function TabIcon({ name, size = 22, active }) {
@@ -2352,14 +2358,18 @@ function App() {
   const toastTimer = useRef(null);
 
   useEffect(() => { saveLocalState(state); }, [state]);
-  // v4.6.1: sincroniza el fondo real de <body> con el color de fondo del tema activo.
+  // v4.6.2-fix: mismo cálculo en vivo que HoyScreen, para el sidebar.
+  const { start: _qStartApp, end: _qEndApp } = getQuincenaRange(new Date());
+  const quincenaTotalApp = Math.max(1, Math.round((_qEndApp - _qStartApp) / 86400000));
+  const quincenaDiaApp = Math.min(quincenaTotalApp, Math.max(1, Math.round((new Date() - _qStartApp) / 86400000) + 1));
+  // v4.6.2: sincroniza el fondo real de <body> con el color de fondo del tema activo.
   // Sin esto, el rebote elástico de Safari en iOS (o el toolbar dinámico colapsando)
   // puede exponer el fondo fijo de <body> por debajo de .cfo-root — si ese fondo no
   // coincide con el tema, se ve un parche negro/gris feo en vez de continuar el color.
   useEffect(() => {
     const bg = state.theme === "dark" ? "#14180F" : "#F4F1E9";
     document.body.style.background = bg;
-    document.documentElement.style.background = bg; // v4.6.1: antes solo <body>, <html> quedaba sin fondo propio
+    document.documentElement.style.background = bg; // v4.6.2: antes solo <body>, <html> quedaba sin fondo propio
   }, [state.theme]);
   const syncStatus = useFirebaseSync(state, setState);
 
@@ -2443,7 +2453,7 @@ function App() {
     recoverLegacy,
     toggleTheme: () => setState(s => ({ ...s, theme: s.theme === "dark" ? "light" : "dark" })),
     addTransaction: (tx) => setState(s => {
-      // v4.6.1: "ahorro" resta de liquidez igual que un gasto (antes sumaba, como si
+      // v4.6.2: "ahorro" resta de liquidez igual que un gasto (antes sumaba, como si
       // fuera ingreso — bug). Si es tipo ahorro, category = nombre de la meta elegida;
       // se busca esa meta y se le suma el monto a "saved".
       const delta = tx.type === "ingreso" ? tx.amount : -tx.amount;
@@ -2494,8 +2504,8 @@ function App() {
       goals: s.goals.map(g => g.id === id ? { ...g, saved: g.saved + amount } : g)
     })),
     addGoal: (payload) => setState(s => ({ ...s, goals: [...s.goals, { id: uid(), name: payload.name, target: payload.target, saved: 0, targetDate: payload.targetDate || null }] })),
-    updateGoal: (id, changes) => setState(s => ({ ...s, goals: s.goals.map(g => g.id === id ? { ...g, ...changes } : g) })), // v4.6.1
-    // v4.6.1: Babe Ahorro — depositar resta de tu liquidez personal, eliminar un
+    updateGoal: (id, changes) => setState(s => ({ ...s, goals: s.goals.map(g => g.id === id ? { ...g, ...changes } : g) })), // v4.6.2
+    // v4.6.2: Babe Ahorro — depositar resta de tu liquidez personal, eliminar un
     // depósito tuyo se la devuelve (el documento compartido se maneja aparte).
     depositBabeAhorro: (amount) => setState(s => ({ ...s, liquidez: s.liquidez - amount })),
     revertBabeAhorroEntry: (amount) => setState(s => ({ ...s, liquidez: s.liquidez + amount })),
@@ -2611,7 +2621,7 @@ function App() {
             </React.Fragment>
           ))}
           <div style={{ marginTop: "auto", paddingTop: 20, borderTop: "1px solid var(--border-soft)", display: "flex", flexDirection: "column", gap: 8 }}>
-            <span style={{ fontSize: 12, color: "var(--muted)" }}>Quincena · día {state.quincena.day}/{state.quincena.total}</span>
+            <span style={{ fontSize: 12, color: "var(--muted)" }}>Quincena · día {quincenaDiaApp}/{quincenaTotalApp}</span>
             <SyncIndicator syncStatus={syncStatus} />
           </div>
         </aside>
