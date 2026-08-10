@@ -2559,11 +2559,9 @@ function simpleHash(str) {
   for (let i = 0; i < str.length; i++) { h = ((h * 33) ^ str.charCodeAt(i)) >>> 0; }
   return "h" + h.toString(36);
 }
-// v4.6.13: rediseño a prueba de fallos — los puntos y teclas ahora usan estilos
-// INLINE (no clases CSS externas) para el color/tamaño/forma, así es imposible que
-// una hoja de estilos, cascada o problema de carga los deje sin verse. Solo la
-// animación de "sacudida" en error sigue en la hoja de estilos (cosmético, no crítico).
-const PIN_KEY_LETTERS = { "2":"ABC","3":"DEF","4":"GHI","5":"JKL","6":"MNO","7":"PQRS","8":"TUV","9":"WXYZ" };
+// v4.6.13: port fiel del ejemplo HTML/CSS/JS confirmado como funcional — mismas
+// clases CSS (pinx-*), mismos valores, mapeando sus colores fijos a las variables
+// de tema de esta app (claro/oscuro).
 const PIN_KEY_LETTERS = { "2":"ABC","3":"DEF","4":"GHI","5":"JKL","6":"MNO","7":"PQRS","8":"TUV","9":"WXYZ" };
 
 function PinKeyX({ value, onClick, disabled, isDel }) {
