@@ -1,0 +1,24 @@
+rules_version = '2';
+
+// CFO Personal — reglas de Firestore.
+// La app comparte un solo proyecto de Firebase entre dos personas (tú y tu pareja),
+// así que se permite leer/escribir la colección "cfo_data" a cualquier usuario
+// AUTENTICADO (con cuenta creada en Firebase Auth), pero nunca a un cliente anónimo.
+//
+// Cómo desplegar estas reglas:
+// 1. Ve a https://console.firebase.google.com/ → proyecto "finance-15496".
+// 2. Firestore Database → pestaña "Reglas".
+// 3. Pega el contenido de este archivo y publica.
+//
+// Antes de publicar, habilita el proveedor Email/Contraseña:
+// Authentication → Sign-in method → Email/Password → habilitar.
+// Luego crea tu cuenta (y la de tu pareja) desde la propia app usando
+// "¿Primera vez? Crea una cuenta" en la pantalla de inicio de sesión.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /cfo_data/{docId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

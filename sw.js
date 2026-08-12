@@ -6,7 +6,7 @@
 // puro) — el bundle de CDNs cambió: sale recharts/prop-types, entra @babel/standalone
 // y se agrega Firebase al precache para que la app cargue 100% offline.
 // ══════════════════════════════════════════════════════
-var CACHE_NAME = "cfo-personal-v4.6.15";
+var CACHE_NAME = "cfo-personal-v4.6.16";
 var APP_SHELL = "./index.html";
 
 var PRECACHE_URLS = [
