@@ -1,9 +1,18 @@
 rules_version = '2';
 
 // CFO Personal — reglas de Firestore.
-// La app comparte un solo proyecto de Firebase entre dos personas (tú y tu pareja),
-// así que se permite leer/escribir la colección "cfo_data" a cualquier usuario
-// AUTENTICADO (con cuenta creada en Firebase Auth), pero nunca a un cliente anónimo.
+//
+// Cada cuenta autenticada tiene su propio espacio de datos: los documentos de la
+// colección "cfo_data" se guardan con ID "<uid>__<clave>", y estas reglas exigen
+// que el UID del documento coincida con el UID de quien hace la petición. Así, si
+// alguien más crea una cuenta nueva (correo/contraseña libre), su app arranca
+// completamente vacía y no puede leer ni escribir los datos de otra cuenta.
+//
+// Excepción: "shared__babe_ahorro" es un documento intencionalmente compartido
+// entre dos cuentas específicas (la meta de ahorro en pareja) — cualquier cuenta
+// autenticada puede leer/escribirlo. Si en algún momento se quiere cerrar también
+// ese documento a solo dos cuentas puntuales, reemplaza la condición por una lista
+// de UIDs fija, ej.: request.auth.uid in ['uid1', 'uid2'].
 //
 // Cómo desplegar estas reglas:
 // 1. Ve a https://console.firebase.google.com/ → proyecto "finance-15496".
@@ -12,13 +21,15 @@ rules_version = '2';
 //
 // Antes de publicar, habilita el proveedor Email/Contraseña:
 // Authentication → Sign-in method → Email/Password → habilitar.
-// Luego crea tu cuenta (y la de tu pareja) desde la propia app usando
-// "¿Primera vez? Crea una cuenta" en la pantalla de inicio de sesión.
+// Luego crea tu cuenta desde la propia app usando "¿Primera vez? Crea una cuenta"
+// en la pantalla de inicio de sesión — hazlo ANTES de publicar estas reglas, para
+// no quedar bloqueado sin acceso mientras no exista ninguna cuenta todavía.
 
 service cloud.firestore {
   match /databases/{database}/documents {
     match /cfo_data/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null &&
+        (docId == 'shared__babe_ahorro' || docId.matches('^' + request.auth.uid + '__.*'));
     }
   }
 }

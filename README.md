@@ -13,7 +13,10 @@ Rediseño premium completo (v4.0): 6 pantallas, look & feel consistente (Fraunce
 ### 🔐 Seguridad (una sola vez, en la consola de Firebase)
 
 1. **Authentication → Sign-in method → Email/Password** → habilitar.
-2. **Firestore Database → Reglas** → pega el contenido de [`firestore.rules`](./firestore.rules) y publica. Esto restringe el acceso a los datos solo a usuarios autenticados.
+2. Crea tu cuenta desde la propia app ("¿Primera vez? Crea una cuenta") **antes** del siguiente paso.
+3. **Firestore Database → Reglas** → pega el contenido de [`firestore.rules`](./firestore.rules) y publica.
+
+Cada cuenta tiene su propio espacio de datos aislado (documentos con ID `<uid>__<clave>`), tanto por convención en el código como reforzado por las reglas de Firestore. Si alguien más se registra con su propio correo, su app arranca vacía y no puede ver ni tocar tus datos — la única excepción intencional es el documento de ahorro compartido en pareja (`shared__babe_ahorro`), visible para cualquier cuenta autenticada.
 
 ## 📋 Pantallas
 
