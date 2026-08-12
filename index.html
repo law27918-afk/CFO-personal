@@ -2666,7 +2666,7 @@ function PinLockScreen({ mode, onSubmit, error, onCancel, onForgot }) {
             </div>
           )}
           {onCancel && <button type="button" onClick={onCancel} style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 12, cursor: "pointer" }}>Cancelar</button>}
-          <div style={{ fontSize: 10, color: "var(--muted-light)", marginTop: 8 }}>build pin-v4.6.13</div>
+          <div style={{ fontSize: 10, color: "var(--muted-light)", marginTop: 8 }}>build pin-v4.6.15</div>
         </div>
       </div>
     </div>
@@ -2964,8 +2964,12 @@ function App() {
   // v4.6.13: gate del PIN — va DESPUÉS de todos los hooks (nunca antes, rompería las
   // reglas de hooks), pero ANTES de mostrar cualquier dato real de la app.
   if (locked) {
-    return <PinLockScreen mode={state.pinHash ? "unlock" : "create"} onSubmit={handlePinSubmit} error={pinError}
-      onForgot={() => { actions.removePin(); setLocked(false); setPinError(null); }} />;
+    return (
+      <div className="cfo-root" data-theme={state.theme}>
+        <PinLockScreen mode={state.pinHash ? "unlock" : "create"} onSubmit={handlePinSubmit} error={pinError}
+          onForgot={() => { actions.removePin(); setLocked(false); setPinError(null); }} />
+      </div>
+    );
   }
 
   return (
