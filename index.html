@@ -221,6 +221,7 @@
 <!-- Firebase (Firestore) — persistencia en la nube, un solo documento con todo el estado -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
@@ -629,16 +630,26 @@ function saveKeyTs(key, ts) {
   try { localStorage.setItem(LS_PREFIX + key + ":ts", String(ts)); } catch (e) {}
 }
 
-// ---------- Firebase (Firestore) sync ----------
+// ---------- Firebase (Firestore + Auth) ----------
 let _fbApp = null;
-function getDb() {
+function getFbApp() {
   if (typeof firebase === "undefined") return null;
-  if (_fbApp) return firebase.firestore(_fbApp);
-  try {
-    try { _fbApp = firebase.app(); }
-    catch (e) { _fbApp = firebase.initializeApp(FIREBASE_CONFIG); }
-    return firebase.firestore(_fbApp);
-  } catch (e) { console.error("Firebase init:", e.message); return null; }
+  if (_fbApp) return _fbApp;
+  try { _fbApp = firebase.app(); }
+  catch (e) { _fbApp = firebase.initializeApp(FIREBASE_CONFIG); }
+  return _fbApp;
+}
+function getDb() {
+  const app = getFbApp();
+  if (!app) return null;
+  try { return firebase.firestore(app); }
+  catch (e) { console.error("Firebase init:", e.message); return null; }
+}
+function getAuth() {
+  const app = getFbApp();
+  if (!app) return null;
+  try { return firebase.auth(app); }
+  catch (e) { console.error("Firebase auth init:", e.message); return null; }
 }
 
 // Listas con id — se fusionan por id además del last-write-wins por clave, como capa
@@ -701,7 +712,7 @@ function useFirebaseSync(state, setState) {
         if (doc.exists && doc.data() && doc.data().value) {
           try { legacyBlob = JSON.parse(doc.data().value); } catch (e) {}
         }
-      }).catch(() => {});
+      }).catch(e => console.error("Firestore: lectura de documento legado falló:", e));
 
     let done = 0;
     const patch = {};
@@ -714,7 +725,8 @@ function useFirebaseSync(state, setState) {
             if (lsTs > fsTs) {
               // localStorage más nuevo — se re-sincroniza a Firestore, no se toca el patch
               db.collection(FIRESTORE_COLLECTION).doc(_docId(key))
-                .set({ key, value: JSON.stringify(stateRef.current[key]), ts: lsTs }).catch(() => {});
+                .set({ key, value: JSON.stringify(stateRef.current[key]), ts: lsTs })
+                .catch(e => console.error("Firestore: re-sync de '" + key + "' falló:", e));
               knownTs.current[key] = lsTs;
             } else {
               try { patch[key] = JSON.parse(doc.data().value); knownTs.current[key] = fsTs; saveKeyTs(key, fsTs); } catch (e) {}
@@ -729,11 +741,12 @@ function useFirebaseSync(state, setState) {
               : stateRef.current[key];
             if (legacyBlob && legacyBlob[key] !== undefined && lsTs === 0) patch[key] = legacyBlob[key];
             db.collection(FIRESTORE_COLLECTION).doc(_docId(key))
-              .set({ key, value: JSON.stringify(seedVal), ts: seedTs }).catch(() => {});
+              .set({ key, value: JSON.stringify(seedVal), ts: seedTs })
+              .catch(e => console.error("Firestore: sembrar '" + key + "' falló:", e));
             knownTs.current[key] = seedTs; saveKeyTs(key, seedTs);
           }
         })
-        .catch(() => {})
+        .catch(e => console.error("Firestore: lectura de '" + key + "' falló:", e))
         .finally(() => {
           done++;
           if (done === SYNC_KEYS.length) {
@@ -1252,7 +1265,7 @@ function sharedSavingsRef() {
   if (!db) return null;
   return db.collection(FIRESTORE_COLLECTION).doc(SHARED_SAVINGS_DOC);
 }
-function SharedSavingsCard({ selfKey, partnerKey, selfLabel, partnerLabel, onDeposit, onRevertEntry }) {
+function SharedSavingsCard({ selfKey, partnerKey, selfLabel, partnerLabel, onDeposit, onRevertEntry, toast }) {
   const initial = { [selfKey]: 0, [partnerKey]: 0, history: [] };
   const [data, setData] = useState(initial);
   const [showForm, setShowForm] = useState(false);
@@ -1288,21 +1301,21 @@ function SharedSavingsCard({ selfKey, partnerKey, selfLabel, partnerLabel, onDep
 
   function deposit() {
     const val = Number(amount);
-    if (!val || val <= 0) { alert("Ingresa un monto válido"); return; }
+    if (!val || val <= 0) { toast("Ingresa un monto válido"); return; }
     const ref = sharedSavingsRef();
-    if (!ref) { alert("Sin conexión a Firestore"); return; }
+    if (!ref) { toast("Sin conexión a Firestore"); return; }
     const inc = { [selfKey]: firebase.firestore.FieldValue.increment(val) };
     const entry = { id: "sh-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7), who: selfKey, amount: val, date: todayISO(), note: note || "" };
     ref.set({ ...inc, updated_at: Date.now(), history: firebase.firestore.FieldValue.arrayUnion(entry) }, { merge: true })
       .then(() => { onDeposit(val); setAmount(""); setNote(""); setShowForm(false); })
-      .catch(e => alert("Error al depositar: " + e.message));
+      .catch(e => { console.error("Depósito Babe Ahorro:", e); toast("Error al depositar: " + e.message); });
   }
 
   function deleteEntry(entryId) {
     if (!confirm("¿Eliminar este registro de ahorro? Se restará del total de quien lo depositó.")) return;
     const db = getDb();
     const ref = sharedSavingsRef();
-    if (!db || !ref) { alert("Sin conexión a Firestore"); return; }
+    if (!db || !ref) { toast("Sin conexión a Firestore"); return; }
     db.runTransaction(tx => tx.get(ref).then(doc => {
       if (!doc.exists) return;
       const d = doc.data();
@@ -1314,7 +1327,7 @@ function SharedSavingsCard({ selfKey, partnerKey, selfLabel, partnerLabel, onDep
       update[target.who] = firebase.firestore.FieldValue.increment(-Number(target.amount));
       tx.update(ref, update);
       if (target.who === selfKey) onRevertEntry(Number(target.amount));
-    })).catch(e => alert("Error al eliminar: " + e.message));
+    })).catch(e => { console.error("Eliminar registro Babe Ahorro:", e); toast("Error al eliminar: " + e.message); });
   }
 
   return (
@@ -1378,7 +1391,7 @@ function SharedSavingsCard({ selfKey, partnerKey, selfLabel, partnerLabel, onDep
   );
 }
 
-function MetasWishlistScreen({ state, actions }) {
+function MetasWishlistScreen({ state, actions, toast }) {
   const [contribGoal, setContribGoal] = useState(null);
   const [editGoal, setEditGoal] = useState(null); // v4.6.13
   const [addSheet, setAddSheet] = useState(null); // 'goal' | 'wish' | null
@@ -1412,7 +1425,7 @@ function MetasWishlistScreen({ state, actions }) {
   return (
     <div data-screen-label="Metas y Wishlist">
       <SharedSavingsCard selfKey="lawrence" partnerKey="babe" selfLabel="Tú" partnerLabel="Dovey"
-        onDeposit={actions.depositBabeAhorro} onRevertEntry={actions.revertBabeAhorroEntry} />
+        onDeposit={actions.depositBabeAhorro} onRevertEntry={actions.revertBabeAhorroEntry} toast={toast} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, marginBottom: 20 }}>
         <div style={{ background: "var(--primary)", backgroundImage: "radial-gradient(circle at 85% 20%, rgba(180,131,42,0.18), transparent 55%), linear-gradient(180deg, var(--primary) 0%, var(--primary-soft) 130%)",
@@ -2674,10 +2687,84 @@ function PinLockScreen({ mode, onSubmit, error, onCancel, onForgot }) {
 }
 
 
+// v4.6.15 — Login con Firebase Auth (email/contraseña). Reemplaza el acceso libre a
+// Firestore por request.auth != null en las reglas — ver firestore.rules en el repo.
+// Comparte el mismo look que PinLockScreen (clases pinx-*).
+function LoginScreen({ onLoggedIn }) {
+  const [mode, setMode] = useState("signin"); // "signin" | "signup"
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  function submit(e) {
+    e.preventDefault();
+    const auth = getAuth();
+    if (!auth) { setError("No se pudo inicializar Firebase Auth."); return; }
+    setBusy(true); setError(null);
+    const action = mode === "signup"
+      ? auth.createUserWithEmailAndPassword(email.trim(), password)
+      : auth.signInWithEmailAndPassword(email.trim(), password);
+    action
+      .then(() => onLoggedIn())
+      .catch(e => {
+        const msgs = {
+          "auth/invalid-email": "Correo inválido.",
+          "auth/user-not-found": "No existe una cuenta con ese correo.",
+          "auth/wrong-password": "Contraseña incorrecta.",
+          "auth/invalid-credential": "Correo o contraseña incorrectos.",
+          "auth/email-already-in-use": "Ya existe una cuenta con ese correo.",
+          "auth/weak-password": "La contraseña debe tener al menos 6 caracteres."
+        };
+        setError(msgs[e.code] || e.message);
+      })
+      .finally(() => setBusy(false));
+  }
+
+  return (
+    <div className="pinx-shell">
+      <div className="pinx-card" role="main">
+        <div className="pinx-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          </svg>
+        </div>
+        <h1 className="pinx-title">{mode === "signup" ? "Crea tu cuenta" : "Inicia sesión"}</h1>
+        <p className={"pinx-subtitle" + (error ? " error" : "")} aria-live="assertive">
+          {error || "Acceso a tus datos financieros"}
+        </p>
+        <form onSubmit={submit} style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10, marginBottom: 8 }}>
+          <input type="email" required autoComplete="email" placeholder="Correo" value={email}
+            onChange={e => setEmail(e.target.value)}
+            style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }} />
+          <input type="password" required autoComplete={mode === "signup" ? "new-password" : "current-password"} placeholder="Contraseña" value={password}
+            onChange={e => setPassword(e.target.value)}
+            style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 14, boxSizing: "border-box" }} />
+          <button type="submit" disabled={busy} className="cfo-btn"
+            style={{ padding: "12px 14px", background: "var(--primary)", color: "var(--on-primary)", borderRadius: 10, fontWeight: 600, opacity: busy ? .6 : 1 }}>
+            {busy ? "Espera…" : mode === "signup" ? "Crear cuenta" : "Entrar"}
+          </button>
+        </form>
+        <button type="button" onClick={() => { setMode(m => m === "signup" ? "signin" : "signup"); setError(null); }}
+          style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 12.5, cursor: "pointer" }}>
+          {mode === "signup" ? "¿Ya tienes cuenta? Inicia sesión" : "¿Primera vez? Crea una cuenta"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [state, setState] = useState(loadLocalState);
   const [locked, setLocked] = useState(!!loadLocalState().pinHash); // v4.6.13
   const [pinError, setPinError] = useState(null);
+  const [authUser, setAuthUser] = useState(undefined); // undefined = cargando, null = sin sesión, obj = logueado
+
+  useEffect(() => {
+    const auth = getAuth();
+    if (!auth) { setAuthUser(null); return; }
+    return auth.onAuthStateChanged(u => setAuthUser(u || null));
+  }, []);
 
   useEffect(() => {
     function onVis() {
@@ -2961,6 +3048,19 @@ function App() {
     return () => clearInterval(id);
   }, []);
 
+  // v4.6.15: gate de sesión — va antes del PIN. Mientras carga el estado de auth
+  // (authUser === undefined) no se muestra nada para evitar parpadeo del login.
+  if (authUser === undefined) {
+    return <div className="cfo-root" data-theme={state.theme}></div>;
+  }
+  if (authUser === null) {
+    return (
+      <div className="cfo-root" data-theme={state.theme}>
+        <LoginScreen onLoggedIn={() => {}} />
+      </div>
+    );
+  }
+
   // v4.6.13: gate del PIN — va DESPUÉS de todos los hooks (nunca antes, rompería las
   // reglas de hooks), pero ANTES de mostrar cualquier dato real de la app.
   if (locked) {
@@ -3010,7 +3110,7 @@ function App() {
         <main className="cfo-main">
           {tab === "hoy" && <HoyScreen state={state} actions={actions} />}
           {tab === "movimientos" && <MovimientosScreen state={state} actions={actions} />}
-          {tab === "metas" && <MetasWishlistScreen state={state} actions={actions} />}
+          {tab === "metas" && <MetasWishlistScreen state={state} actions={actions} toast={toast} />}
           {tab === "presupuesto" && <PresupuestoScreen state={state} actions={actions} toast={toast} />}
           {tab === "gasolina" && <GasolinaScreen state={state} actions={actions} />}
           {tab === "datos" && <DatosScreen state={state} actions={actions} toast={toast} syncStatus={syncStatus} />}
@@ -3047,7 +3147,7 @@ root.render(<App />);
 <script>
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js").catch(() => {});
+      navigator.serviceWorker.register("./sw.js").catch(e => console.error("Service Worker: registro falló:", e));
     });
   }
 </script>

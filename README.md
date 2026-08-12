@@ -7,7 +7,13 @@ Rediseño premium completo (v4.0): 6 pantallas, look & feel consistente (Fraunce
 ## 🚀 Cómo usar
 
 1. Abre `index.html` en cualquier navegador moderno (Chrome, Firefox, Edge, Safari), o publícalo en Vercel/GitHub Pages.
-2. Tus datos se guardan automáticamente en Firestore (documento único) y en `localStorage` como caché local.
+2. Inicia sesión con correo/contraseña (Firebase Auth) — la primera vez, crea tu cuenta desde la propia pantalla de login.
+3. Tus datos se guardan automáticamente en Firestore (documento único) y en `localStorage` como caché local.
+
+### 🔐 Seguridad (una sola vez, en la consola de Firebase)
+
+1. **Authentication → Sign-in method → Email/Password** → habilitar.
+2. **Firestore Database → Reglas** → pega el contenido de [`firestore.rules`](./firestore.rules) y publica. Esto restringe el acceso a los datos solo a usuarios autenticados.
 
 ## 📋 Pantallas
 
@@ -33,6 +39,7 @@ localStorage                    (caché local / carga instantánea)
 
 ```
 index.html              ← App completa (single file)
+firestore.rules         ← Reglas de seguridad (desplegar manualmente en Firebase)
 manifest.webmanifest
 sw.js
 icon-192.png / icon-512.png / icon-maskable-512.png
