@@ -595,8 +595,6 @@ function seedData() {
 const SYNC_KEYS = ["theme","pinHash","categories","finance","liquidez","ahorroAcumulado","ahorroMesAnterior",
   "transactions","goals","wishlist","fuelLogs","tankPct","pending","budgets","planner","plannerScheduled","quincena","quincenaOverrideStart","quincenaOverrideEnd"];
 const LS_PREFIX = "cfo-personal-v2:";
-const SYNC_UID = "cfo_user";
-function _docId(key) { return SYNC_UID + "__" + key.replace(/[^a-zA-Z0-9]/g, "_"); }
 
 function loadLocalState() {
   const seed = seedData();
@@ -664,7 +662,7 @@ function mergeById(localArr, remoteArr) {
   return Object.values(map);
 }
 
-function useFirebaseSync(state, setState) {
+function useFirebaseSync(state, setState, uid) {
   const [syncStatus, setSyncStatus] = useState({ connected: false, syncing: false, lastSyncedAt: null, error: null });
   const knownTs = useRef({});          // key -> último ts confirmado (sobrevive reload vía localStorage)
   const lastLocalWriteTs = useRef({}); // key -> cuándo arrancó nuestra última escritura local (ventana anti-eco)
@@ -673,6 +671,12 @@ function useFirebaseSync(state, setState) {
   stateRef.current = state;
   const prevStateRef = useRef(state);
   SYNC_KEYS.forEach(k => { if (knownTs.current[k] === undefined) knownTs.current[k] = loadKeyTs(k); });
+
+  // v4.6.17: cada documento de Firestore va prefijado con el UID real de la cuenta
+  // autenticada (antes era un prefijo fijo "cfo_user" compartido por CUALQUIER cuenta
+  // — cualquiera que se registrara veía los mismos datos). Ahora cada cuenta tiene su
+  // propio espacio, aislado por firestore.rules además de por esta convención de ID.
+  function _docId(key) { return uid + "__" + key.replace(/[^a-zA-Z0-9]/g, "_"); }
 
   function writeKeyWithRetry(db, key, val, attempt) {
     const ts = Date.now();
@@ -704,6 +708,7 @@ function useFirebaseSync(state, setState) {
   // (así migra correctamente incluso un dispositivo que nunca tuvo el blob local, ej.
   // un celular que solo había sincronizado contra el documento único viejo).
   useEffect(() => {
+    if (!uid) return; // esperando a que resuelva la sesión antes de tocar Firestore
     const db = getDb();
     if (!db) { setSyncStatus(s => ({ ...s, connected: false, error: "Sin conexión a Firestore" })); return; }
     let legacyBlob = null;
@@ -797,14 +802,14 @@ function useFirebaseSync(state, setState) {
 
     return () => Object.values(unsubsRef2.current).forEach(u => u && u());
     // eslint-disable-next-line
-  }, []);
+  }, [uid]);
 
   // Escritura con debounce de 150ms POR CLAVE (solo las que realmente cambiaron desde
   // el último render), con reintento con backoff exponencial si falla — igual que
   // _queueFirestoreWrite/_flushWrite de la app vieja.
   useEffect(() => {
     const db = getDb();
-    if (!db) { prevStateRef.current = state; return; }
+    if (!db || !uid) { prevStateRef.current = state; return; }
     const prev = prevStateRef.current;
     SYNC_KEYS.forEach(key => {
       if (state[key] === prev[key]) return; // no cambió, no hay nada que escribir
@@ -835,7 +840,7 @@ function useFirebaseSync(state, setState) {
   useEffect(() => {
     function flushAllNow() {
       const db = getDb();
-      if (!db) return;
+      if (!db || !uid) return;
       SYNC_KEYS.forEach(key => { if (writeTimers.current[key]) flushKeyNow(db, key); });
     }
     function onVisibility() { if (document.visibilityState === "hidden") flushAllNow(); }
@@ -2573,6 +2578,18 @@ function simpleHash(str) {
   for (let i = 0; i < str.length; i++) { h = ((h * 33) ^ str.charCodeAt(i)) >>> 0; }
   return "h" + h.toString(36);
 }
+// v4.6.17 — "recordar" el desbloqueo del PIN por un rato, para no pedirlo cada vez
+// que se vuelve a la app (solo al reabrirla después de este tiempo, o tras cerrarla).
+const PIN_REMEMBER_MS = 15 * 60 * 1000; // 15 minutos
+function pinUnlockedRecently() {
+  try {
+    const t = parseInt(localStorage.getItem(LS_PREFIX + "pinUnlockAt"), 10);
+    return !!t && (Date.now() - t) < PIN_REMEMBER_MS;
+  } catch (e) { return false; }
+}
+function markPinUnlocked() {
+  try { localStorage.setItem(LS_PREFIX + "pinUnlockAt", String(Date.now())); } catch (e) {}
+}
 // v4.6.13: port fiel del ejemplo HTML/CSS/JS confirmado como funcional — mismas
 // clases CSS (pinx-*), mismos valores, mapeando sus colores fijos a las variables
 // de tema de esta app (claro/oscuro).
@@ -2756,7 +2773,7 @@ function LoginScreen({ onLoggedIn }) {
 
 function App() {
   const [state, setState] = useState(loadLocalState);
-  const [locked, setLocked] = useState(!!loadLocalState().pinHash); // v4.6.13
+  const [locked, setLocked] = useState(() => !!loadLocalState().pinHash && !pinUnlockedRecently());
   const [pinError, setPinError] = useState(null);
   const [authUser, setAuthUser] = useState(undefined); // undefined = cargando, null = sin sesión, obj = logueado
 
@@ -2767,8 +2784,11 @@ function App() {
   }, []);
 
   useEffect(() => {
+    // v4.6.17: ya no se bloquea al cambiar de pestaña/minimizar — solo se re-evalúa
+    // al volver a la app, y solo pide PIN si pasó PIN_REMEMBER_MS desde el último
+    // desbloqueo (ver pinUnlockedRecently).
     function onVis() {
-      if (document.visibilityState === "hidden" && state.pinHash) setLocked(true);
+      if (document.visibilityState === "visible" && state.pinHash && !pinUnlockedRecently()) setLocked(true);
     }
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
@@ -2777,9 +2797,9 @@ function App() {
   function handlePinSubmit(pin) {
     if (!state.pinHash) {
       setState(s => ({ ...s, pinHash: simpleHash(pin) }));
-      setLocked(false); setPinError(null);
+      markPinUnlocked(); setLocked(false); setPinError(null);
     } else if (simpleHash(pin) === state.pinHash) {
-      setLocked(false); setPinError(null);
+      markPinUnlocked(); setLocked(false); setPinError(null);
     } else {
       setPinError("PIN incorrecto");
     }
@@ -2802,7 +2822,7 @@ function App() {
     document.body.style.background = bg;
     document.documentElement.style.background = bg; // v4.6.13: antes solo <body>, <html> quedaba sin fondo propio
   }, [state.theme]);
-  const syncStatus = useFirebaseSync(state, setState);
+  const syncStatus = useFirebaseSync(state, setState, authUser && authUser.uid);
 
   const toast = useCallback((msg) => {
     setToastMsg(msg);
