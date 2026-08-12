@@ -166,11 +166,12 @@
   .pinx-dots { display: flex; gap: 16px; margin-bottom: 2rem; }
   .pinx-dot {
     width: 14px; height: 14px; border-radius: 50%;
-    border: 2px solid var(--muted-light); background: transparent;
-    transition: background .1s, border-color .1s; box-sizing: border-box;
+    border: 2px solid var(--muted-light); background-color: transparent;
+    transition: background-color .1s, border-color .1s, transform .18s ease;
+    box-sizing: border-box; transform: scale(1);
   }
-  .pinx-dot.filled { background: var(--primary); border-color: var(--primary); animation: pinxDotPop .18s ease forwards; }
-  .pinx-dot.error { background: var(--danger); border-color: var(--danger); }
+  .pinx-dot.filled { background-color: var(--primary) !important; border-color: var(--primary) !important; transform: scale(1.15); }
+  .pinx-dot.error { background-color: var(--danger) !important; border-color: var(--danger) !important; }
   .pinx-keypad { display: grid; grid-template-columns: repeat(3, 68px); gap: 12px; }
   .pinx-key {
     width: 68px; height: 68px; border-radius: 50%;
@@ -2583,48 +2584,52 @@ function PinKeyX({ value, onClick, disabled, isDel }) {
 
 function PinLockScreen({ mode, onSubmit, error, onCancel, onForgot }) {
   const [pin, setPin] = useState("");
-  const [shakeKey, setShakeKey] = useState(0);
+  const [shake, setShake] = useState(false);
   const [confirmForgot, setConfirmForgot] = useState(false);
-  const [errorDismissed, setErrorDismissed] = useState(false);
   const prevErrorRef = useRef(null);
-  const showError = error && !errorDismissed;
 
   useEffect(() => {
     if (error && error !== prevErrorRef.current) {
-      setShakeKey(k => k + 1);
-      setErrorDismissed(false);
-      const t = setTimeout(() => setPin(""), 550);
+      setShake(true);
+      const t1 = setTimeout(() => setShake(false), 450);
+      const t2 = setTimeout(() => setPin(""), 550);
       prevErrorRef.current = error;
-      return () => clearTimeout(t);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
     prevErrorRef.current = error;
   }, [error]);
 
   function press(d) {
-    setErrorDismissed(true);
-    setPin(p => p.length < 6 ? p + d : p);
+    if (pin.length >= 6) return;
+    setPin(pin + d);
   }
-  function backspace() { setPin(p => p.slice(0, -1)); }
+  function backspace() { setPin(pin.slice(0, -1)); }
   function submit() { if (pin.length >= 4) { onSubmit(pin); setPin(""); } }
+
+  const dots = [];
+  for (let i = 0; i < 6; i++) {
+    const filled = i < pin.length;
+    dots.push(
+      <div key={i} className={"pinx-dot" + (filled ? (shake ? " error" : " filled") : "")} />
+    );
+  }
 
   return (
     <div className="pinx-shell">
       <div className="pinx-card" role="main">
-        <div className={"pinx-icon" + (showError ? " shake" : "")}>
+        <div className={"pinx-icon" + (shake ? " shake" : "")}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
           </svg>
         </div>
 
         <h1 className="pinx-title">{mode === "create" ? "Crea tu PIN" : "Ingresa tu PIN"}</h1>
-        <p className={"pinx-subtitle" + (showError ? " error" : "")} aria-live="assertive">
-          {showError ? error : mode === "create" ? "Elige un PIN de 4 a 6 dígitos" : "Introduce tu PIN para continuar"}
+        <p className={"pinx-subtitle" + (shake ? " error" : "")} aria-live="assertive">
+          {shake ? error : mode === "create" ? "Elige un PIN de 4 a 6 dígitos" : "Introduce tu PIN para continuar"}
         </p>
 
-        <div key={shakeKey} className="pinx-dots" role="status" aria-label="Dígitos ingresados">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className={"pinx-dot" + (i < pin.length ? (showError ? " error" : " filled") : "")} />
-          ))}
+        <div className="pinx-dots" role="status" aria-label={"Dígitos ingresados: " + pin.length}>
+          {dots}
         </div>
 
         <div className="pinx-keypad" role="group" aria-label="Teclado numérico">
