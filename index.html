@@ -400,6 +400,7 @@ function seedData() {
     liquidez: 14.09,
     ahorroAcumulado: 210.0,
     ahorroMesAnterior: 100.0,
+    creditoPagado: 0, // v4.6.19 — total pagado a la tarjeta de crédito (all-time)
     transactions: [
       { id: "tx-1784556755990", date: "2026-07-20", desc: "parque omar agua de coco", category: "Entretenimiento", type: "gasto", amount: 4.0 },
       { id: "tx-1784556707554", date: "2026-07-20", desc: "salsa pizza machetazo", category: "Otros", type: "gasto", amount: 2.8 },
@@ -599,7 +600,7 @@ function seedData() {
 // cada campo de nivel superior del estado tiene su propio documento de Firestore y su
 // propia clave de localStorage, con su propio debounce/retry/ventana anti-eco — así
 // una escritura vieja de "gasolina" no puede pisar "transacciones" ni nada más.
-const SYNC_KEYS = ["theme","pinHash","categories","finance","liquidez","ahorroAcumulado","ahorroMesAnterior",
+const SYNC_KEYS = ["theme","pinHash","categories","finance","liquidez","ahorroAcumulado","ahorroMesAnterior","creditoPagado",
   "transactions","goals","wishlist","fuelLogs","tankPct","pending","budgets","planner","plannerScheduled","quincena","quincenaOverrideStart","quincenaOverrideEnd"];
 const LS_PREFIX = "cfo-personal-v2:";
 
@@ -916,7 +917,57 @@ function Toast({ message }) {
 
 // ---------- Hoy ----------
 
-function HoyScreen({ state, actions }) {
+function CreditCardCard({ state, actions, toast }) {
+  const [showPay, setShowPay] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
+
+  const usado = useMemo(() =>
+    state.transactions.filter(t => t.type === "gasto" && t.paymentMethod === "credito").reduce((a,b) => a + b.amount, 0),
+    [state.transactions]);
+  const pendiente = Math.max(0, usado - (state.creditoPagado || 0));
+
+  if (usado === 0 && (state.creditoPagado || 0) === 0) return null; // no distrae si nunca se usó
+
+  function submitPay(e) {
+    e.preventDefault();
+    const n = parseFloat(payAmount);
+    if (!n || n <= 0) return;
+    actions.payCreditCard(n);
+    setPayAmount(""); setShowPay(false);
+    toast && toast("Pago registrado — se descontó de lo pendiente");
+  }
+
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 18px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ fontSize: 13.5, fontWeight: 600 }}>💳 Tarjeta de crédito</div>
+        <button type="button" className="cfo-btn" onClick={() => setShowPay(s => !s)}
+          style={{ background: "var(--surface-alt)", color: "var(--text)", borderRadius: 8, padding: "5px 12px", fontSize: 11.5 }}>
+          {showPay ? "Cancelar" : "Registrar pago"}
+        </button>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: showPay ? 12 : 0 }}>
+        <div>
+          <div style={{ fontSize: 11, color: "var(--muted)" }}>Usado (histórico)</div>
+          <div className="cfo-mono" style={{ fontSize: 16, fontWeight: 500 }}>{fmtMoney(usado)}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 11, color: "var(--muted)" }}>Por pagarte a ti mismo</div>
+          <div className="cfo-mono" style={{ fontSize: 16, fontWeight: 500, color: pendiente > 0 ? "var(--danger)" : "var(--success)" }}>{fmtMoney(pendiente)}</div>
+        </div>
+      </div>
+      {showPay && (
+        <form onSubmit={submitPay} style={{ display: "flex", gap: 8 }}>
+          <input className="cfo-field" style={{ marginBottom: 0, flex: 1 }} type="number" step="0.01" min="0" placeholder="Monto pagado" autoFocus
+            value={payAmount} onChange={e => setPayAmount(e.target.value)} />
+          <button type="submit" className="cfo-btn" style={{ background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: "0 16px", fontSize: 13 }}>Guardar</button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function HoyScreen({ state, actions, toast }) {
   // v4.6.13-fix: state.quincena era un valor FIJO hardcodeado en la semilla (día 9 de
   // 15), nunca se recalculaba según la fecha real. Ahora se deriva en vivo con la
   // misma getQuincenaRange() ya corregida que usa Presupuesto.
@@ -981,6 +1032,7 @@ function HoyScreen({ state, actions }) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          <CreditCardCard state={state} actions={actions} toast={toast} />
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 18px" }}>
             <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>Metas activas</div>
             {state.goals.map(g => {
@@ -1002,7 +1054,9 @@ function HoyScreen({ state, actions }) {
             <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>Wishlist</div>
             {state.wishlist.map(w => (
               <div key={w.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--border-soft)" }}>
-                <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--surface-alt)", flex: "0 0 auto" }}></div>
+                {w.imageUrl
+                  ? <img src={w.imageUrl} alt="" style={{ width: 30, height: 30, borderRadius: 8, objectFit: "cover", flex: "0 0 auto" }} />
+                  : <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--surface-alt)", flex: "0 0 auto" }}></div>}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 500 }}>{w.name}</div>
                   <div className="cfo-mono" style={{ fontSize: 11.5, color: "var(--muted)" }}>{fmtMoney(w.price)}</div>
@@ -1019,11 +1073,18 @@ function HoyScreen({ state, actions }) {
 
 // ---------- Movimientos ----------
 
+const PAYMENT_METHODS = [
+  { id: "debito", label: "Débito" },
+  { id: "tarjeta", label: "Tarjeta" },
+  { id: "credito", label: "Crédito" }
+];
+
 function AddTransactionSheet({ categories, goals, onClose, onSave }) {
   const [type, setType] = useState("gasto");
   const [desc, setDesc] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(todayISO());
+  const [paymentMethod, setPaymentMethod] = useState("debito");
 
   // v4.6.13: la lista de categorías depende del tipo de movimiento.
   const gastoCats = categories.filter(c => c !== "Ahorro" && c !== "Salario" && c !== "Ingreso");
@@ -1041,7 +1102,7 @@ function AddTransactionSheet({ categories, goals, onClose, onSave }) {
     e.preventDefault();
     const n = parseFloat(amount);
     if (!desc.trim() || !n || n <= 0 || !category) return;
-    onSave({ id: uid(), date, desc: desc.trim(), category, type, amount: n });
+    onSave({ id: uid(), date, desc: desc.trim(), category, type, amount: n, paymentMethod: type === "gasto" ? paymentMethod : null });
   }
 
   return (
@@ -1073,6 +1134,23 @@ function AddTransactionSheet({ categories, goals, onClose, onSave }) {
           )}
           <input className="cfo-field" type="number" step="0.01" min="0" placeholder="Monto" value={amount} onChange={e => setAmount(e.target.value)} required />
           <input className="cfo-field" type="date" value={date} onChange={e => setDate(e.target.value)} />
+          {type === "gasto" && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 6 }}>Método de pago</div>
+              <div className="cfo-seg">
+                {PAYMENT_METHODS.map(m => (
+                  <button type="button" key={m.id} className={paymentMethod === m.id ? "active" : ""} onClick={() => setPaymentMethod(m.id)}>
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              {paymentMethod === "credito" && (
+                <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: -4 }}>
+                  Se resta de tu liquidez ahora, y se suma a "por pagar" en tu tarjeta (Hoy).
+                </div>
+              )}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
             <button type="button" className="cfo-btn" onClick={onClose} style={{ flex: 1, background: "var(--surface-alt)", color: "var(--text)", borderRadius: 9, padding: 12, fontSize: 13 }}>Cancelar</button>
             <button type="submit" className="cfo-btn" style={{ flex: 1, background: "var(--primary)", color: "var(--on-primary)", borderRadius: 9, padding: 12, fontSize: 13 }}>Guardar</button>
@@ -1147,7 +1225,9 @@ function MovimientosScreen({ state, actions }) {
                   <div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--surface-alt)", flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{categoryIcon(t.category)}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500 }}>{t.desc}</div>
-                    <div style={{ fontSize: 11.5, color: "var(--muted)" }}>{t.category}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--muted)" }}>
+                      {t.category}{t.paymentMethod && t.paymentMethod !== "debito" && " · " + (t.paymentMethod === "credito" ? "Crédito" : "Tarjeta")}
+                    </div>
                   </div>
                   <div className="cfo-mono" style={{ fontSize: 13.5, color: t.type === "ingreso" ? "var(--success)" : "var(--danger)", whiteSpace: "nowrap" }}>
                     {t.type === "ingreso" ? "+" : "-"}{fmtMoney(t.amount)}
@@ -1207,16 +1287,66 @@ function AddGoalSheet({ onClose, onSave, kind }) {
   const [target, setTarget] = useState("");
   const [category, setCategory] = useState("");
   const [targetDate, setTargetDate] = useState("");
+  const [link, setLink] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [fetching, setFetching] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
+
   function submit(e) {
     e.preventDefault();
     if (!name.trim() || !target) return;
-    onSave({ name: name.trim(), target: parseFloat(target), category: category.trim(), targetDate: targetDate || null });
+    onSave({
+      name: name.trim(), target: parseFloat(target), category: category.trim(), targetDate: targetDate || null,
+      link: link.trim() || null, imageUrl: imageUrl || null
+    });
   }
+
+  // v4.6.19 — autocompletar título e imagen desde el link del producto vía microlink.io
+  // (servicio externo de link-preview, capa gratuita). El precio NO viene confiable en
+  // la mayoría de sitios (varía o se carga con JS), así que ese campo se queda manual.
+  async function fetchPreview() {
+    const url = link.trim();
+    if (!url) return;
+    setFetching(true); setFetchError(null);
+    try {
+      const res = await fetch("https://api.microlink.io/?url=" + encodeURIComponent(url));
+      const json = await res.json();
+      if (json.status !== "success" || !json.data) throw new Error("No se pudo leer ese link");
+      if (json.data.title && !name.trim()) setName(json.data.title);
+      if (json.data.image && json.data.image.url) setImageUrl(json.data.image.url);
+      if (!json.data.title && !(json.data.image && json.data.image.url)) {
+        setFetchError("El link no trajo título ni imagen — complétalo a mano.");
+      }
+    } catch (e) {
+      console.error("microlink:", e);
+      setFetchError("No se pudo obtener datos de ese link.");
+    } finally { setFetching(false); }
+  }
+
   return (
     <div className="cfo-overlay" onClick={onClose}>
       <div className="cfo-sheet" onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>{kind === "goal" ? "Nueva meta" : "Nuevo deseo"}</div>
         <form onSubmit={submit}>
+          {kind === "wish" && (
+            <>
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                <input className="cfo-field" style={{ marginBottom: 0, flex: 1 }} type="url" placeholder="Link del producto (opcional)"
+                  value={link} onChange={e => setLink(e.target.value)} />
+                <button type="button" className="cfo-btn" disabled={!link.trim() || fetching} onClick={fetchPreview}
+                  style={{ background: "var(--surface-alt)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 9, padding: "0 14px", fontSize: 12.5, opacity: (!link.trim() || fetching) ? .5 : 1 }}>
+                  {fetching ? "Buscando…" : "Autocompletar"}
+                </button>
+              </div>
+              {fetchError && <div style={{ fontSize: 11.5, color: "var(--danger)", marginTop: -6, marginBottom: 10 }}>{fetchError}</div>}
+              {imageUrl && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <img src={imageUrl} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover", border: "1px solid var(--border)" }} />
+                  <span style={{ fontSize: 11.5, color: "var(--muted)" }}>Imagen encontrada</span>
+                </div>
+              )}
+            </>
+          )}
           <input className="cfo-field" placeholder="Nombre" value={name} onChange={e => setName(e.target.value)} required />
           {kind === "wish" && <input className="cfo-field" placeholder="Categoría" value={category} onChange={e => setCategory(e.target.value)} />}
           <input className="cfo-field" type="number" step="0.01" min="0" placeholder={kind === "goal" ? "Monto objetivo" : "Precio"} value={target} onChange={e => setTarget(e.target.value)} required />
@@ -1545,11 +1675,19 @@ function MetasWishlistScreen({ state, actions, toast }) {
           <div key={w.id} className="cfo-goalcard" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 18, gap: 10, position: "relative" }}>
             <button className="cfo-btn cfo-goal-del" onClick={() => confirmDeleteWish(w.id, w.name)} style={{ position: "absolute", top: 10, right: 12, background: "none", color: "var(--muted-light)", fontSize: 16 }}>×</button>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: "50%", background: categoryColor(w.category), color: "var(--on-primary)", flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 600 }}>
-                {String(w.name || "?").trim().charAt(0).toUpperCase()}
-              </div>
+              {w.imageUrl ? (
+                <img src={w.imageUrl} alt="" style={{ width: 38, height: 38, borderRadius: 10, objectFit: "cover", flex: "0 0 auto", border: "1px solid var(--border)" }} />
+              ) : (
+                <div style={{ width: 38, height: 38, borderRadius: "50%", background: categoryColor(w.category), color: "var(--on-primary)", flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 600 }}>
+                  {String(w.name || "?").trim().charAt(0).toUpperCase()}
+                </div>
+              )}
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{w.name}</div>
+                {w.link ? (
+                  <a href={w.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text)", textDecoration: "none" }}>{w.name} ↗</a>
+                ) : (
+                  <div style={{ fontSize: 13.5, fontWeight: 600 }}>{w.name}</div>
+                )}
                 <div style={{ fontSize: 11, color: "var(--muted-light)" }}>{w.category || "General"}</div>
               </div>
             </div>
@@ -1656,6 +1794,17 @@ function PresupuestoScreen({ state, actions, toast }) {
       });
     return map;
   }, [state.transactions, qStartISO, qEndISO]);
+
+  // v4.6.19 — categorías con gasto en la quincena pero SIN fila de presupuesto creada
+  // (antes quedaban invisibles en esta pantalla).
+  const budgetedCats = useMemo(() => new Set(state.budgets.map(b => b.category)), [state.budgets]);
+  const outOfBudget = useMemo(() => {
+    return Object.keys(realByCategory)
+      .filter(cat => !budgetedCats.has(cat))
+      .map(cat => ({ category: cat, real: realByCategory[cat] }))
+      .sort((a, b) => b.real - a.real);
+  }, [realByCategory, budgetedCats]);
+  const totalOutOfBudget = outOfBudget.reduce((a, r) => a + r.real, 0);
 
   // Redondeado a 1 decimal para no depender de comparaciones de punto flotante
   // exactas (dos categorías al 100% real, ej. 20/20 y 100/100, deben caer en la
@@ -1880,6 +2029,44 @@ function PresupuestoScreen({ state, actions, toast }) {
               <span style={{ color: "var(--muted)" }}> / {fmtMoney(totalBudget)}</span>
             </div>
           </div>
+
+          {outOfBudget.length > 0 && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--muted)", marginBottom: 10 }}>
+                Fuera de presupuesto <span style={{ fontWeight: 400 }}>· gastaste en {outOfBudget.length} categoría{outOfBudget.length === 1 ? "" : "s"} sin presupuesto asignado</span>
+              </div>
+              <div className="cfo-tablewrap" style={{ background: "var(--warn-soft)", border: "1px solid var(--border)", borderRadius: 14, padding: "6px 16px 10px" }}>
+                <table className="cfo-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: 320 }}>
+                  <thead>
+                    <tr>
+                      {["Categoría","Gastado"].map(h => (
+                        <th key={h} style={{ textAlign: h === "Categoría" ? "left" : "right", padding: "12px 8px",
+                          fontSize: 10.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase",
+                          color: "var(--muted)", borderBottom: "1px solid var(--border)" }}>{h}</th>
+                      ))}
+                      <th style={{ padding: "12px 8px" }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {outOfBudget.map(r => (
+                      <tr key={r.category}>
+                        <td style={{ padding: "11px 8px", fontSize: 13.5, fontWeight: 600, borderBottom: "1px solid var(--border-soft)", whiteSpace: "nowrap" }}>{r.category}</td>
+                        <td className="cfo-mono" style={{ padding: "11px 8px", fontSize: 13, textAlign: "right", borderBottom: "1px solid var(--border-soft)", color: "var(--warn)", whiteSpace: "nowrap" }}>{fmtMoney(r.real)}</td>
+                        <td style={{ padding: "11px 8px", borderBottom: "1px solid var(--border-soft)", textAlign: "right" }}>
+                          <button className="cfo-btn" onClick={() => { setShowAdd(true); }} title="Crear presupuesto para esta categoría"
+                            style={{ background: "none", color: "var(--accent)", fontSize: 11.5, whiteSpace: "nowrap" }}>+ Presupuestar</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", fontSize: 12.5, color: "var(--muted)" }}>
+                <span>Total fuera de presupuesto</span>
+                <span className="cfo-mono" style={{ color: "var(--warn)", fontWeight: 600 }}>{fmtMoney(totalOutOfBudget)}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -2977,8 +3164,11 @@ function App() {
     revertBabeAhorroEntry: (amount) => setState(s => ({ ...s, liquidez: s.liquidez + amount })),
     setPin: (pin) => setState(s => ({ ...s, pinHash: simpleHash(pin) })), // v4.6.13
     removePin: () => setState(s => ({ ...s, pinHash: null })),
+    // v4.6.19 — pagos a la tarjeta de crédito: NO tocan liquidez (ya se restó al
+    // registrar el gasto con método "credito"), solo bajan el contador de "por pagar".
+    payCreditCard: (amount) => setState(s => ({ ...s, creditoPagado: s.creditoPagado + amount })),
     deleteGoal: (id) => setState(s => ({ ...s, goals: s.goals.filter(g => g.id !== id) })),
-    addWish: (payload) => setState(s => ({ ...s, wishlist: [...s.wishlist, { id: uid(), name: payload.name, category: payload.category || "General", price: payload.target }] })),
+    addWish: (payload) => setState(s => ({ ...s, wishlist: [...s.wishlist, { id: uid(), name: payload.name, category: payload.category || "General", price: payload.target, link: payload.link || null, imageUrl: payload.imageUrl || null }] })),
     deleteWish: (id) => setState(s => ({ ...s, wishlist: s.wishlist.filter(w => w.id !== id) })),
     addFuel: (payload) => setState(s => {
       const prev = s.fuelLogs[0];
@@ -3143,7 +3333,7 @@ function App() {
         </aside>
 
         <main className="cfo-main">
-          {tab === "hoy" && <HoyScreen state={state} actions={actions} />}
+          {tab === "hoy" && <HoyScreen state={state} actions={actions} toast={toast} />}
           {tab === "movimientos" && <MovimientosScreen state={state} actions={actions} />}
           {tab === "metas" && <MetasWishlistScreen state={state} actions={actions} toast={toast} />}
           {tab === "presupuesto" && <PresupuestoScreen state={state} actions={actions} toast={toast} />}
